@@ -941,88 +941,69 @@ IMPORTANTE:
 
             // Costruisci le parti del testo con errori evidenziati
             const buildParts = (originalText, errors) => {
-                console.log("🔨 buildParts chiamato con:", { originalText, errors });
-                
-                // Se non c'è testo, restituisci vuoto
-                if (!originalText) {
-                    console.error("❌ originalText è vuoto!");
-                    return [{ type: 'text', content: '' }];
-                }
+    if (!originalText) return [{ type: 'text', content: '' }];
+    if (!errors || errors.length === 0) return [{ type: 'text', content: originalText }];
 
-                // Se non ci sono errori, restituisci il testo originale
-                if (!errors || errors.length === 0) {
-                    console.log("ℹ️ Nessun errore, restituisco testo originale");
-                    return [{ type: 'text', content: originalText }];
-                }
+    const parts = [];
+    let remaining = originalText;
+    
+    // Ordina gli errori per lunghezza decrescente per evitare che errori brevi "mangino" quelli lunghi,
+    // oppure mantieni l'ordine posizionale se preferisci. L'importante è il matching sicuro.
+    // Qui usiamo un approccio posizionale sicuro.
+    
+    let currentIndex = 0;
+    
+    // Ordina errori in base alla loro posizione nel testo
+    const sortedErrors = [...errors]
+        .map(err => {
+            if (!err.original) return null;
+            const index = originalText.toLowerCase().indexOf(err.original.toLowerCase(), 0); // Cerca dall'inizio per ordinare
+            return { ...err, tempIndex: index };
+        })
+        .filter(err => err && err.tempIndex !== -1 && err.original.length > 0) // Rimuove errori non trovati o vuoti
+        .sort((a, b) => a.tempIndex - b.tempIndex);
 
-                const parts = [];
-                let remaining = originalText;
-                let lastIndex = 0;
+    let lastCursor = 0;
 
-                // Ordina errori per posizione nel testo (prima occorrenza)
-                const sortedErrors = [...errors].sort((a, b) => {
-                    const posA = originalText.toLowerCase().indexOf(a.original.toLowerCase());
-                    const posB = originalText.toLowerCase().indexOf(b.original.toLowerCase());
-                    return posA - posB;
+    for (const error of sortedErrors) {
+        // Cerca la parola sbagliata PARTENDO dall'ultima posizione trovata (evita loop e sovrapposizioni)
+        const lowerRemaining = originalText.toLowerCase();
+        const foundIndex = lowerRemaining.indexOf(error.original.toLowerCase(), lastCursor);
+
+        if (foundIndex !== -1) {
+            // Aggiungi il testo "buono" prima dell'errore
+            if (foundIndex > lastCursor) {
+                parts.push({ 
+                    type: 'text', 
+                    content: originalText.substring(lastCursor, foundIndex) 
                 });
+            }
 
-                console.log("📋 Errori ordinati:", sortedErrors);
+            // Aggiungi l'errore
+            parts.push({
+                type: 'error',
+                id: Math.random().toString(36).substr(2, 9),
+                original: originalText.substring(foundIndex, foundIndex + error.original.length), // Prende il testo originale con le maiuscole corrette
+                errType: (error.type || 'ORT').toUpperCase(),
+                correction: error.correction,
+                explanation: error.explanation,
+                options: error.options && error.options.length >= 2 
+                    ? shuffleArray(error.options) 
+                    : shuffleArray([error.correction, error.original, error.original + '?', error.original + '!'])
+            });
 
-                for (const error of sortedErrors) {
-                    if (!error.original) {
-                        console.warn("⚠️ Errore senza original, salto:", error);
-                        continue;
-                    }
+            // Sposta il cursore in avanti
+            lastCursor = foundIndex + error.original.length;
+        }
+    }
 
-                    const lowerRemaining = remaining.toLowerCase();
-                    const lowerOriginal = error.original.toLowerCase();
-                    const index = lowerRemaining.indexOf(lowerOriginal);
+    // Aggiungi l'eventuale testo rimanente alla fine
+    if (lastCursor < originalText.length) {
+        parts.push({ type: 'text', content: originalText.substring(lastCursor) });
+    }
 
-                    console.log(`🔎 Cerco "${error.original}" in "${remaining.substring(0, 50)}..." → indice: ${index}`);
-
-                    if (index === -1) {
-                        console.warn(`⚠️ "${error.original}" non trovato nel testo rimanente, salto`);
-                        continue;
-                    }
-
-                    // Testo prima dell'errore
-                    if (index > 0) {
-                        parts.push({ type: 'text', content: remaining.substring(0, index) });
-                    }
-
-                    // L'errore stesso
-                    const errorPart = {
-                        type: 'error',
-                        id: Math.random().toString(36).substr(2, 9),
-                        original: remaining.substring(index, index + error.original.length),
-                        errType: (error.type || 'ORT').toUpperCase(),
-                        correction: error.correction || error.original,
-                        explanation: error.explanation || 'Controlla questa parola',
-                        options: error.options && error.options.length >= 2 
-                            ? shuffleArray(error.options) 
-                            : shuffleArray([error.correction, error.original, error.original + 'e', error.original + 'i'])
-                    };
-                    parts.push(errorPart);
-                    console.log("➕ Aggiunto errore:", errorPart);
-
-                    remaining = remaining.substring(index + error.original.length);
-                }
-
-                // Testo rimanente alla fine
-                if (remaining) {
-                    parts.push({ type: 'text', content: remaining });
-                }
-
-                console.log("✅ Parti finali:", parts);
-                
-                // Se non abbiamo creato parti, restituisci almeno il testo originale
-                if (parts.length === 0) {
-                    console.warn("⚠️ Nessuna parte creata, restituisco testo originale");
-                    return [{ type: 'text', content: originalText }];
-                }
-
-                return parts;
-            };
+    return parts;
+};
 
             // Mescola array (Fisher-Yates)
             const shuffleArray = (array) => {
