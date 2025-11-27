@@ -921,27 +921,49 @@ IMPORTANTE:
 
             // Costruisci le parti del testo con errori evidenziati
             const buildParts = (originalText, errors) => {
+                console.log("🔨 buildParts chiamato con:", { originalText, errors });
+                
+                // Se non c'è testo, restituisci vuoto
+                if (!originalText) {
+                    console.error("❌ originalText è vuoto!");
+                    return [{ type: 'text', content: '' }];
+                }
+
+                // Se non ci sono errori, restituisci il testo originale
                 if (!errors || errors.length === 0) {
+                    console.log("ℹ️ Nessun errore, restituisco testo originale");
                     return [{ type: 'text', content: originalText }];
                 }
 
                 const parts = [];
                 let remaining = originalText;
-                let processedErrors = [];
+                let lastIndex = 0;
 
-                // Ordina errori per posizione nel testo
+                // Ordina errori per posizione nel testo (prima occorrenza)
                 const sortedErrors = [...errors].sort((a, b) => {
-                    const posA = remaining.toLowerCase().indexOf(a.original.toLowerCase());
-                    const posB = remaining.toLowerCase().indexOf(b.original.toLowerCase());
+                    const posA = originalText.toLowerCase().indexOf(a.original.toLowerCase());
+                    const posB = originalText.toLowerCase().indexOf(b.original.toLowerCase());
                     return posA - posB;
                 });
 
+                console.log("📋 Errori ordinati:", sortedErrors);
+
                 for (const error of sortedErrors) {
+                    if (!error.original) {
+                        console.warn("⚠️ Errore senza original, salto:", error);
+                        continue;
+                    }
+
                     const lowerRemaining = remaining.toLowerCase();
                     const lowerOriginal = error.original.toLowerCase();
                     const index = lowerRemaining.indexOf(lowerOriginal);
 
-                    if (index === -1) continue; // Errore non trovato, salta
+                    console.log(`🔎 Cerco "${error.original}" in "${remaining.substring(0, 50)}..." → indice: ${index}`);
+
+                    if (index === -1) {
+                        console.warn(`⚠️ "${error.original}" non trovato nel testo rimanente, salto`);
+                        continue;
+                    }
 
                     // Testo prima dell'errore
                     if (index > 0) {
@@ -949,22 +971,34 @@ IMPORTANTE:
                     }
 
                     // L'errore stesso
-                    parts.push({
+                    const errorPart = {
                         type: 'error',
                         id: Math.random().toString(36).substr(2, 9),
                         original: remaining.substring(index, index + error.original.length),
-                        errType: error.type.toUpperCase(),
-                        correction: error.correction,
-                        explanation: error.explanation,
-                        options: shuffleArray(error.options || [error.correction])
-                    });
+                        errType: (error.type || 'ORT').toUpperCase(),
+                        correction: error.correction || error.original,
+                        explanation: error.explanation || 'Controlla questa parola',
+                        options: error.options && error.options.length >= 2 
+                            ? shuffleArray(error.options) 
+                            : shuffleArray([error.correction, error.original, error.original + 'e', error.original + 'i'])
+                    };
+                    parts.push(errorPart);
+                    console.log("➕ Aggiunto errore:", errorPart);
 
                     remaining = remaining.substring(index + error.original.length);
                 }
 
-                // Testo rimanente
+                // Testo rimanente alla fine
                 if (remaining) {
                     parts.push({ type: 'text', content: remaining });
+                }
+
+                console.log("✅ Parti finali:", parts);
+                
+                // Se non abbiamo creato parti, restituisci almeno il testo originale
+                if (parts.length === 0) {
+                    console.warn("⚠️ Nessuna parte creata, restituisco testo originale");
+                    return [{ type: 'text', content: originalText }];
                 }
 
                 return parts;
@@ -998,24 +1032,43 @@ IMPORTANTE:
                 setLoading(true);
                 setErrorsFixed(0);
 
+                // Salva il testo originale PRIMA di qualsiasi operazione
+                const originalText = text;
+                console.log("📝 Testo originale salvato:", originalText);
+
                 try {
-                    const errors = await analyzeWithAI(text);
+                    console.log("🔍 Invio richiesta AI...");
+                    const errors = await analyzeWithAI(originalText);
+                    console.log("📊 Errori ricevuti da AI:", errors);
                     
-                    if (errors.length === 0) {
+                    if (!errors || errors.length === 0) {
                         alert("🎉 Perfetto! Non ho trovato errori!");
                         setLoading(false);
                         return;
                     }
 
-                    const parts = buildParts(text, errors);
+                    console.log("🔧 Costruisco parti con testo:", originalText);
+                    const parts = buildParts(originalText, errors);
+                    console.log("📦 Parti costruite:", parts);
+                    
+                    // Verifica che le parti non siano vuote
+                    if (!parts || parts.length === 0) {
+                        console.error("❌ Parti vuote! Ripristino testo originale");
+                        alert("Errore nell'analisi. Riprova.");
+                        setLoading(false);
+                        return;
+                    }
+
                     const errorCount = parts.filter(p => p.type === 'error').length;
+                    console.log("✅ Errori trovati nel testo:", errorCount);
                     
                     setAnalyzedParts(parts);
                     setTotalErrors(errorCount);
                     DB.addXP(10);
                 } catch (e) {
-                    console.error(e);
+                    console.error("❌ Errore completo:", e);
                     alert("Errore: " + e.message);
+                    // Non cancellare il testo in caso di errore
                 }
                 setLoading(false);
             };
