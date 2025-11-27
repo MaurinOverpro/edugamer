@@ -856,8 +856,129 @@ Testo originale: "${text}"`;
             const [analyzedParts, setAnalyzedParts] = useState(null);
             const [loading, setLoading] = useState(false);
             const [activeError, setActiveError] = useState(null);
-            const [userCorrection, setUserCorrection] = useState('');
-            const [correctionStatus, setCorrectionStatus] = useState('idle');
+            const [shakeOption, setShakeOption] = useState(null);
+            const [errorsFixed, setErrorsFixed] = useState(0);
+            const [totalErrors, setTotalErrors] = useState(0);
+
+            // Funzione per analizzare gli errori con AI
+            const analyzeWithAI = async (inputText) => {
+                const key = DB.getKey();
+                if (!key) throw new Error("Inserisci prima la API Key nelle impostazioni!");
+
+                const prompt = `Sei un correttore ortografico per un bambino italiano di 9 anni con dislessia.
+
+ANALIZZA questo testo e trova TUTTI gli errori:
+"${inputText}"
+
+REGOLE IMPORTANTI:
+1. ORTOGRAFIA (ORT): lettere sbagliate, doppie mancanti/extra, accenti mancanti (è, é, ò, à, ù, ì), maiuscole mancanti a inizio frase o nei nomi propri
+2. PUNTEGGIATURA (PUN): virgole mancanti, punti mancanti, punti interrogativi/esclamativi mancanti. SE MANCA PUNTEGGIATURA, includi la parola PRIMA nel blocco (es: "mamma pero" se manca virgola dopo mamma)
+3. SINTASSI (SIN): parole in ordine sbagliato, verbi coniugati male, accordi sbagliati (il mela, le cane)
+
+Per ogni errore genera 4 OPZIONI: 1 corretta e 3 sbagliate ma plausibili (errori simili che un bambino potrebbe fare).
+
+Rispondi SOLO con un JSON array valido, senza altro testo:
+[
+  {
+    "original": "testo sbagliato",
+    "type": "ORT|PUN|SIN",
+    "correction": "testo corretto",
+    "explanation": "spiegazione semplice per bambino",
+    "options": ["opzione1", "opzione2", "opzione3", "opzione4"]
+  }
+]
+
+Se il testo è perfetto, rispondi: []
+
+IMPORTANTE: 
+- Le options devono SEMPRE contenere la correction come una delle 4 opzioni
+- Mescola la posizione della risposta corretta
+- Per punteggiatura mancante, includi sempre il contesto (parola prima + correzione)`;
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0.3 }
+                    })
+                });
+
+                if (!response.ok) throw new Error("Errore API");
+                const data = await response.json();
+                let result = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+                
+                // Pulisci il JSON
+                result = result.replace(/```json/g, '').replace(/```/g, '').trim();
+                
+                // Trova l'array JSON
+                const jsonMatch = result.match(/\[[\s\S]*\]/);
+                if (jsonMatch) {
+                    return JSON.parse(jsonMatch[0]);
+                }
+                return [];
+            };
+
+            // Costruisci le parti del testo con errori evidenziati
+            const buildParts = (originalText, errors) => {
+                if (!errors || errors.length === 0) {
+                    return [{ type: 'text', content: originalText }];
+                }
+
+                const parts = [];
+                let remaining = originalText;
+                let processedErrors = [];
+
+                // Ordina errori per posizione nel testo
+                const sortedErrors = [...errors].sort((a, b) => {
+                    const posA = remaining.toLowerCase().indexOf(a.original.toLowerCase());
+                    const posB = remaining.toLowerCase().indexOf(b.original.toLowerCase());
+                    return posA - posB;
+                });
+
+                for (const error of sortedErrors) {
+                    const lowerRemaining = remaining.toLowerCase();
+                    const lowerOriginal = error.original.toLowerCase();
+                    const index = lowerRemaining.indexOf(lowerOriginal);
+
+                    if (index === -1) continue; // Errore non trovato, salta
+
+                    // Testo prima dell'errore
+                    if (index > 0) {
+                        parts.push({ type: 'text', content: remaining.substring(0, index) });
+                    }
+
+                    // L'errore stesso
+                    parts.push({
+                        type: 'error',
+                        id: Math.random().toString(36).substr(2, 9),
+                        original: remaining.substring(index, index + error.original.length),
+                        errType: error.type.toUpperCase(),
+                        correction: error.correction,
+                        explanation: error.explanation,
+                        options: shuffleArray(error.options || [error.correction])
+                    });
+
+                    remaining = remaining.substring(index + error.original.length);
+                }
+
+                // Testo rimanente
+                if (remaining) {
+                    parts.push({ type: 'text', content: remaining });
+                }
+
+                return parts;
+            };
+
+            // Mescola array (Fisher-Yates)
+            const shuffleArray = (array) => {
+                const arr = [...array];
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                return arr;
+            };
 
             const handleRestructure = async () => {
                 if (!text.trim()) return;
@@ -875,63 +996,80 @@ Testo originale: "${text}"`;
             const handleAnalyze = async () => {
                 if (!text.trim()) return;
                 setLoading(true);
+                setErrorsFixed(0);
+
                 try {
-                    const raw = await GeminiService.analyzeErrors(text);
-                    const regex = /\[(.*?)\|(.*?)\|(.*?)\|(.*?)\]/g;
-                    let match;
-                    let lastIndex = 0;
-                    const parts = [];
-
-                    while ((match = regex.exec(raw)) !== null) {
-                        if (match.index > lastIndex) {
-                            parts.push({ type: 'text', content: raw.substring(lastIndex, match.index) });
-                        }
-                        parts.push({
-                            type: 'error',
-                            id: Math.random(),
-                            original: match[1],
-                            errType: match[2].trim().toUpperCase(),
-                            correction: match[3].trim(),
-                            explanation: match[4].trim()
-                        });
-                        lastIndex = regex.lastIndex;
+                    const errors = await analyzeWithAI(text);
+                    
+                    if (errors.length === 0) {
+                        alert("🎉 Perfetto! Non ho trovato errori!");
+                        setLoading(false);
+                        return;
                     }
 
-                    if (lastIndex < raw.length) {
-                        parts.push({ type: 'text', content: raw.substring(lastIndex) });
-                    }
-
+                    const parts = buildParts(text, errors);
+                    const errorCount = parts.filter(p => p.type === 'error').length;
+                    
                     setAnalyzedParts(parts);
-                    DB.addXP(20);
+                    setTotalErrors(errorCount);
+                    DB.addXP(10);
                 } catch (e) {
-                    alert(e.message);
+                    console.error(e);
+                    alert("Errore: " + e.message);
                 }
                 setLoading(false);
             };
 
-            const verifyCorrection = (index) => {
-                const target = analyzedParts[index];
-                if (userCorrection.trim().toLowerCase() === target.correction.trim().toLowerCase()) {
+            const handleOptionSelect = (partIndex, selectedOption) => {
+                const part = analyzedParts[partIndex];
+                
+                // Verifica se la scelta è corretta
+                const isCorrect = selectedOption.trim().toLowerCase() === part.correction.trim().toLowerCase();
+
+                if (isCorrect) {
+                    // Risposta corretta!
                     const newParts = [...analyzedParts];
-                    newParts[index] = { type: 'text', content: target.correction };
+                    newParts[partIndex] = { 
+                        type: 'fixed', 
+                        content: part.correction,
+                        wasError: part.errType
+                    };
                     setAnalyzedParts(newParts);
                     setActiveError(null);
-                    setUserCorrection('');
-                    setCorrectionStatus('idle');
-                    DB.addXP(50);
+                    setErrorsFixed(prev => prev + 1);
+                    DB.addXP(25);
+
+                    // Feedback vocale
+                    const utterance = new SpeechSynthesisUtterance("Giusto!");
+                    utterance.lang = 'it-IT';
+                    utterance.rate = 1.2;
+                    window.speechSynthesis.speak(utterance);
                 } else {
-                    setCorrectionStatus('shake');
-                    setTimeout(() => setCorrectionStatus('idle'), 500);
+                    // Risposta sbagliata - shake
+                    setShakeOption(selectedOption);
+                    setTimeout(() => setShakeOption(null), 500);
+
+                    // Feedback vocale
+                    const utterance = new SpeechSynthesisUtterance("Riprova!");
+                    utterance.lang = 'it-IT';
+                    utterance.rate = 1.2;
+                    window.speechSynthesis.speak(utterance);
                 }
             };
 
             const handleReset = () => {
                 const fullText = analyzedParts
-                    .map(p => (p.type === 'error' ? p.original : p.content))
+                    .map(p => {
+                        if (p.type === 'error') return p.original;
+                        if (p.type === 'fixed') return p.content;
+                        return p.content;
+                    })
                     .join('');
                 setText(fullText);
                 setAnalyzedParts(null);
                 setActiveError(null);
+                setErrorsFixed(0);
+                setTotalErrors(0);
             };
 
             const speakText = () => {
@@ -942,9 +1080,14 @@ Testo originale: "${text}"`;
                 if (!textToSpeak) return;
                 const utterance = new SpeechSynthesisUtterance(textToSpeak);
                 utterance.lang = 'it-IT';
-                utterance.rate = 0.9;
+                utterance.rate = 0.85;
                 window.speechSynthesis.speak(utterance);
             };
+
+            // Conta errori rimanenti
+            const remainingErrors = analyzedParts 
+                ? analyzedParts.filter(p => p.type === 'error').length 
+                : 0;
 
             return (
                 <div className="h-full flex flex-col p-4 gap-4 max-w-4xl mx-auto w-full overflow-hidden relative">
@@ -985,56 +1128,112 @@ Testo originale: "${text}"`;
                         </button>
                     </div>
 
+                    {/* Barra progresso errori */}
+                    {analyzedParts && totalErrors > 0 && (
+                        <div className="bg-slate-800 rounded-xl p-3 border border-slate-600">
+                            <div className="flex justify-between text-sm mb-2">
+                                <span className="text-slate-400">Errori corretti:</span>
+                                <span className="text-green-400 font-bold">{errorsFixed} / {totalErrors}</span>
+                            </div>
+                            <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+                                <div 
+                                    className="h-full bg-gradient-to-r from-green-600 to-green-400 transition-all duration-500"
+                                    style={{ width: `${(errorsFixed / totalErrors) * 100}%` }}
+                                ></div>
+                            </div>
+                            {remainingErrors === 0 && (
+                                <div className="text-center text-green-400 font-bold mt-2 animate-pulse">
+                                    🎉 TUTTI GLI ERRORI CORRETTI! +{errorsFixed * 25} XP
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Area testo */}
                     <div
-                        className="flex-1 bg-slate-800 rounded-xl border-2 border-slate-600 p-6 text-lg leading-loose overflow-y-auto relative"
+                        className="flex-1 bg-slate-800 rounded-xl border-2 border-slate-600 p-6 text-lg leading-relaxed overflow-y-auto relative"
                         onClick={() => setActiveError(null)}
                     >
                         {!analyzedParts ? (
                             <textarea
                                 value={text}
                                 onChange={(e) => setText(e.target.value)}
-                                placeholder="Scrivi qui o usa il microfono della tastiera per dettare..."
-                                className="w-full h-full bg-transparent resize-none outline-none text-slate-200 placeholder-slate-500 text-lg"
+                                placeholder="Scrivi qui o usa il microfono 🎤 della tastiera per dettare..."
+                                className="w-full h-full bg-transparent resize-none outline-none text-slate-200 placeholder-slate-500 text-xl leading-relaxed"
+                                style={{ lineHeight: '2' }}
                             />
                         ) : (
-                            <div className="text-slate-200">
+                            <div className="text-slate-200 text-xl" style={{ lineHeight: '2.2' }}>
                                 {analyzedParts.map((p, i) => {
+                                    // Testo normale
                                     if (p.type === 'text') {
                                         return <span key={i}>{p.content}</span>;
                                     }
+                                    
+                                    // Errore già corretto
+                                    if (p.type === 'fixed') {
+                                        return (
+                                            <span 
+                                                key={i} 
+                                                className="bg-green-500/20 text-green-300 px-1 rounded border-b-2 border-green-500"
+                                            >
+                                                {p.content}
+                                            </span>
+                                        );
+                                    }
+
+                                    // Errore da correggere
                                     return (
                                         <span
                                             key={i}
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                setActiveError(i);
-                                                setUserCorrection('');
+                                                setActiveError(activeError === i ? null : i);
                                             }}
-                                            className={`err-span err-${p.errType} rounded mx-1`}
+                                            className={`err-span err-${p.errType} rounded-md px-1 cursor-pointer ${activeError === i ? 'ring-2 ring-white' : ''}`}
                                         >
                                             {p.original}
+                                            
+                                            {/* Popup con opzioni */}
                                             {activeError === i && (
-                                                <div className="correction-popup" onClick={(e) => e.stopPropagation()}>
-                                                    <div className="font-bold text-yellow-400 mb-1 text-xs">
-                                                        {p.errType === 'PUN' ? '📝 PUNTEGGIATURA' : p.errType === 'SIN' ? '📖 SINTASSI' : '✏️ ORTOGRAFIA'}
+                                                <div 
+                                                    className="correction-popup"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    style={{ width: '280px' }}
+                                                >
+                                                    {/* Header tipo errore */}
+                                                    <div className={`font-bold mb-2 text-sm px-2 py-1 rounded ${
+                                                        p.errType === 'ORT' ? 'bg-red-500/20 text-red-400' :
+                                                        p.errType === 'PUN' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                        'bg-blue-500/20 text-blue-400'
+                                                    }`}>
+                                                        {p.errType === 'ORT' ? '✏️ ORTOGRAFIA' : 
+                                                         p.errType === 'PUN' ? '📝 PUNTEGGIATURA' : 
+                                                         '📖 SINTASSI'}
                                                     </div>
-                                                    <div className="text-slate-300 text-xs mb-2">{p.explanation}</div>
-                                                    <div className="text-xs text-slate-400 mb-1">Scrivi la correzione:</div>
-                                                    <input
-                                                        type="text"
-                                                        className={`fix-input ${correctionStatus === 'shake' ? 'shake' : ''}`}
-                                                        value={userCorrection}
-                                                        onChange={(e) => setUserCorrection(e.target.value)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && verifyCorrection(i)}
-                                                        autoFocus
-                                                    />
-                                                    <button
-                                                        onClick={() => verifyCorrection(i)}
-                                                        className="bg-green-600 hover:bg-green-500 px-3 py-2 rounded text-xs font-bold w-full text-white mt-2 transition-all"
-                                                    >
-                                                        ✓ VERIFICA
-                                                    </button>
+                                                    
+                                                    {/* Spiegazione */}
+                                                    <div className="text-slate-300 text-sm mb-3 px-1">
+                                                        {p.explanation}
+                                                    </div>
+                                                    
+                                                    {/* Opzioni */}
+                                                    <div className="text-xs text-slate-400 mb-2">Scegli la forma corretta:</div>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        {p.options.map((opt, optIdx) => (
+                                                            <button
+                                                                key={optIdx}
+                                                                onClick={() => handleOptionSelect(i, opt)}
+                                                                className={`p-3 rounded-lg font-bold text-sm transition-all ${
+                                                                    shakeOption === opt 
+                                                                        ? 'bg-red-600 shake' 
+                                                                        : 'bg-slate-700 hover:bg-slate-600 hover:scale-105'
+                                                                } text-white border border-slate-500`}
+                                                            >
+                                                                {opt}
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             )}
                                         </span>
@@ -1047,14 +1246,21 @@ Testo originale: "${text}"`;
                     {/* Legenda errori */}
                     {analyzedParts && (
                         <div className="flex gap-4 justify-center text-xs text-slate-400 shrink-0 flex-wrap">
-                            <div className="flex items-center gap-1">
-                                <div className="w-3 h-3 bg-red-500/50 border border-red-500 rounded"></div> Ortografia
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-red-500/30 border-2 border-red-500 rounded"></div> 
+                                <span>Ortografia</span>
                             </div>
-                            <div className="flex items-center gap-1">
-                                <div className="w-3 h-3 bg-yellow-500/50 border border-yellow-500 rounded"></div> Punteggiatura
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-yellow-500/30 border-2 border-yellow-500 rounded"></div> 
+                                <span>Punteggiatura</span>
                             </div>
-                            <div className="flex items-center gap-1">
-                                <div className="w-3 h-3 bg-blue-500/50 border border-blue-500 rounded"></div> Sintassi
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-blue-500/30 border-2 border-blue-500 rounded"></div> 
+                                <span>Sintassi</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-green-500/30 border-2 border-green-500 rounded"></div> 
+                                <span>Corretto ✓</span>
                             </div>
                         </div>
                     )}
