@@ -865,6 +865,8 @@ Testo originale: "${text}"`;
                 const key = DB.getKey();
                 if (!key) throw new Error("Inserisci prima la API Key nelle impostazioni!");
 
+                console.log("🤖 [AI] Input testo:", inputText);
+
                 const prompt = `Sei un correttore ortografico per un bambino italiano di 9 anni con dislessia.
 
 ANALIZZA questo testo e trova TUTTI gli errori:
@@ -895,6 +897,8 @@ IMPORTANTE:
 - Mescola la posizione della risposta corretta
 - Per punteggiatura mancante, includi sempre il contesto (parola prima + correzione)`;
 
+                console.log("🤖 [AI] Invio richiesta...");
+
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -904,18 +908,34 @@ IMPORTANTE:
                     })
                 });
 
-                if (!response.ok) throw new Error("Errore API");
+                console.log("🤖 [AI] Status risposta:", response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error("🤖 [AI] Errore risposta:", errorText);
+                    throw new Error("Errore API: " + response.status);
+                }
+                
                 const data = await response.json();
+                console.log("🤖 [AI] Risposta completa:", data);
+                
                 let result = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+                console.log("🤖 [AI] Testo estratto:", result);
                 
                 // Pulisci il JSON
                 result = result.replace(/```json/g, '').replace(/```/g, '').trim();
+                console.log("🤖 [AI] Dopo pulizia:", result);
                 
                 // Trova l'array JSON
                 const jsonMatch = result.match(/\[[\s\S]*\]/);
                 if (jsonMatch) {
-                    return JSON.parse(jsonMatch[0]);
+                    console.log("🤖 [AI] JSON trovato:", jsonMatch[0]);
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    console.log("🤖 [AI] Parsed:", parsed);
+                    return parsed;
                 }
+                
+                console.log("🤖 [AI] Nessun JSON trovato, ritorno array vuoto");
                 return [];
             };
 
@@ -1028,48 +1048,85 @@ IMPORTANTE:
             };
 
             const handleAnalyze = async () => {
-                if (!text.trim()) return;
+                if (!text.trim()) {
+                    alert("Scrivi qualcosa prima di controllare!");
+                    return;
+                }
+                
                 setLoading(true);
                 setErrorsFixed(0);
 
-                // Salva il testo originale PRIMA di qualsiasi operazione
-                const originalText = text;
-                console.log("📝 Testo originale salvato:", originalText);
+                // IMPORTANTE: Salva il testo PRIMA di tutto
+                const savedText = text;
+                console.log("📝 [CONTROLLA] Testo salvato:", savedText);
 
                 try {
-                    console.log("🔍 Invio richiesta AI...");
-                    const errors = await analyzeWithAI(originalText);
-                    console.log("📊 Errori ricevuti da AI:", errors);
+                    console.log("🔍 [CONTROLLA] Chiamo API AI...");
                     
-                    if (!errors || errors.length === 0) {
+                    let errors = [];
+                    try {
+                        errors = await analyzeWithAI(savedText);
+                    } catch (apiError) {
+                        console.error("❌ [CONTROLLA] Errore API:", apiError);
+                        alert("Errore connessione AI: " + apiError.message);
+                        setLoading(false);
+                        return; // Esci senza toccare il testo
+                    }
+                    
+                    console.log("📊 [CONTROLLA] Risposta AI:", JSON.stringify(errors, null, 2));
+                    
+                    // Nessun errore trovato
+                    if (!errors || !Array.isArray(errors) || errors.length === 0) {
                         alert("🎉 Perfetto! Non ho trovato errori!");
+                        setLoading(false);
+                        return; // Esci senza toccare il testo
+                    }
+
+                    // Costruisci le parti
+                    console.log("🔧 [CONTROLLA] Costruisco parti...");
+                    let parts = [];
+                    try {
+                        parts = buildParts(savedText, errors);
+                    } catch (buildError) {
+                        console.error("❌ [CONTROLLA] Errore buildParts:", buildError);
+                        alert("Errore elaborazione. Riprova.");
+                        setLoading(false);
+                        return;
+                    }
+                    
+                    console.log("📦 [CONTROLLA] Parti create:", parts.length);
+                    
+                    // Verifica parti valide
+                    if (!parts || parts.length === 0) {
+                        console.error("❌ [CONTROLLA] Parti vuote!");
+                        alert("Errore: nessuna parte creata. Riprova.");
                         setLoading(false);
                         return;
                     }
 
-                    console.log("🔧 Costruisco parti con testo:", originalText);
-                    const parts = buildParts(originalText, errors);
-                    console.log("📦 Parti costruite:", parts);
+                    // Verifica che il contenuto totale non sia vuoto
+                    const totalContent = parts.map(p => p.original || p.content || '').join('');
+                    console.log("📏 [CONTROLLA] Contenuto totale:", totalContent.length, "caratteri");
                     
-                    // Verifica che le parti non siano vuote
-                    if (!parts || parts.length === 0) {
-                        console.error("❌ Parti vuote! Ripristino testo originale");
-                        alert("Errore nell'analisi. Riprova.");
+                    if (totalContent.trim().length === 0) {
+                        console.error("❌ [CONTROLLA] Contenuto vuoto dopo elaborazione!");
+                        alert("Errore elaborazione testo. Riprova.");
                         setLoading(false);
                         return;
                     }
 
                     const errorCount = parts.filter(p => p.type === 'error').length;
-                    console.log("✅ Errori trovati nel testo:", errorCount);
+                    console.log("✅ [CONTROLLA] Successo! Errori:", errorCount);
                     
                     setAnalyzedParts(parts);
                     setTotalErrors(errorCount);
                     DB.addXP(10);
+                    
                 } catch (e) {
-                    console.error("❌ Errore completo:", e);
-                    alert("Errore: " + e.message);
-                    // Non cancellare il testo in caso di errore
+                    console.error("❌ [CONTROLLA] Errore generale:", e);
+                    alert("Errore imprevisto: " + e.message);
                 }
+                
                 setLoading(false);
             };
 
