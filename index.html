@@ -940,7 +940,7 @@ IMPORTANTE:
             };
 
             // Costruisci le parti del testo con errori evidenziati
-            const buildParts = (originalText, errors) => {
+        const buildParts = (originalText, errors) => {
     if (!originalText) return [{ type: 'text', content: '' }];
     if (!errors || errors.length === 0) return [{ type: 'text', content: originalText }];
 
@@ -1360,16 +1360,17 @@ IMPORTANTE:
         };
 
         // ═══════════════════════════════════════════════════════════════
-        // COMPONENTE: LAVAGNA AI (Mappe Mentali)
+        // COMPONENTE: LAVAGNA AI (Mappe Mentali - Versione Multi-Pagina)
         // ═══════════════════════════════════════════════════════════════
         const CyberBoard = () => {
             const [stage, setStage] = useState('upload');
-            const [bgImage, setBgImage] = useState(null);
+            const [images, setImages] = useState([]); // Ora gestisce un array di immagini!
             const [data, setData] = useState(null);
             const [nodes, setNodes] = useState([]);
             const [lines, setLines] = useState([]);
             const [dragging, setDragging] = useState(null);
 
+            // Carica salvataggio precedente
             useEffect(() => {
                 const saved = DB.loadMap();
                 if (saved.nodes.length > 0) {
@@ -1380,60 +1381,62 @@ IMPORTANTE:
                 }
             }, []);
 
-            const handleImageUpload = async (e) => {
+            // Gestisce l'upload di una singola immagine e la aggiunge alla lista
+            const handleImageUpload = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
 
                 const reader = new FileReader();
-                reader.onload = async (evt) => {
-                    setBgImage(evt.target.result);
-                    setStage('scanning');
-
-                    try {
-                        const aiData = await GeminiService.analyzeToMap(evt.target.result);
-                        setData(aiData);
-
-                        // Posiziona i nodi in cerchio
-                        const cx = window.innerWidth / 2;
-                        const cy = window.innerHeight / 2.5;
-                        const radius = Math.min(cx, cy) / 1.8;
-
-                        const newNodes = aiData.nodes.map((n, i) => ({
-                            ...n,
-                            x: cx + radius * Math.cos((i / aiData.nodes.length) * 2 * Math.PI - Math.PI / 2) - 75,
-                            y: cy + radius * Math.sin((i / aiData.nodes.length) * 2 * Math.PI - Math.PI / 2) - 40,
-                            w: 150,
-                            h: 80
-                        }));
-
-                        // Crea linee dalle connessioni
-                        const newLines = (aiData.connections || []).map(conn => {
-                            const from = newNodes.find(n => n.id === conn.from);
-                            const to = newNodes.find(n => n.id === conn.to);
-                            if (from && to) {
-                                return {
-                                    x1: from.x + 75,
-                                    y1: from.y + 40,
-                                    x2: to.x + 75,
-                                    y2: to.y + 40,
-                                    from: conn.from,
-                                    to: conn.to
-                                };
-                            }
-                            return null;
-                        }).filter(Boolean);
-
-                        setNodes(newNodes);
-                        setLines(newLines);
-                        DB.saveMap(newNodes, newLines, aiData.summary);
-                        DB.addXP(30);
-                        setStage('playing');
-                    } catch (e) {
-                        alert("Errore AI: " + e.message);
-                        setStage('upload');
-                    }
+                reader.onload = (evt) => {
+                    setImages(prev => [...prev, evt.target.result]);
                 };
                 reader.readAsDataURL(file);
+            };
+
+            // Lancia l'analisi su TUTTE le immagini caricate
+            const startAnalysis = async () => {
+                if (images.length === 0) return;
+                setStage('scanning');
+
+                try {
+                    const aiData = await GeminiService.analyzeToMap(images);
+                    setData(aiData);
+
+                    // Calcolo posizioni nodi (a cerchio)
+                    const cx = window.innerWidth / 2;
+                    const cy = window.innerHeight / 2.5;
+                    const radius = Math.min(cx, cy) / 1.8;
+
+                    const newNodes = aiData.nodes.map((n, i) => ({
+                        ...n,
+                        x: cx + radius * Math.cos((i / aiData.nodes.length) * 2 * Math.PI - Math.PI / 2) - 75,
+                        y: cy + radius * Math.sin((i / aiData.nodes.length) * 2 * Math.PI - Math.PI / 2) - 40,
+                        w: 150,
+                        h: 80
+                    }));
+
+                    const newLines = (aiData.connections || []).map(conn => {
+                        const from = newNodes.find(n => n.id === conn.from);
+                        const to = newNodes.find(n => n.id === conn.to);
+                        if (from && to) {
+                            return {
+                                x1: from.x + 75, y1: from.y + 40,
+                                x2: to.x + 75, y2: to.y + 40,
+                                from: conn.from, to: conn.to
+                            };
+                        }
+                        return null;
+                    }).filter(Boolean);
+
+                    setNodes(newNodes);
+                    setLines(newLines);
+                    DB.saveMap(newNodes, newLines, aiData.summary);
+                    DB.addXP(30);
+                    setStage('playing');
+                } catch (e) {
+                    alert("Errore AI: " + e.message);
+                    setStage('upload');
+                }
             };
 
             const handleNodeClick = (node) => {
@@ -1449,35 +1452,67 @@ IMPORTANTE:
                 setNodes([]);
                 setLines([]);
                 setData(null);
-                setBgImage(null);
+                setImages([]); // Pulisce le immagini
             };
 
+            // --- FASE 1: CARICAMENTO (Carrello Immagini) ---
             if (stage === 'upload') {
                 return (
                     <div className="h-full flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
-                        <div className="border-2 border-dashed border-slate-600 rounded-3xl p-10 flex flex-col items-center gap-6 bg-slate-800/30 max-w-md">
-                            <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center">
-                                <Icons.Upload className="w-10 h-10 text-green-400" />
+                        <div className="border-2 border-dashed border-slate-600 rounded-3xl p-8 flex flex-col items-center gap-6 bg-slate-800/30 max-w-2xl w-full">
+                            
+                            <div>
+                                <h2 className="text-2xl font-bold text-slate-200">CARICA PAGINE LIBRO</h2>
+                                <p className="text-slate-400 text-sm mt-1">
+                                    Fai le foto a tutte le pagine del paragrafo (anche i riquadri!).
+                                </p>
                             </div>
-                            <h2 className="text-2xl font-bold text-slate-200">CARICA UN ESERCIZIO</h2>
-                            <p className="text-slate-400 text-sm">
-                                Fai uno screenshot da HUB Scuola e caricalo qui. L'AI creerà una mappa dei concetti!
-                            </p>
-                            <label className="bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-8 rounded-full cursor-pointer shadow-lg transition-all">
-                                <input
-                                    type="file"
-                                    onChange={handleImageUpload}
-                                    className="hidden"
-                                    accept="image/*"
-                                />
-                                📸 SCEGLI IMMAGINE
-                            </label>
-                            {nodes.length > 0 && (
-                                <button
-                                    onClick={() => setStage('playing')}
-                                    className="mt-2 text-sm text-green-400 underline"
-                                >
-                                    Torna alla mappa salvata
+
+                            {/* Anteprima Immagini Caricate */}
+                            {images.length > 0 && (
+                                <div className="flex gap-2 overflow-x-auto w-full p-2 bg-slate-900/50 rounded-xl border border-slate-700 min-h-[100px] items-center">
+                                    {images.map((img, idx) => (
+                                        <div key={idx} className="relative shrink-0 group">
+                                            <img src={img} className="h-20 w-auto rounded border border-slate-500" />
+                                            <div className="absolute -top-2 -right-2 bg-green-500 text-black text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                                                {idx + 1}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div className="text-slate-500 text-xs px-2">
+                                        {images.length} pagine
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Pulsanti Azione */}
+                            <div className="flex gap-4 flex-wrap justify-center">
+                                <label className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-xl cursor-pointer shadow-lg transition-all border border-slate-500 flex items-center gap-2">
+                                    <input type="file" onChange={handleImageUpload} className="hidden" accept="image/*" />
+                                    <Icons.Upload className="w-5 h-5" />
+                                    AGGIUNGI FOTO
+                                </label>
+
+                                {images.length > 0 && (
+                                    <button 
+                                        onClick={startAnalysis}
+                                        className="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-8 rounded-xl shadow-[0_0_15px_rgba(74,222,128,0.5)] transition-all animate-pulse flex items-center gap-2"
+                                    >
+                                        <Icons.Brain className="w-5 h-5" />
+                                        GENERA MAPPA
+                                    </button>
+                                )}
+                            </div>
+                            
+                            {images.length > 0 && (
+                                <button onClick={() => setImages([])} className="text-xs text-red-400 underline hover:text-red-300">
+                                    Cancella tutto e ricomincia
+                                </button>
+                            )}
+
+                            {nodes.length > 0 && images.length === 0 && (
+                                <button onClick={() => setStage('playing')} className="mt-4 text-sm text-green-400 underline">
+                                    Torna all'ultima mappa salvata
                                 </button>
                             )}
                         </div>
@@ -1485,43 +1520,34 @@ IMPORTANTE:
                 );
             }
 
+            // --- FASE 2: ANALISI IN CORSO ---
             if (stage === 'scanning') {
                 return (
                     <div className="h-full flex flex-col items-center justify-center gap-4">
                         <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
                         <h2 className="text-green-400 font-bold text-2xl">ANALISI AI IN CORSO...</h2>
-                        <p className="text-slate-400">Sto leggendo e capendo l'immagine</p>
+                        <p className="text-slate-400">Sto leggendo {images.length} pagine...</p>
                     </div>
                 );
             }
 
+            // --- FASE 3: VISUALIZZAZIONE MAPPA ---
             return (
                 <div className="h-full relative bg-slate-950 overflow-hidden">
-                    {/* Background immagine */}
-                    {bgImage && (
+                    {/* Sfondo sfocato della prima immagine */}
+                    {images.length > 0 && (
                         <div
                             className="absolute inset-0 opacity-10 pointer-events-none"
-                            style={{ backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                            style={{ backgroundImage: `url(${images[0]})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
                         />
                     )}
 
-                    {/* Linee di connessione */}
                     <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
                         {lines.map((l, i) => (
-                            <line
-                                key={i}
-                                x1={l.x1}
-                                y1={l.y1}
-                                x2={l.x2}
-                                y2={l.y2}
-                                stroke="#4ade80"
-                                strokeWidth="3"
-                                strokeOpacity="0.6"
-                            />
+                            <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke="#4ade80" strokeWidth="3" strokeOpacity="0.6" />
                         ))}
                     </svg>
 
-                    {/* Nodi */}
                     {nodes.map(n => (
                         <div
                             key={n.id}
@@ -1533,23 +1559,18 @@ IMPORTANTE:
                         </div>
                     ))}
 
-                    {/* Panel riassunto */}
                     <div className="absolute bottom-4 left-4 right-4 bg-slate-800/95 border border-slate-600 rounded-xl p-4 max-h-32 overflow-y-auto z-20">
                         <div className="flex justify-between items-center mb-2">
                             <span className="text-green-400 font-bold text-sm">📝 RIASSUNTO</span>
-                            <button
-                                onClick={handleReset}
-                                className="text-xs text-red-400 border border-red-900 px-3 py-1 rounded hover:bg-red-900/30 transition-all"
-                            >
+                            <button onClick={handleReset} className="text-xs text-red-400 border border-red-900 px-3 py-1 rounded hover:bg-red-900/30 transition-all">
                                 RESET
                             </button>
                         </div>
                         <p className="text-slate-300 text-sm">{data?.summary}</p>
                     </div>
 
-                    {/* Istruzioni */}
                     <div className="absolute top-4 left-4 bg-slate-800/80 px-3 py-2 rounded-lg text-xs text-slate-400">
-                        💡 Tocca un nodo per ascoltare la spiegazione
+                        💡 Tocca un nodo per ascoltare
                     </div>
                 </div>
             );
