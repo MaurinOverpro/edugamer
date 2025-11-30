@@ -10,6 +10,7 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -176,6 +177,8 @@
             Share: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>,
             Download: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
             Trash: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
+            FileText: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>,
+            Mail: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>,
         };
 
         const DB = {
@@ -690,6 +693,130 @@ Se perfetto: []`;
                 } catch (e) { console.error(e); }
             };
 
+            // Genera PDF della mappa
+            const exportPDF = async () => {
+                if (!mapRef.current) return;
+                try {
+                    // Cattura la mappa come immagine
+                    const canvas = await html2canvas(mapRef.current, { backgroundColor: '#0a0e17', scale: 2 });
+                    const imgData = canvas.toDataURL('image/png');
+                    
+                    // Crea PDF
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({
+                        orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+                        unit: 'px',
+                        format: [canvas.width, canvas.height]
+                    });
+                    
+                    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+                    
+                    // Aggiungi titolo e punti chiave in una seconda pagina
+                    if (mapData?.summary_points?.length) {
+                        pdf.addPage('a4', 'portrait');
+                        pdf.setFontSize(24);
+                        pdf.setTextColor(74, 222, 128); // Verde
+                        pdf.text(mapData?.title || 'Mappa Mentale', 40, 50);
+                        
+                        pdf.setFontSize(16);
+                        pdf.setTextColor(255, 255, 255);
+                        pdf.text('PUNTI CHIAVE:', 40, 90);
+                        
+                        pdf.setFontSize(14);
+                        pdf.setTextColor(200, 200, 200);
+                        mapData.summary_points.forEach((point, i) => {
+                            const cleanPoint = point.replace(/[^\w\sàèéìòùç.,!?]/gi, '');
+                            pdf.text(`${i + 1}. ${cleanPoint}`, 50, 120 + (i * 25));
+                        });
+                    }
+                    
+                    const fileName = `mappa-${(mapData?.title || 'mentale').replace(/[^a-z0-9]/gi, '_')}.pdf`;
+                    pdf.save(fileName);
+                    DB.addXP(10);
+                    
+                    // Feedback vocale
+                    const u = new SpeechSynthesisUtterance("PDF salvato!");
+                    u.lang = 'it-IT';
+                    speechSynthesis.speak(u);
+                    
+                } catch (e) { 
+                    console.error(e);
+                    alert("Errore creazione PDF: " + e.message); 
+                }
+            };
+
+            // Invia via Email (genera PDF e apre client email)
+            const emailPDF = async () => {
+                if (!mapRef.current) return;
+                try {
+                    // Prima genera e scarica il PDF
+                    const canvas = await html2canvas(mapRef.current, { backgroundColor: '#0a0e17', scale: 2 });
+                    const imgData = canvas.toDataURL('image/png');
+                    
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({
+                        orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+                        unit: 'px',
+                        format: [canvas.width, canvas.height]
+                    });
+                    
+                    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+                    
+                    if (mapData?.summary_points?.length) {
+                        pdf.addPage('a4', 'portrait');
+                        pdf.setFontSize(24);
+                        pdf.setTextColor(74, 222, 128);
+                        pdf.text(mapData?.title || 'Mappa Mentale', 40, 50);
+                        pdf.setFontSize(14);
+                        pdf.setTextColor(200, 200, 200);
+                        mapData.summary_points.forEach((point, i) => {
+                            const cleanPoint = point.replace(/[^\w\sàèéìòùç.,!?]/gi, '');
+                            pdf.text(`${i + 1}. ${cleanPoint}`, 50, 90 + (i * 25));
+                        });
+                    }
+                    
+                    const fileName = `mappa-${(mapData?.title || 'mentale').replace(/[^a-z0-9]/gi, '_')}.pdf`;
+                    
+                    // Prova Web Share API con PDF
+                    const pdfBlob = pdf.output('blob');
+                    const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+                    
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+                        try {
+                            await navigator.share({
+                                title: `Mappa: ${mapData?.title || 'Mentale'}`,
+                                text: 'Ecco la mia mappa mentale!',
+                                files: [pdfFile]
+                            });
+                            DB.addXP(10);
+                            return;
+                        } catch (shareErr) {
+                            console.log('Share fallito, uso fallback');
+                        }
+                    }
+                    
+                    // Fallback: scarica PDF e apri email
+                    pdf.save(fileName);
+                    
+                    // Apri client email con testo predefinito
+                    const subject = encodeURIComponent(`Mappa Mentale: ${mapData?.title || 'Studio'}`);
+                    const body = encodeURIComponent(`Ciao!\n\nTi invio la mappa mentale che ho creato.\n\nArgomento: ${mapData?.title || 'Studio'}\n\nPunti chiave:\n${(mapData?.summary_points || []).map((p, i) => `${i+1}. ${p.replace(/[^\w\sàèéìòùç.,!?]/gi, '')}`).join('\n')}\n\n(Il PDF è stato scaricato, allegalo a questa email)`);
+                    
+                    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+                    
+                    DB.addXP(10);
+                    
+                    // Feedback
+                    const u = new SpeechSynthesisUtterance("PDF pronto! Allegalo all'email.");
+                    u.lang = 'it-IT';
+                    speechSynthesis.speak(u);
+                    
+                } catch (e) { 
+                    console.error(e);
+                    alert("Errore: " + e.message); 
+                }
+            };
+
             const handleReset = () => {
                 if (confirm("Cancellare la mappa?")) {
                     setStage('upload'); DB.clearMap();
@@ -750,8 +877,9 @@ Se perfetto: []`;
                         </div>
                         <div className="flex-1"></div>
                         <button onClick={speakAll} className="p-2 rounded-lg bg-green-600 text-white" title="Ascolta"><Icons.Volume className="w-5 h-5" /></button>
-                        <button onClick={exportImage} className="p-2 rounded-lg bg-purple-600 text-white" title="Salva"><Icons.Download className="w-5 h-5" /></button>
-                        <button onClick={shareMap} className="p-2 rounded-lg bg-blue-600 text-white" title="Condividi"><Icons.Share className="w-5 h-5" /></button>
+                        <button onClick={exportPDF} className="p-2 rounded-lg bg-orange-600 text-white" title="Scarica PDF"><Icons.FileText className="w-5 h-5" /></button>
+                        <button onClick={emailPDF} className="p-2 rounded-lg bg-sky-600 text-white" title="Invia Email"><Icons.Mail className="w-5 h-5" /></button>
+                        <button onClick={exportImage} className="p-2 rounded-lg bg-purple-600 text-white" title="Salva PNG"><Icons.Download className="w-5 h-5" /></button>
                         <button onClick={handleReset} className="p-2 rounded-lg bg-red-600 text-white" title="Reset"><Icons.Trash className="w-5 h-5" /></button>
                     </div>
 
