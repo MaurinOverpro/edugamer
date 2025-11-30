@@ -11,26 +11,57 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         body { background-color: #0a0e17; color: white; font-family: 'Verdana', sans-serif; height: 100dvh; overflow: hidden; }
-        .btn-calc { font-size: 1.5rem; font-weight: bold; border-radius: 12px; transition: 0.1s; }
-        .btn-calc:active { transform: scale(0.95); }
+        .btn-calc { font-size: 1.5rem; font-weight: bold; border-radius: 12px; transition: 0.1s; box-shadow: 0 4px 0 #1e293b; }
+        .btn-calc:active { transform: translateY(4px); box-shadow: none; }
+        /* Stile per la soluzione del problema */
+        .prose h1, .prose h2, .prose h3 { color: #facc15; font-weight: bold; margin-top: 10px; }
+        .prose strong { color: #4ade80; }
+        .prose p { margin-bottom: 8px; line-height: 1.6; }
+        .prose li { margin-left: 20px; list-style: disc; }
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="text/babel">
         const { useState } = React;
-        const MODEL = "gemini-2.0-flash";
+        
+        // Usa la 1.5-flash che è stabilissima e veloce
+        const MODEL = "gemini-1.5-flash";
+
+        const DB = {
+            getKey: () => localStorage.getItem('gemini_api_key'),
+            addXP: (amount) => {
+                const next = parseInt(localStorage.getItem('edu_xp') || '0') + amount;
+                localStorage.setItem('edu_xp', next.toString());
+                return next;
+            }
+        };
 
         const solveProblem = async (img) => {
-            const key = localStorage.getItem('gemini_api_key');
-            if(!key) throw new Error("Manca API Key!");
+            const key = DB.getKey();
+            if(!key) throw new Error("Manca API Key! Torna alla Home.");
             
-            const prompt = "Risolvi questo problema di matematica passo dopo passo per un bambino delle elementari. Usa emoji. Spiega le formule.";
-            const body = { contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] } }] }] };
+            const prompt = `Sei un maestro di matematica elementare gentile.
+            Risolvi questo problema passo dopo passo per un bambino.
+            1. Scrivi i DATI.
+            2. Spiega il RAGIONAMENTO in modo semplice.
+            3. Fai i CALCOLI (mostra le operazioni).
+            4. Scrivi la RISPOSTA finale evidenziata.
+            Usa emoji 📐🔢. Scrivi in Markdown pulito.`;
+
+            const body = { 
+                contents: [{ 
+                    parts: [
+                        { text: prompt }, 
+                        { inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] } }
+                    ] 
+                }] 
+            };
             
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
             });
+            if (!res.ok) throw new Error("Errore AI. Riprova.");
             const data = await res.json();
             return data.candidates[0].content.parts[0].text;
         };
@@ -41,18 +72,43 @@
             const [solverImg, setSolverImg] = useState(null);
             const [solution, setSolution] = useState(null);
             const [loading, setLoading] = useState(false);
+            const [highlight, setHighlight] = useState({ r: null, c: null });
+
+            // --- FUNZIONI VOCALI ---
+            const speak = (text) => {
+                window.speechSynthesis.cancel();
+                // Pulisce il testo da caratteri strani (markdown) per la lettura
+                const cleanText = text.replace(/[*#_]/g, ''); 
+                const u = new SpeechSynthesisUtterance(cleanText);
+                u.lang = 'it-IT';
+                u.rate = 0.9; // Leggermente più lento per comprensione
+                window.speechSynthesis.speak(u);
+            };
 
             // --- CALCOLATRICE ---
             const handleBtn = (v) => {
                 if(v === 'C') setDisplay('');
                 else if(v === '=') {
-                    try { setDisplay(eval(display).toString()); } catch { setDisplay('Error'); }
-                } else setDisplay(p => p + v);
+                    try { 
+                        const res = eval(display).toString();
+                        setDisplay(res);
+                        speak("Fa " + res); // Legge il risultato
+                    } catch { setDisplay('Errore'); }
+                } else {
+                    setDisplay(p => p + v);
+                    // Legge il numero premuto (feedback uditivo)
+                    if(!['+','-','*','/'].includes(v)) {
+                        const u = new SpeechSynthesisUtterance(v);
+                        u.lang = 'it-IT';
+                        window.speechSynthesis.speak(u);
+                    }
+                }
             };
 
             // --- RISOLUTORE ---
             const handleUpload = (e) => {
                 const f = e.target.files[0];
+                if(!f) return;
                 const r = new FileReader();
                 r.onload = (evt) => setSolverImg(evt.target.result);
                 r.readAsDataURL(f);
@@ -65,61 +121,120 @@
                 try {
                     const text = await solveProblem(solverImg);
                     setSolution(text);
+                    DB.addXP(50); // Tanti XP per i problemi!
+                    speak("Ho risolto il problema! Vuoi che te lo legga?");
                 } catch(e) { alert("Errore: " + e.message); }
                 setLoading(false);
             };
 
+            // --- MATRIX (Tavola Pitagorica) ---
+            const Matrix = () => (
+                <div className="grid grid-cols-11 gap-1 h-full w-full overflow-auto p-2">
+                    {[...Array(11)].map((_,r)=>[...Array(11)].map((_,c)=>{
+                        let bg = 'bg-slate-800';
+                        let txt = 'text-slate-400';
+                        if(r===0 || c===0) { bg='bg-slate-900'; txt='text-yellow-400 font-bold'; }
+                        if(highlight.r===r && highlight.c===c) { bg='bg-green-500'; txt='text-black font-bold scale-110'; }
+                        else if((highlight.r===r && c>0) || (highlight.c===c && r>0)) { bg='bg-slate-700'; txt='text-green-300'; }
+
+                        return (
+                            <div key={`${r}-${c}`} 
+                                onClick={() => {
+                                    if(r>0 && c>0) {
+                                        setHighlight({r,c});
+                                        speak(`${r} per ${c} fa ${r*c}`);
+                                    }
+                                }}
+                                className={`${bg} ${txt} flex items-center justify-center rounded cursor-pointer transition-all text-lg md:text-xl select-none h-12 md:h-auto`}
+                            >
+                                {r===0&&c===0?'×':r===0?c:c===0?r:r*c}
+                            </div>
+                        )
+                    }))}
+                </div>
+            );
+
             return (
                 <div className="h-full flex flex-col p-4 gap-4">
                     {/* Header Nav */}
-                    <div className="flex gap-2 shrink-0">
-                        <a href="index.html" className="bg-slate-700 text-white p-3 rounded-xl font-bold">🏠</a>
-                        <button onClick={()=>setMode('calc')} className={`flex-1 rounded-xl font-bold ${mode==='calc'?'bg-blue-600':'bg-slate-800'}`}>CALCOLA</button>
-                        <button onClick={()=>setMode('solver')} className={`flex-1 rounded-xl font-bold ${mode==='solver'?'bg-green-600':'bg-slate-800'}`}>RISOLVI</button>
+                    <div className="flex gap-2 shrink-0 h-14">
+                        <a href="index.html" className="bg-slate-700 text-white px-4 rounded-xl font-bold flex items-center justify-center text-2xl hover:bg-slate-600 transition-all">🏠</a>
+                        <button onClick={()=>setMode('calc')} className={`flex-1 rounded-xl font-bold text-lg transition-all ${mode==='calc'?'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.5)]':'bg-slate-800 text-slate-400'}`}>CALCOLA</button>
+                        <button onClick={()=>setMode('matrix')} className={`flex-1 rounded-xl font-bold text-lg transition-all ${mode==='matrix'?'bg-yellow-600 text-white shadow-[0_0_15px_rgba(202,138,4,0.5)]':'bg-slate-800 text-slate-400'}`}>TABELLINE</button>
+                        <button onClick={()=>setMode('solver')} className={`flex-1 rounded-xl font-bold text-lg transition-all ${mode==='solver'?'bg-green-600 text-white shadow-[0_0_15px_rgba(22,163,74,0.5)]':'bg-slate-800 text-slate-400'}`}>RISOLVI</button>
                     </div>
 
                     {/* CONTENT */}
-                    <div className="flex-1 bg-slate-900 rounded-2xl border border-slate-700 overflow-hidden p-4">
+                    <div className="flex-1 bg-slate-900 rounded-2xl border-2 border-slate-700 overflow-hidden p-1 relative">
+                        
+                        {/* CALCOLATRICE */}
                         {mode === 'calc' && (
-                            <div className="h-full flex flex-col">
-                                <div className="bg-slate-950 p-4 rounded-xl text-right text-4xl font-mono mb-4 text-yellow-400 border border-slate-700 h-24 flex items-center justify-end">
-                                    {display || '0'}
+                            <div className="h-full flex flex-col p-4 max-w-2xl mx-auto">
+                                <div className="bg-slate-950 p-6 rounded-2xl text-right text-5xl font-mono mb-4 text-yellow-400 border border-slate-600 h-32 flex items-center justify-end overflow-hidden shadow-inner">
+                                    {display || <span className="opacity-30">0</span>}
                                 </div>
                                 <div className="grid grid-cols-4 gap-3 flex-1">
-                                    {['7','8','9','/','4','5','6','*','1','2','3','-','C','0','.','+','='].map(b => (
+                                    {['7','8','9','/','4','5','6','*','1','2','3','-','C','0','.','+'].map(b => (
                                         <button key={b} onClick={() => handleBtn(b)} 
-                                            className={`btn-calc ${b==='='?'col-span-2 bg-green-600':b==='C'?'bg-red-600':'bg-slate-700'}`}>
-                                            {b}
+                                            className={`btn-calc ${b==='C'?'bg-red-600 text-white':['/','*','-','+'].includes(b)?'bg-slate-700 text-yellow-400':'bg-slate-800 text-white hover:bg-slate-700'}`}>
+                                            {b === '*' ? '×' : b === '/' ? '÷' : b}
                                         </button>
                                     ))}
+                                    <button onClick={() => handleBtn('=')} className="col-span-4 btn-calc bg-green-600 text-white hover:bg-green-500 shadow-[0_4px_0_#166534]">=</button>
                                 </div>
                             </div>
                         )}
 
+                        {/* TABELLINE */}
+                        {mode === 'matrix' && <Matrix />}
+
+                        {/* RISOLUTORE */}
                         {mode === 'solver' && (
-                            <div className="h-full flex flex-col items-center overflow-y-auto">
+                            <div className="h-full flex flex-col items-center overflow-y-auto p-4">
                                 {!solverImg ? (
-                                    <div className="flex flex-col items-center justify-center h-full gap-6">
-                                        <div className="text-6xl">📐</div>
-                                        <label className="bg-blue-600 px-8 py-4 rounded-xl font-bold text-xl cursor-pointer">
-                                            <input type="file" onChange={handleUpload} className="hidden" capture="environment" />
-                                            📷 FOTO PROBLEMA
+                                    <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
+                                        <div className="text-8xl animate-bounce">📐</div>
+                                        <h2 className="text-3xl font-bold text-white">HAI UN PROBLEMA?</h2>
+                                        <p className="text-slate-400 text-lg">Fai una foto al libro, ti aiuto io!</p>
+                                        <label className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-6 px-10 rounded-2xl cursor-pointer shadow-2xl transition-all flex items-center gap-3 text-xl border-b-4 border-blue-800 active:border-b-0 active:translate-y-1">
+                                            <input type="file" onChange={handleUpload} className="hidden" accept="image/*" capture="environment" />
+                                            📷 SCATTA FOTO
                                         </label>
                                     </div>
                                 ) : (
-                                    <div className="w-full max-w-2xl flex flex-col gap-4">
-                                        <div className="flex gap-4 items-center">
-                                            <img src={solverImg} className="h-32 rounded border" />
-                                            <button onClick={runSolver} disabled={loading} className="bg-green-600 px-6 py-3 rounded-xl font-bold flex-1">
-                                                {loading ? 'RAGIONO...' : 'RISOLVI ORA 🚀'}
-                                            </button>
-                                            <button onClick={()=>setSolverImg(null)} className="bg-red-600 px-4 py-3 rounded-xl">🗑️</button>
-                                        </div>
-                                        {solution && (
-                                            <div className="bg-slate-800 p-4 rounded-xl border border-slate-600 prose prose-invert" 
-                                                 dangerouslySetInnerHTML={{__html: marked.parse(solution)}}>
+                                    <div className="w-full max-w-3xl flex flex-col gap-4 h-full">
+                                        <div className="flex gap-4 items-center bg-slate-800 p-3 rounded-xl border border-slate-600 shrink-0">
+                                            <img src={solverImg} className="h-24 w-24 rounded-lg object-cover border border-slate-500" />
+                                            <div className="flex-1 flex gap-2">
+                                                <button onClick={runSolver} disabled={loading} className="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-xl border-b-4 border-green-800 active:border-b-0 active:translate-y-1 transition-all">
+                                                    {loading ? 'Sto ragionando... 🧠' : 'RISOLVI ORA 🚀'}
+                                                </button>
+                                                <button onClick={()=>setSolverImg(null)} className="bg-red-600 hover:bg-red-500 text-white px-4 rounded-xl font-bold">🗑️</button>
                                             </div>
-                                        )}
+                                        </div>
+                                        
+                                        {/* AREA SOLUZIONE */}
+                                        <div className="flex-1 bg-slate-800/50 rounded-xl border border-slate-600 p-6 overflow-y-auto relative">
+                                            {loading && (
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80 z-10">
+                                                    <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                                                    <div className="text-green-400 font-bold animate-pulse">Analisi geometrica in corso...</div>
+                                                </div>
+                                            )}
+                                            
+                                            {solution ? (
+                                                <div>
+                                                    <button onClick={() => speak(solution)} className="float-right bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg font-bold mb-2 flex items-center gap-2">
+                                                        🔊 LEGGI
+                                                    </button>
+                                                    <div className="prose prose-invert max-w-none text-lg" dangerouslySetInnerHTML={{__html: marked.parse(solution)}}></div>
+                                                </div>
+                                            ) : (
+                                                <div className="text-center text-slate-500 mt-10">
+                                                    La soluzione apparirà qui ✨
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>
