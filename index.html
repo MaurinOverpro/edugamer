@@ -3,15 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EduGamer OS v15</title>
+    <title>EduGamer OS v14 - Lavagna AI Potenziata</title>
     
+    <!-- Librerie Esterne -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- html2canvas per export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
+        /* --- LAYOUT BASE --- */
         * { box-sizing: border-box; }
         body { 
             background-color: #0a0e17; 
@@ -24,12 +27,14 @@
         }
         #root { height: 100%; width: 100%; }
 
+        /* --- FONT LEGGIBILE PER DSA --- */
         .dsa-text {
             font-family: 'Verdana', 'Arial', sans-serif;
             letter-spacing: 0.5px;
             line-height: 1.6;
         }
 
+        /* --- ANIMAZIONI --- */
         @keyframes shimmer { 
             0% { background-position: -200% 0; } 
             100% { background-position: 200% 0; } 
@@ -39,13 +44,6 @@
             background-size: 200% 100%; 
             animation: shimmer 2s infinite linear; 
         }
-        @keyframes shake { 
-            0%, 100% { transform: translateX(0); } 
-            25% { transform: translateX(-5px); } 
-            50% { transform: translateX(5px); } 
-            75% { transform: translateX(-5px); } 
-        }
-        .shake { animation: shake 0.5s; border-color: #ef4444 !important; }
         
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
@@ -71,6 +69,7 @@
         }
         .node-selected { animation: selected-pulse 1s infinite; }
 
+        /* --- UI COMPONENTS --- */
         .cyber-card {
             background: rgba(30, 41, 59, 0.7);
             border: 1px solid #334155;
@@ -83,52 +82,40 @@
             box-shadow: 0 0 20px rgba(74, 222, 128, 0.2);
         }
 
-        .msg-user { background: #166534; color: #dcfce7; border-radius: 12px 12px 0 12px; margin-left: auto; }
-        .msg-ai { background: #581c87; color: #f3e8ff; border-radius: 12px 12px 12px 0; margin-right: auto; }
-
-        .err-span { cursor: pointer; border-bottom: 2px solid; padding: 0 2px; position: relative; display: inline-block; transition: all 0.2s; }
-        .err-span:hover { transform: scale(1.1); z-index: 10; background-color: rgba(255,255,255,0.1); }
-        .err-ORT { border-color: #ef4444; color: #fca5a5; }
-        .err-PUN { border-color: #eab308; color: #fde047; }
-        .err-SIN { border-color: #3b82f6; color: #93c5fd; }
+        /* --- NODI MAPPA MENTALE --- */
+        .node-central {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            border: 3px solid #60a5fa;
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+        }
         
-        .correction-popup {
-            position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
-            background: #1e293b; border: 2px solid #cbd5e1; padding: 12px; border-radius: 12px;
-            z-index: 50; width: 220px; box-shadow: 0 10px 25px rgba(0,0,0,0.8);
-            margin-bottom: 8px; font-size: 14px; color: white; text-align: center;
+        .node-movement {
+            background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+            border: 2px solid #5eead4;
+        }
+        
+        .node-body {
+            background: linear-gradient(135deg, #c2410c 0%, #f97316 100%);
+            border: 2px solid #fdba74;
+        }
+        
+        .node-effect {
+            background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+            border: 2px solid #c4b5fd;
+        }
+        
+        .node-concept {
+            background: linear-gradient(135deg, #be185d 0%, #ec4899 100%);
+            border: 2px solid #f9a8d4;
         }
 
-        .holo-container {
-            display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px;
-            align-items: flex-end; padding: 10px; background: rgba(0, 0, 0, 0.2);
-            border-radius: 8px; border: 1px dashed #475569; min-height: 80px; width: 100%; overflow-y: auto;
-        }
-        .unit-block { width: 15px; height: 15px; background: #4ade80; border: 1px solid #166534; margin: 1px; border-radius: 2px; }
-        .ten-block { display: flex; flex-direction: column; margin: 2px; border: 1px solid #1e3a8a; border-radius: 3px; }
-        .ten-segment { width: 15px; height: 15px; background: #3b82f6; border-bottom: 1px solid #1e3a8a; }
-        .hundred-block { display: grid; grid-template-columns: repeat(10, 1fr); width: 80px; margin: 4px; border: 2px solid #a855f7; border-radius: 4px; }
-        .hundred-segment { width: 8px; height: 8px; background: #a855f7; border: 0.5px solid #581c87; }
-
-        .matrix-wrapper { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; padding: 10px; }
-        .matrix-container { display: grid; grid-template-columns: repeat(11, 1fr); grid-template-rows: repeat(11, 1fr); gap: 2px; width: 80vmin; height: 80vmin; max-height: 100%; max-width: 100%; }
-        .matrix-cell { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: calc(80vmin / 25); border-radius: 3px; user-select: none; transition: all 0.15s ease; background-color: #1e293b; color: #94a3b8; border: 1px solid #334155; }
-        .matrix-cell.header { background-color: #0f172a; color: #facc15; font-weight: bold; }
-        .matrix-cell.header.active { background-color: #eab308; color: #000; box-shadow: 0 0 10px #eab308; z-index: 20; transform: scale(1.1); }
-        .matrix-cell.path { background-color: #1e3a5f; color: #4ade80; border: 1px solid #4ade80; }
-        .matrix-cell.result { background-color: #4ade80; color: #020617; font-weight: bold; transform: scale(1.2); z-index: 30; box-shadow: 0 0 15px #4ade80; border: 2px solid #fff; }
-        .matrix-cell.dimmed { opacity: 0.15; filter: grayscale(80%); }
-
-        .node-central { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border: 3px solid #60a5fa; box-shadow: 0 0 30px rgba(59, 130, 246, 0.5); }
-        .node-movement { background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); border: 2px solid #5eead4; }
-        .node-body { background: linear-gradient(135deg, #c2410c 0%, #f97316 100%); border: 2px solid #fdba74; }
-        .node-effect { background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%); border: 2px solid #c4b5fd; }
-        .node-concept { background: linear-gradient(135deg, #be185d 0%, #ec4899 100%); border: 2px solid #f9a8d4; }
-
+        /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #1e293b; }
         ::-webkit-scrollbar-thumb { background: #4ade80; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #22c55e; }
 
+        /* Print styles */
         @media print {
             body { background: white !important; }
             .no-print { display: none !important; }
@@ -139,10 +126,14 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useRef, useEffect } = React;
+        const { useState, useRef, useEffect, useCallback } = React;
 
+        // ═══════════════════════════════════════════════════════════════
+        // CONFIGURAZIONE
+        // ═══════════════════════════════════════════════════════════════
         const GEMINI_MODEL = "gemini-2.0-flash";
 
+        // Categorie per i nodi con emoji e colori
         const NODE_CATEGORIES = {
             central: { emoji: '📚', color: 'node-central', label: 'Tema' },
             movement: { emoji: '🔄', color: 'node-movement', label: 'Movimento' },
@@ -151,6 +142,7 @@
             concept: { emoji: '💡', color: 'node-concept', label: 'Concetto' }
         };
 
+        // Mappa parole chiave -> categoria
         const categorizeNode = (label) => {
             const l = label.toLowerCase();
             if (l.includes('rotazione') || l.includes('rivoluzione') || l.includes('moto') || l.includes('movimento')) return 'movement';
@@ -159,25 +151,26 @@
             return 'concept';
         };
 
+        // ═══════════════════════════════════════════════════════════════
+        // ICONE SVG
+        // ═══════════════════════════════════════════════════════════════
         const Icons = {
             Brain: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>,
             Home: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
             Settings: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
             Upload: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
-            Chat: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
-            Book: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
-            Calc: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>,
-            Magic: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M3 5h4"/><path d="M19 17v4"/><path d="M17 19h4"/></svg>,
-            Check: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
-            Send: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>,
             Volume: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>,
             Link: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
             Eye: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>,
             Share: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>,
             Download: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
             Trash: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
+            X: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
         };
 
+        // ═══════════════════════════════════════════════════════════════
+        // DATABASE (LocalStorage)
+        // ═══════════════════════════════════════════════════════════════
         const DB = {
             getKey: () => localStorage.getItem('gemini_api_key') || '',
             setKey: (key) => localStorage.setItem('gemini_api_key', key),
@@ -189,343 +182,115 @@
                 window.dispatchEvent(new Event('xpChanged'));
                 return next;
             },
-            saveMap: (data) => localStorage.setItem('cyberboard_data', JSON.stringify(data)),
-            loadMap: () => { try { return JSON.parse(localStorage.getItem('cyberboard_data') || 'null'); } catch { return null; } },
-            clearMap: () => localStorage.removeItem('cyberboard_data')
-        };
-
-        const getApiUrl = (key) => `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
-
-        const GeminiService = {
-            generate: async (prompt, content = "") => {
-                const key = DB.getKey();
-                if (!key) throw new Error("Inserisci prima la API Key!");
-                const response = await fetch(getApiUrl(key), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: content ? `${prompt}\n\nTesto: ${content}` : prompt }] }] })
-                });
-                if (!response.ok) throw new Error("Errore API");
-                const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "Nessuna risposta";
+            saveMap: (data) => {
+                localStorage.setItem('cyberboard_data', JSON.stringify(data));
             },
-
-            chat: async (history, message) => {
-                const key = DB.getKey();
-                if (!key) throw new Error("Inserisci prima la API Key!");
-                const contents = [...history.map(m => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.text }] })), { role: 'user', parts: [{ text: message }] }];
-                const response = await fetch(getApiUrl(key), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents }) });
-                if (!response.ok) throw new Error("Errore chat");
-                const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "...";
+            loadMap: () => {
+                try {
+                    return JSON.parse(localStorage.getItem('cyberboard_data') || 'null');
+                } catch (e) {
+                    return null;
+                }
             },
-
-            analyzeToMap: async (imagesInput) => {
-                const key = DB.getKey();
-                if (!key) throw new Error("Inserisci prima la API Key!");
-                const imagesArray = Array.isArray(imagesInput) ? imagesInput : [imagesInput];
-                const prompt = `Analizza queste immagini di un libro scolastico per creare una MAPPA MENTALE per un bambino di 9 anni con DSA.
-
-OBIETTIVI:
-1. Identifica il TEMA PRINCIPALE (nodo centrale)
-2. Estrai 4-6 CONCETTI CHIAVE
-3. Per ogni concetto scrivi una spiegazione SEMPLICISSIMA (max 15 parole)
-4. Crea un RIASSUNTO a PUNTI (5-7 punti, max 10 parole ciascuno)
-
-CATEGORIE: movement (movimenti), body (corpi celesti), effect (effetti), concept (altri)
-
-Rispondi SOLO JSON:
-{
-    "title": "Titolo tema",
-    "summary_points": ["🌍 Punto 1", "🔄 Punto 2"],
-    "nodes": [{"id": 1, "label": "Nome", "category": "movement", "explanation": "Spiegazione semplice"}],
-    "connections": [{"from": 0, "to": 1}]
-}`;
-                const imageParts = imagesArray.map(img => ({ inlineData: { mimeType: "image/jpeg", data: img.includes(',') ? img.split(',')[1] : img } }));
-                const response = await fetch(getApiUrl(key), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, ...imageParts] }], generationConfig: { temperature: 0.3 } })
-                });
-                if (!response.ok) { const err = await response.json(); throw new Error(err.error?.message || "Errore"); }
-                const data = await response.json();
-                let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-                const jsonMatch = text.match(/\{[\s\S]*\}/);
-                if (jsonMatch) return JSON.parse(jsonMatch[0]);
-                throw new Error("Risposta AI non valida");
-            },
-
-            restructureText: async (text) => {
-                const key = DB.getKey();
-                if (!key) throw new Error("Inserisci prima la API Key!");
-                const response = await fetch(getApiUrl(key), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: `Riscrivi in italiano corretto e semplice per un bambino: "${text}"` }] }] })
-                });
-                if (!response.ok) throw new Error("Errore");
-                const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || text;
+            clearMap: () => {
+                localStorage.removeItem('cyberboard_data');
             }
         };
 
         // ═══════════════════════════════════════════════════════════════
-        // TAVOLA PITAGORICA
+        // SERVIZIO AI (Gemini)
         // ═══════════════════════════════════════════════════════════════
-        const Matrix = ({ highlight, setHighlight }) => {
-            const handleCellClick = (r, c) => {
-                if (r === 0 || c === 0) {
-                    if (r === 0 && c > 0) setHighlight(prev => ({ ...prev, c: prev.c === c ? null : c }));
-                    else if (c === 0 && r > 0) setHighlight(prev => ({ ...prev, r: prev.r === r ? null : r }));
-                } else if (highlight.r && highlight.c) {
-                    const result = highlight.r * highlight.c;
-                    const u = new SpeechSynthesisUtterance(`${highlight.r} per ${highlight.c} fa ${result}`);
-                    u.lang = 'it-IT';
-                    speechSynthesis.speak(u);
-                }
-            };
-            const getCellClass = (r, c) => {
-                const classes = ['matrix-cell'];
-                if (r === 0 || c === 0) { classes.push('header'); if ((r === 0 && c === highlight.c) || (c === 0 && r === highlight.r)) classes.push('active'); }
-                else if (highlight.r && highlight.c) {
-                    if (r === highlight.r && c === highlight.c) classes.push('result');
-                    else if (r === highlight.r || c === highlight.c) classes.push('path');
-                    else classes.push('dimmed');
-                }
-                return classes.join(' ');
-            };
-            return (
-                <div className="matrix-wrapper">
-                    <div className="matrix-container">
-                        {[...Array(11)].map((_, r) => [...Array(11)].map((_, c) => (
-                            <div key={`${r}-${c}`} className={getCellClass(r, c)} onClick={() => handleCellClick(r, c)}>
-                                {r === 0 && c === 0 ? '×' : r === 0 ? c : c === 0 ? r : r * c}
-                            </div>
-                        )))}
-                    </div>
-                </div>
-            );
-        };
+        const getApiUrl = (key) => `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
 
-        // ═══════════════════════════════════════════════════════════════
-        // CALCOLATRICE
-        // ═══════════════════════════════════════════════════════════════
-        const MathTool = () => {
-            const [mode, setMode] = useState('calc');
-            const [display, setDisplay] = useState('');
-            const [highlight, setHighlight] = useState({ r: null, c: null });
-
-            const calculate = (n1, op, n2) => {
-                const a = parseFloat(n1), b = parseFloat(n2);
-                if (isNaN(a) || isNaN(b)) return null;
-                switch (op) { case '+': return a + b; case '-': return a - b; case '*': return a * b; case '/': return b !== 0 ? a / b : null; default: return null; }
-            };
-
-            const Base10Renderer = ({ num, colorLabel }) => {
-                if (!num || isNaN(num)) return null;
-                const n = Math.min(Math.floor(Math.abs(Number(num))), 999);
-                if (n > 500) return <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700 w-full mb-2"><div className="text-xs text-slate-400">{colorLabel} ({n})</div><div className="text-yellow-400 text-sm">Troppo grande</div></div>;
-                const hundreds = Math.floor(n / 100), tens = Math.floor((n % 100) / 10), units = n % 10;
-                return (
-                    <div className="flex flex-col items-start gap-2 p-3 rounded-lg bg-slate-800/50 border border-slate-700 w-full mb-2 animate-fade-in">
-                        <div className="text-xs text-slate-400 font-bold uppercase">{colorLabel} ({n})</div>
-                        <div className="holo-container">
-                            {[...Array(hundreds)].map((_, i) => <div key={`h-${i}`} className="hundred-block">{[...Array(100)].map((_, j) => <div key={j} className="hundred-segment"></div>)}</div>)}
-                            {[...Array(tens)].map((_, i) => <div key={`t-${i}`} className="ten-block">{[...Array(10)].map((_, j) => <div key={j} className="ten-segment"></div>)}</div>)}
-                            <div className="flex flex-wrap gap-1">{[...Array(units)].map((_, i) => <div key={`u-${i}`} className="unit-block"></div>)}</div>
-                        </div>
-                    </div>
-                );
-            };
-
-            const renderVisuals = () => {
-                if (!display) return <div className="flex flex-col items-center justify-center h-full opacity-30 text-center"><Icons.Brain className="w-16 h-16 mb-4" /><p>Digita un numero...</p></div>;
-                const match = display.match(/^(\d+(?:\.\d+)?)([\+\-\*\/])(\d+(?:\.\d+)?)$/);
-                if (match) {
-                    const [_, n1Str, op, n2Str] = match;
-                    const n1 = parseFloat(n1Str), n2 = parseFloat(n2Str), result = calculate(n1, op, n2);
-                    if (op === '/') {
-                        if (n2 === 0) return <div className="text-red-400 text-xl text-center p-4">⚠️ Impossibile dividere per zero!</div>;
-                        const quotient = Math.floor(n1 / n2), remainder = Math.floor(n1 % n2);
-                        return (
-                            <div className="flex flex-col w-full animate-fade-in overflow-y-auto pb-10">
-                                <Base10Renderer num={n1} colorLabel="Totale" />
-                                <div className="text-2xl font-bold text-center text-yellow-400 my-4">⬇️ Dividi in gruppi da {n2} ⬇️</div>
-                                <div className="flex flex-wrap gap-4 justify-center mb-4">
-                                    {[...Array(Math.min(quotient, 20))].map((_, g) => <div key={g} className="flex flex-col items-center gap-1"><div className="text-xs text-slate-500">Gruppo {g + 1}</div><div className="bg-slate-800 p-2 rounded border border-blue-500/50 flex flex-wrap gap-1">{[...Array(Math.min(Math.floor(n2), 10))].map((_, i) => <div key={i} className="unit-block" style={{ background: '#3b82f6' }}></div>)}</div></div>)}
-                                    {remainder > 0 && <div className="flex flex-col items-center gap-1"><div className="text-xs text-yellow-500 font-bold">RESTO</div><div className="bg-slate-800 p-2 rounded border border-yellow-500 flex flex-wrap gap-1">{[...Array(remainder)].map((_, i) => <div key={i} className="unit-block" style={{ background: '#eab308' }}></div>)}</div></div>}
-                                </div>
-                                <div className="mt-4 text-center bg-slate-800 p-4 rounded-xl border border-green-500/50"><div className="text-3xl text-white font-bold">{quotient}{remainder > 0 && <span className="text-lg text-slate-400"> resto <span className="text-yellow-400">{remainder}</span></span>}</div></div>
-                            </div>
-                        );
-                    }
-                    return (
-                        <div className="flex flex-col w-full animate-fade-in overflow-y-auto pb-10">
-                            <Base10Renderer num={n1} colorLabel="Primo" />
-                            <div className="text-4xl font-bold text-center text-yellow-400 my-2">{op === '+' ? '➕' : op === '-' ? '➖' : '✖️'}</div>
-                            <Base10Renderer num={n2} colorLabel="Secondo" />
-                            <div className="text-4xl font-bold text-center text-white my-2">=</div>
-                            {result >= 0 ? <Base10Renderer num={result} colorLabel="Risultato" /> : <div className="text-red-400 text-center p-4">Negativo: {result}</div>}
-                            <div className="text-center text-4xl font-bold text-green-400 mt-4 pulse-glow p-4 rounded-xl bg-slate-800">{Math.round(result * 100) / 100}</div>
-                        </div>
-                    );
-                }
-                const currentNum = display.match(/\d+(?:\.\d+)?$/)?.[0];
-                if (currentNum) return <div className="flex flex-col w-full animate-fade-in"><Base10Renderer num={currentNum} colorLabel="Numero" /></div>;
-                return <div className="text-center text-slate-400 p-4">Continua...</div>;
-            };
-
-            return (
-                <div className="h-full flex flex-col gap-4 p-4 overflow-hidden">
-                    <div className="flex gap-2 shrink-0 h-12">
-                        <button onClick={() => setMode('calc')} className={`rounded-xl border-2 flex-1 font-bold flex items-center justify-center gap-2 ${mode === 'calc' ? 'bg-slate-800 border-yellow-400 text-yellow-400' : 'border-slate-700 text-slate-500'}`}><Icons.Calc className="w-5 h-5" /> CALCOLA</button>
-                        <button onClick={() => setMode('matrix')} className={`rounded-xl border-2 flex-1 font-bold flex items-center justify-center gap-2 ${mode === 'matrix' ? 'bg-slate-800 border-yellow-400 text-yellow-400' : 'border-slate-700 text-slate-500'}`}>× TABELLINE</button>
-                    </div>
-                    <div className="flex-1 bg-slate-950 rounded-xl border-2 border-slate-700 overflow-hidden flex">
-                        {mode === 'calc' ? (
-                            <div className="flex w-full h-full">
-                                <div className="w-2/5 md:w-1/3 p-3 border-r border-slate-700 flex flex-col gap-2 bg-slate-900/50">
-                                    <div className="bg-slate-900 p-3 rounded-xl mb-2 text-right text-2xl font-mono border border-slate-600 text-yellow-400 h-16 flex items-center justify-end overflow-hidden">{display || <span className="animate-pulse opacity-50">0</span>}</div>
-                                    <div className="grid grid-cols-4 gap-2 flex-1">
-                                        {['7','8','9','/','4','5','6','*','1','2','3','-','0','.','C','+'].map(b => (
-                                            <button key={b} onClick={() => b === 'C' ? setDisplay('') : setDisplay(prev => prev + b)} className={`text-xl font-bold rounded-lg active:scale-95 ${b === 'C' ? 'bg-red-600 text-white' : ['/','+','-','*'].includes(b) ? 'bg-slate-700 text-yellow-400' : 'bg-slate-800 text-white'}`}>{b === '*' ? '×' : b === '/' ? '÷' : b}</button>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="flex-1 p-4 overflow-y-auto bg-slate-900">{renderVisuals()}</div>
-                            </div>
-                        ) : <Matrix highlight={highlight} setHighlight={setHighlight} />}
-                    </div>
-                    {mode === 'calc' && <div className="flex gap-4 justify-center text-xs text-slate-400 flex-wrap"><div className="flex items-center gap-1"><div className="w-4 h-4 bg-green-500 rounded"></div> Unità</div><div className="flex items-center gap-1"><div className="w-4 h-4 bg-blue-500 rounded"></div> Decine</div><div className="flex items-center gap-1"><div className="w-4 h-4 bg-purple-500 rounded"></div> Centinaia</div></div>}
-                </div>
-            );
-        };
-
-        // ═══════════════════════════════════════════════════════════════
-        // SMART EDITOR
-        // ═══════════════════════════════════════════════════════════════
-        const ReadingTool = () => {
-            const [text, setText] = useState('');
-            const [analyzedParts, setAnalyzedParts] = useState(null);
-            const [loading, setLoading] = useState(false);
-            const [activeError, setActiveError] = useState(null);
-            const [shakeOption, setShakeOption] = useState(null);
-            const [errorsFixed, setErrorsFixed] = useState(0);
-            const [totalErrors, setTotalErrors] = useState(0);
-
-            const analyzeWithAI = async (inputText) => {
+        const GeminiService = {
+            analyzeToMap: async (imagesInput) => {
                 const key = DB.getKey();
-                if (!key) throw new Error("Inserisci API Key!");
-                const prompt = `Sei un correttore per un bambino italiano di 9 anni con dislessia.
-ANALIZZA: "${inputText}"
-TROVA errori: ORTOGRAFIA (ORT), PUNTEGGIATURA (PUN), SINTASSI (SIN).
-Per ogni errore genera 4 OPZIONI (1 corretta + 3 plausibili).
-Rispondi SOLO JSON: [{"original":"err","type":"ORT|PUN|SIN","correction":"corr","explanation":"...","options":["a","b","c","d"]}]
-Se perfetto: []`;
-                const response = await fetch(getApiUrl(key), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.3 } }) });
-                if (!response.ok) throw new Error("Errore API");
-                const data = await response.json();
-                let result = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
-                result = result.replace(/```json/g, '').replace(/```/g, '').trim();
-                const jsonMatch = result.match(/\[[\s\S]*\]/);
-                return jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-            };
+                if (!key) throw new Error("Inserisci prima la API Key!");
+                
+                const imagesArray = Array.isArray(imagesInput) ? imagesInput : [imagesInput];
 
-            const shuffleArray = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+                const prompt = `Analizza queste immagini di un libro scolastico per creare una MAPPA MENTALE per un bambino di 9 anni con DSA (dislessia).
 
-            const buildParts = (originalText, errors) => {
-                if (!originalText) return [{ type: 'text', content: '' }];
-                if (!errors?.length) return [{ type: 'text', content: originalText }];
-                const parts = [];
-                const sortedErrors = errors.map(e => ({ ...e, tempIndex: originalText.toLowerCase().indexOf(e.original?.toLowerCase(), 0) })).filter(e => e.tempIndex !== -1 && e.original?.length).sort((a, b) => a.tempIndex - b.tempIndex);
-                let lastCursor = 0;
-                for (const err of sortedErrors) {
-                    const idx = originalText.toLowerCase().indexOf(err.original.toLowerCase(), lastCursor);
-                    if (idx !== -1) {
-                        if (idx > lastCursor) parts.push({ type: 'text', content: originalText.substring(lastCursor, idx) });
-                        parts.push({ type: 'error', id: Math.random().toString(36).substr(2, 9), original: originalText.substring(idx, idx + err.original.length), errType: (err.type || 'ORT').toUpperCase(), correction: err.correction, explanation: err.explanation, options: err.options?.length >= 2 ? shuffleArray(err.options) : shuffleArray([err.correction, err.original, err.original + '?', err.original + '!']) });
-                        lastCursor = idx + err.original.length;
+OBIETTIVI:
+1. Identifica il TEMA PRINCIPALE (sarà il nodo centrale)
+2. Estrai 4-6 CONCETTI CHIAVE collegati al tema
+3. Per ogni concetto scrivi una spiegazione SEMPLICISSIMA (max 15 parole, linguaggio da bambino)
+4. Crea un RIASSUNTO a PUNTI (5-7 punti, ogni punto max 10 parole)
+
+CATEGORIE per i concetti:
+- "movement" = movimenti (rotazione, rivoluzione, moto)
+- "body" = corpi celesti (Terra, Luna, Sole, pianeti)
+- "effect" = effetti/conseguenze (stagioni, maree, giorno/notte)
+- "concept" = altri concetti importanti
+
+Rispondi SOLO con questo JSON esatto:
+{
+    "title": "Titolo del tema principale",
+    "summary_points": [
+        "🌍 Punto 1 breve",
+        "🔄 Punto 2 breve",
+        "☀️ Punto 3 breve"
+    ],
+    "nodes": [
+        {
+            "id": 1,
+            "label": "Nome Concetto",
+            "category": "movement|body|effect|concept",
+            "explanation": "Spiegazione semplicissima per bambino"
+        }
+    ],
+    "connections": [
+        {"from": 0, "to": 1}
+    ]
+}
+
+IMPORTANTE:
+- Il nodo con id=0 è sempre il TEMA CENTRALE
+- Le connections collegano i nodi tramite i loro id
+- Le spiegazioni devono essere MOLTO semplici, come parleresti a un bambino
+- Usa emoji appropriate nei summary_points`;
+
+                const imageParts = imagesArray.map(img => ({
+                    inlineData: { 
+                        mimeType: "image/jpeg", 
+                        data: img.includes(',') ? img.split(',')[1] : img 
                     }
+                }));
+
+                const response = await fetch(getApiUrl(key), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: prompt },
+                                ...imageParts
+                            ]
+                        }],
+                        generationConfig: { temperature: 0.3 }
+                    })
+                });
+                
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error("Errore Google: " + (err.error?.message || "Sconosciuto"));
                 }
-                if (lastCursor < originalText.length) parts.push({ type: 'text', content: originalText.substring(lastCursor) });
-                return parts.length ? parts : [{ type: 'text', content: originalText }];
-            };
 
-            const handleAnalyze = async () => {
-                if (!text.trim()) return alert("Scrivi qualcosa!");
-                setLoading(true); setErrorsFixed(0);
-                try {
-                    const errors = await analyzeWithAI(text);
-                    if (!errors?.length) { alert("🎉 Perfetto!"); setLoading(false); return; }
-                    const parts = buildParts(text, errors);
-                    setAnalyzedParts(parts);
-                    setTotalErrors(parts.filter(p => p.type === 'error').length);
-                    DB.addXP(10);
-                } catch (e) { alert("Errore: " + e.message); }
-                setLoading(false);
-            };
-
-            const handleOptionSelect = (i, opt) => {
-                const part = analyzedParts[i];
-                if (opt.trim().toLowerCase() === part.correction.trim().toLowerCase()) {
-                    const newParts = [...analyzedParts]; newParts[i] = { type: 'fixed', content: part.correction };
-                    setAnalyzedParts(newParts); setActiveError(null); setErrorsFixed(p => p + 1); DB.addXP(25);
-                    const u = new SpeechSynthesisUtterance("Giusto!"); u.lang = 'it-IT'; speechSynthesis.speak(u);
-                } else {
-                    setShakeOption(opt); setTimeout(() => setShakeOption(null), 500);
-                    const u = new SpeechSynthesisUtterance("Riprova!"); u.lang = 'it-IT'; speechSynthesis.speak(u);
+                const data = await response.json();
+                let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+                
+                // Trova il JSON
+                const jsonMatch = text.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    return JSON.parse(jsonMatch[0]);
                 }
-            };
-
-            const handleReset = () => { setText(analyzedParts.map(p => p.original || p.content).join('')); setAnalyzedParts(null); setActiveError(null); setErrorsFixed(0); setTotalErrors(0); };
-            const speakText = () => { speechSynthesis.cancel(); const t = analyzedParts ? analyzedParts.map(p => p.original || p.content).join('') : text; if (t) { const u = new SpeechSynthesisUtterance(t); u.lang = 'it-IT'; u.rate = 0.85; speechSynthesis.speak(u); } };
-
-            return (
-                <div className="h-full flex flex-col p-4 gap-4 max-w-4xl mx-auto w-full overflow-hidden">
-                    <div className="flex gap-2 shrink-0 h-14">
-                        {!analyzedParts ? (
-                            <>
-                                <button onClick={async () => { if (!text.trim()) return; setLoading(true); try { setText(await GeminiService.restructureText(text)); DB.addXP(10); } catch (e) { alert(e.message); } setLoading(false); }} disabled={loading} className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-2"><Icons.Magic className="w-5 h-5" />{loading ? '...' : 'RISCRIVI'}</button>
-                                <button onClick={handleAnalyze} disabled={loading} className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-2"><Icons.Check className="w-5 h-5" />{loading ? '...' : 'CONTROLLA'}</button>
-                            </>
-                        ) : <button onClick={handleReset} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center justify-center gap-2"><Icons.Book className="w-5 h-5" /> MODIFICA</button>}
-                        <button onClick={speakText} className="w-16 bg-green-600 hover:bg-green-500 text-white rounded-xl flex items-center justify-center"><Icons.Volume className="w-6 h-6" /></button>
-                    </div>
-                    {analyzedParts && totalErrors > 0 && (
-                        <div className="bg-slate-800 rounded-xl p-3 border border-slate-600">
-                            <div className="flex justify-between text-sm mb-2"><span className="text-slate-400">Errori corretti:</span><span className="text-green-400 font-bold">{errorsFixed} / {totalErrors}</span></div>
-                            <div className="h-3 bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-green-600 to-green-400 transition-all" style={{ width: `${(errorsFixed / totalErrors) * 100}%` }}></div></div>
-                            {errorsFixed === totalErrors && <div className="text-center text-green-400 font-bold mt-2 animate-pulse">🎉 COMPLETO!</div>}
-                        </div>
-                    )}
-                    <div className="flex-1 bg-slate-800 rounded-xl border-2 border-slate-600 p-6 text-lg overflow-y-auto" onClick={() => setActiveError(null)}>
-                        {!analyzedParts ? <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Scrivi o detta con il microfono 🎤..." className="w-full h-full bg-transparent resize-none outline-none text-slate-200 placeholder-slate-500 text-xl" style={{ lineHeight: '2' }} />
-                        : <div className="text-slate-200 text-xl" style={{ lineHeight: '2.2' }}>
-                            {analyzedParts.map((p, i) => {
-                                if (p.type === 'text') return <span key={i}>{p.content}</span>;
-                                if (p.type === 'fixed') return <span key={i} className="bg-green-500/20 text-green-300 px-1 rounded border-b-2 border-green-500">{p.content}</span>;
-                                return (
-                                    <span key={i} onClick={e => { e.stopPropagation(); setActiveError(activeError === i ? null : i); }} className={`err-span err-${p.errType} rounded-md px-1 cursor-pointer ${activeError === i ? 'ring-2 ring-white' : ''}`}>
-                                        {p.original}
-                                        {activeError === i && (
-                                            <div className="correction-popup" onClick={e => e.stopPropagation()} style={{ width: '280px' }}>
-                                                <div className={`font-bold mb-2 text-sm px-2 py-1 rounded ${p.errType === 'ORT' ? 'bg-red-500/20 text-red-400' : p.errType === 'PUN' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'}`}>{p.errType === 'ORT' ? '✏️ ORTOGRAFIA' : p.errType === 'PUN' ? '📝 PUNTEGGIATURA' : '📖 SINTASSI'}</div>
-                                                <div className="text-slate-300 text-sm mb-3">{p.explanation}</div>
-                                                <div className="grid grid-cols-2 gap-2">{p.options.map((opt, j) => <button key={j} onClick={() => handleOptionSelect(i, opt)} className={`p-3 rounded-lg font-bold text-sm ${shakeOption === opt ? 'bg-red-600 shake' : 'bg-slate-700 hover:bg-slate-600'} text-white border border-slate-500`}>{opt}</button>)}</div>
-                                            </div>
-                                        )}
-                                    </span>
-                                );
-                            })}
-                        </div>}
-                    </div>
-                </div>
-            );
+                throw new Error("Risposta AI non valida");
+            }
         };
 
         // ═══════════════════════════════════════════════════════════════
-        // LAVAGNA AI POTENZIATA
+        // COMPONENTE: LAVAGNA AI POTENZIATA
         // ═══════════════════════════════════════════════════════════════
         const CyberBoard = () => {
             const [stage, setStage] = useState('upload');
@@ -533,74 +298,79 @@ Se perfetto: []`;
             const [mapData, setMapData] = useState(null);
             const [nodes, setNodes] = useState([]);
             const [lines, setLines] = useState([]);
-            const [mode, setMode] = useState('study');
+            const [mode, setMode] = useState('study'); // 'study' | 'connect'
             const [selectedNode, setSelectedNode] = useState(null);
             const [expandedNode, setExpandedNode] = useState(null);
-            const [userLines, setUserLines] = useState([]);
+            const [userLines, setUserLines] = useState([]); // Linee create dall'utente
             const mapRef = useRef(null);
 
+            // Carica salvataggio
             useEffect(() => {
                 const saved = DB.loadMap();
-                if (saved?.nodes?.length) { setMapData(saved.mapData); setNodes(saved.nodes); setLines(saved.lines || []); setUserLines(saved.userLines || []); setStage('playing'); }
+                if (saved && saved.nodes && saved.nodes.length > 0) {
+                    setMapData(saved.mapData);
+                    setNodes(saved.nodes);
+                    setLines(saved.lines || []);
+                    setUserLines(saved.userLines || []);
+                    setStage('playing');
+                }
             }, []);
 
-            useEffect(() => { if (nodes.length) DB.saveMap({ mapData, nodes, lines, userLines }); }, [nodes, lines, userLines, mapData]);
+            // Salva quando cambia qualcosa
+            useEffect(() => {
+                if (nodes.length > 0) {
+                    DB.saveMap({ mapData, nodes, lines, userLines });
+                }
+            }, [nodes, lines, userLines, mapData]);
 
             const handleImageUpload = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
-                reader.onload = (evt) => setImages(prev => [...prev, evt.target.result]);
+                reader.onload = (evt) => {
+                    setImages(prev => [...prev, evt.target.result]);
+                };
                 reader.readAsDataURL(file);
             };
 
             const startAnalysis = async () => {
-                if (!images.length) return;
+                if (images.length === 0) return;
                 setStage('scanning');
+
                 try {
                     const aiData = await GeminiService.analyzeToMap(images);
                     setMapData(aiData);
 
-                    // LAYOUT MIGLIORATO: centrale in alto, altri in griglia sotto
-                    const screenW = window.innerWidth;
-                    const screenH = window.innerHeight - 280; // Spazio per toolbar + summary
-                    
-                    const nodeW = 130, nodeH = 70;
-                    const centralW = 160, centralH = 90;
-                    
-                    // Nodo centrale in alto al centro
+                    // Calcola posizioni - nodo centrale + satellite
+                    const cx = window.innerWidth / 2;
+                    const cy = (window.innerHeight - 200) / 2; // Spazio per pannello sotto
+                    const radius = Math.min(cx, cy) * 0.6;
+
+                    // Nodo centrale (id=0)
                     const centralNode = {
                         id: 0,
                         label: aiData.title || "Tema",
                         category: 'central',
-                        explanation: "Questo è il tema principale",
-                        x: (screenW - centralW) / 2,
-                        y: 20,
-                        w: centralW,
-                        h: centralH,
+                        explanation: "Questo è il tema principale della lezione",
+                        x: cx - 90,
+                        y: cy - 50,
+                        w: 180,
+                        h: 100,
                         isCentral: true
                     };
 
-                    // Nodi satellite disposti in griglia sotto
-                    const numNodes = aiData.nodes?.length || 0;
-                    const cols = Math.min(3, numNodes); // Max 3 colonne
-                    const rows = Math.ceil(numNodes / cols);
-                    const gridW = cols * (nodeW + 30);
-                    const startX = (screenW - gridW) / 2 + 15;
-                    const startY = centralH + 80;
-
+                    // Nodi satellite
                     const satelliteNodes = (aiData.nodes || []).map((n, i) => {
-                        const col = i % cols;
-                        const row = Math.floor(i / cols);
+                        const angle = (i / aiData.nodes.length) * 2 * Math.PI - Math.PI / 2;
                         const cat = n.category || categorizeNode(n.label);
                         return {
                             ...n,
                             id: n.id || i + 1,
                             category: cat,
-                            x: startX + col * (nodeW + 30),
-                            y: startY + row * (nodeH + 50),
-                            w: nodeW,
-                            h: nodeH,
+                            x: cx + radius * Math.cos(angle) - 70,
+                            y: cy + radius * Math.sin(angle) - 40,
+                            w: 140,
+                            h: 80,
                             isCentral: false
                         };
                     });
@@ -608,182 +378,410 @@ Se perfetto: []`;
                     const allNodes = [centralNode, ...satelliteNodes];
                     setNodes(allNodes);
 
-                    // Linee: collega tutto al centrale
-                    const aiLines = satelliteNodes.map(n => ({
-                        id: `ai-0-${n.id}`,
-                        from: 0,
-                        to: n.id,
-                        isUserCreated: false
-                    }));
+                    // Crea linee dalle connessioni AI
+                    const aiLines = (aiData.connections || []).map(conn => {
+                        const fromNode = allNodes.find(n => n.id === conn.from);
+                        const toNode = allNodes.find(n => n.id === conn.to);
+                        if (fromNode && toNode) {
+                            return {
+                                id: `ai-${conn.from}-${conn.to}`,
+                                from: conn.from,
+                                to: conn.to,
+                                isUserCreated: false
+                            };
+                        }
+                        return null;
+                    }).filter(Boolean);
+
+                    // Se non ci sono connessioni, collega tutto al centrale
+                    if (aiLines.length === 0) {
+                        satelliteNodes.forEach(n => {
+                            aiLines.push({
+                                id: `ai-0-${n.id}`,
+                                from: 0,
+                                to: n.id,
+                                isUserCreated: false
+                            });
+                        });
+                    }
+
                     setLines(aiLines);
                     setUserLines([]);
                     DB.addXP(30);
                     setStage('playing');
                 } catch (e) {
-                    alert("Errore: " + e.message);
+                    alert("Errore AI: " + e.message);
                     setStage('upload');
                 }
             };
 
             const handleNodeClick = (node) => {
                 if (mode === 'study') {
+                    // Mostra/nascondi spiegazione
                     setExpandedNode(expandedNode === node.id ? null : node.id);
-                    speechSynthesis.cancel();
-                    const u = new SpeechSynthesisUtterance(node.explanation || node.label);
-                    u.lang = 'it-IT'; u.rate = 0.9;
-                    speechSynthesis.speak(u);
-                } else {
+                    
+                    // Leggi ad alta voce
+                    window.speechSynthesis.cancel();
+                    const text = node.explanation || node.label;
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'it-IT';
+                    utterance.rate = 0.9;
+                    window.speechSynthesis.speak(utterance);
+                } else if (mode === 'connect') {
+                    // Modalità collegamento
                     if (selectedNode === null) {
                         setSelectedNode(node.id);
                     } else if (selectedNode !== node.id) {
-                        const exists = [...lines, ...userLines].some(l => (l.from === selectedNode && l.to === node.id) || (l.from === node.id && l.to === selectedNode));
+                        // Crea nuovo collegamento
+                        const newLine = {
+                            id: `user-${selectedNode}-${node.id}`,
+                            from: selectedNode,
+                            to: node.id,
+                            isUserCreated: true
+                        };
+                        
+                        // Verifica che non esista già
+                        const exists = [...lines, ...userLines].some(l => 
+                            (l.from === selectedNode && l.to === node.id) ||
+                            (l.from === node.id && l.to === selectedNode)
+                        );
+                        
                         if (!exists) {
-                            setUserLines(prev => [...prev, { id: `user-${selectedNode}-${node.id}`, from: selectedNode, to: node.id, isUserCreated: true }]);
+                            setUserLines(prev => [...prev, newLine]);
                             DB.addXP(10);
-                            const u = new SpeechSynthesisUtterance("Collegato!"); u.lang = 'it-IT'; speechSynthesis.speak(u);
+                            
+                            // Feedback
+                            const utterance = new SpeechSynthesisUtterance("Collegamento creato!");
+                            utterance.lang = 'it-IT';
+                            window.speechSynthesis.speak(utterance);
                         }
                         setSelectedNode(null);
-                    } else setSelectedNode(null);
+                    } else {
+                        setSelectedNode(null);
+                    }
                 }
+            };
+
+            const deleteUserLine = (lineId) => {
+                setUserLines(prev => prev.filter(l => l.id !== lineId));
             };
 
             const getLineCoords = (line) => {
                 const fromNode = nodes.find(n => n.id === line.from);
                 const toNode = nodes.find(n => n.id === line.to);
                 if (!fromNode || !toNode) return null;
-                return { x1: fromNode.x + fromNode.w / 2, y1: fromNode.y + fromNode.h / 2, x2: toNode.x + toNode.w / 2, y2: toNode.y + toNode.h / 2 };
+                return {
+                    x1: fromNode.x + fromNode.w / 2,
+                    y1: fromNode.y + fromNode.h / 2,
+                    x2: toNode.x + toNode.w / 2,
+                    y2: toNode.y + toNode.h / 2
+                };
             };
 
             const speakAll = () => {
-                speechSynthesis.cancel();
-                let t = `Il tema è: ${mapData?.title || 'la lezione'}. `;
-                if (mapData?.summary_points) { t += "Punti principali: "; mapData.summary_points.forEach((p, i) => t += `${i + 1}: ${p.replace(/[^\w\sàèéìòùç]/gi, '')}. `); }
-                const u = new SpeechSynthesisUtterance(t); u.lang = 'it-IT'; u.rate = 0.85; speechSynthesis.speak(u);
+                window.speechSynthesis.cancel();
+                
+                // Costruisci testo da leggere
+                let text = `Il tema è: ${mapData?.title || 'la lezione'}. `;
+                
+                if (mapData?.summary_points) {
+                    text += "I punti principali sono: ";
+                    mapData.summary_points.forEach((p, i) => {
+                        text += `${i + 1}: ${p.replace(/[^\w\sàèéìòùç]/gi, '')}. `;
+                    });
+                }
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'it-IT';
+                utterance.rate = 0.85;
+                window.speechSynthesis.speak(utterance);
             };
 
             const exportImage = async () => {
                 if (!mapRef.current) return;
+                
                 try {
-                    const canvas = await html2canvas(mapRef.current, { backgroundColor: '#0a0e17', scale: 2 });
+                    const canvas = await html2canvas(mapRef.current, {
+                        backgroundColor: '#0a0e17',
+                        scale: 2
+                    });
+                    
                     const link = document.createElement('a');
                     link.download = `mappa-${mapData?.title || 'mentale'}.png`;
                     link.href = canvas.toDataURL('image/png');
                     link.click();
+                    
                     DB.addXP(5);
-                } catch (e) { alert("Errore: " + e.message); }
+                } catch (e) {
+                    alert("Errore export: " + e.message);
+                }
             };
 
             const shareMap = async () => {
                 if (!mapRef.current) return;
+                
                 try {
-                    const canvas = await html2canvas(mapRef.current, { backgroundColor: '#0a0e17', scale: 2 });
+                    const canvas = await html2canvas(mapRef.current, {
+                        backgroundColor: '#0a0e17',
+                        scale: 2
+                    });
+                    
                     canvas.toBlob(async (blob) => {
-                        if (navigator.share) {
-                            const file = new File([blob], `mappa.png`, { type: 'image/png' });
-                            try { await navigator.share({ title: mapData?.title || 'Mappa', files: [file] }); return; } catch {}
+                        if (navigator.share && navigator.canShare) {
+                            const file = new File([blob], `mappa-${mapData?.title || 'mentale'}.png`, { type: 'image/png' });
+                            
+                            if (navigator.canShare({ files: [file] })) {
+                                await navigator.share({
+                                    title: `Mappa: ${mapData?.title || 'Mentale'}`,
+                                    text: 'Guarda la mappa mentale che ho creato!',
+                                    files: [file]
+                                });
+                                return;
+                            }
                         }
+                        
+                        // Fallback: download
                         const link = document.createElement('a');
-                        link.download = `mappa.png`;
+                        link.download = `mappa-${mapData?.title || 'mentale'}.png`;
                         link.href = URL.createObjectURL(blob);
                         link.click();
                     }, 'image/png');
-                } catch (e) { console.error(e); }
-            };
-
-            const handleReset = () => {
-                if (confirm("Cancellare la mappa?")) {
-                    setStage('upload'); DB.clearMap();
-                    setNodes([]); setLines([]); setUserLines([]); setMapData(null); setImages([]); setSelectedNode(null); setExpandedNode(null);
+                    
+                } catch (e) {
+                    console.error("Errore condivisione:", e);
                 }
             };
 
+            const handleReset = () => {
+                if (confirm("Vuoi cancellare la mappa e ricominciare?")) {
+                    setStage('upload');
+                    DB.clearMap();
+                    setNodes([]);
+                    setLines([]);
+                    setUserLines([]);
+                    setMapData(null);
+                    setImages([]);
+                    setSelectedNode(null);
+                    setExpandedNode(null);
+                }
+            };
+
+            // ─── FASE UPLOAD ───
             if (stage === 'upload') {
                 return (
                     <div className="h-full flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
-                        <div className="border-2 border-dashed border-slate-600 rounded-3xl p-8 flex flex-col items-center gap-6 bg-slate-800/30 max-w-lg w-full">
-                            <div className="text-5xl">📚</div>
-                            <h2 className="text-2xl font-bold dsa-text">CARICA LE FOTO</h2>
-                            <p className="text-slate-400 dsa-text">Fotografa le pagine da studiare</p>
+                        <div className="border-2 border-dashed border-slate-600 rounded-3xl p-8 flex flex-col items-center gap-6 bg-slate-800/30 max-w-2xl w-full">
+                            
+                            <div>
+                                <div className="text-5xl mb-4">📚</div>
+                                <h2 className="text-2xl font-bold text-slate-200 dsa-text">CARICA LE FOTO DEL LIBRO</h2>
+                                <p className="text-slate-400 text-sm mt-2 dsa-text">
+                                    Fotografa le pagine da studiare
+                                </p>
+                            </div>
+
                             {images.length > 0 && (
-                                <div className="flex gap-3 overflow-x-auto w-full p-3 bg-slate-900/50 rounded-xl border border-slate-700">
-                                    {images.map((img, i) => (
-                                        <div key={i} className="relative shrink-0">
-                                            <img src={img} className="h-20 rounded-lg border-2 border-slate-500" />
-                                            <div className="absolute -top-2 -right-2 bg-green-500 text-black text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">{i + 1}</div>
+                                <div className="flex gap-3 overflow-x-auto w-full p-3 bg-slate-900/50 rounded-xl border border-slate-700 min-h-[110px] items-center">
+                                    {images.map((img, idx) => (
+                                        <div key={idx} className="relative shrink-0">
+                                            <img src={img} className="h-24 w-auto rounded-lg border-2 border-slate-500" />
+                                            <div className="absolute -top-2 -right-2 bg-green-500 text-black text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
+                                                {idx + 1}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
                             )}
+
                             <div className="flex gap-4 flex-wrap justify-center">
-                                <label className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-4 px-6 rounded-xl cursor-pointer flex items-center gap-2">
+                                <label className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-4 px-8 rounded-xl cursor-pointer shadow-lg transition-all border border-slate-500 flex items-center gap-3 text-lg">
                                     <input type="file" onChange={handleImageUpload} className="hidden" accept="image/*" capture="environment" />
-                                    <Icons.Upload className="w-5 h-5" /> 📷 FOTO
+                                    <Icons.Upload className="w-6 h-6" />
+                                    📷 SCATTA FOTO
                                 </label>
+
                                 {images.length > 0 && (
-                                    <button onClick={startAnalysis} className="bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-6 rounded-xl bounce-subtle flex items-center gap-2">
-                                        <Icons.Brain className="w-5 h-5" /> 🚀 CREA MAPPA
+                                    <button 
+                                        onClick={startAnalysis}
+                                        className="bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-8 rounded-xl shadow-[0_0_20px_rgba(74,222,128,0.5)] transition-all flex items-center gap-3 text-lg bounce-subtle"
+                                    >
+                                        <Icons.Brain className="w-6 h-6" />
+                                        🚀 CREA MAPPA
                                     </button>
                                 )}
                             </div>
-                            {images.length > 0 && <button onClick={() => setImages([])} className="text-sm text-red-400 underline">🗑️ Cancella foto</button>}
+                            
+                            {images.length > 0 && (
+                                <button onClick={() => setImages([])} className="text-sm text-red-400 underline hover:text-red-300">
+                                    🗑️ Cancella foto
+                                </button>
+                            )}
                         </div>
                     </div>
                 );
             }
 
+            // ─── FASE ANALISI ───
             if (stage === 'scanning') {
                 return (
                     <div className="h-full flex flex-col items-center justify-center gap-6">
                         <div className="w-20 h-20 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
                         <h2 className="text-green-400 font-bold text-2xl dsa-text">🤖 STO LEGGENDO...</h2>
+                        <p className="text-slate-400 dsa-text">Analizzo {images.length} {images.length === 1 ? 'pagina' : 'pagine'}</p>
                     </div>
                 );
             }
 
+            // ─── FASE MAPPA ───
             return (
                 <div className="h-full flex flex-col overflow-hidden">
                     {/* Toolbar */}
-                    <div className="flex gap-2 p-2 bg-slate-900 border-b border-slate-700 shrink-0 flex-wrap">
+                    <div className="flex gap-2 p-3 bg-slate-900 border-b border-slate-700 shrink-0 flex-wrap no-print">
+                        {/* Mode Toggle */}
                         <div className="flex rounded-xl overflow-hidden border border-slate-600">
-                            <button onClick={() => { setMode('study'); setSelectedNode(null); }} className={`px-3 py-2 font-bold flex items-center gap-1 text-sm ${mode === 'study' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'}`}><Icons.Eye className="w-4 h-4" /> STUDIA</button>
-                            <button onClick={() => { setMode('connect'); setExpandedNode(null); }} className={`px-3 py-2 font-bold flex items-center gap-1 text-sm ${mode === 'connect' ? 'bg-yellow-600 text-white' : 'bg-slate-800 text-slate-400'}`}><Icons.Link className="w-4 h-4" /> COLLEGA</button>
+                            <button
+                                onClick={() => { setMode('study'); setSelectedNode(null); }}
+                                className={`px-4 py-2 font-bold flex items-center gap-2 transition-all ${
+                                    mode === 'study' 
+                                        ? 'bg-blue-600 text-white' 
+                                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                                }`}
+                            >
+                                <Icons.Eye className="w-4 h-4" /> STUDIA
+                            </button>
+                            <button
+                                onClick={() => { setMode('connect'); setExpandedNode(null); }}
+                                className={`px-4 py-2 font-bold flex items-center gap-2 transition-all ${
+                                    mode === 'connect' 
+                                        ? 'bg-yellow-600 text-white' 
+                                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                                }`}
+                            >
+                                <Icons.Link className="w-4 h-4" /> COLLEGA
+                            </button>
                         </div>
+
                         <div className="flex-1"></div>
-                        <button onClick={speakAll} className="p-2 rounded-lg bg-green-600 text-white" title="Ascolta"><Icons.Volume className="w-5 h-5" /></button>
-                        <button onClick={exportImage} className="p-2 rounded-lg bg-purple-600 text-white" title="Salva"><Icons.Download className="w-5 h-5" /></button>
-                        <button onClick={shareMap} className="p-2 rounded-lg bg-blue-600 text-white" title="Condividi"><Icons.Share className="w-5 h-5" /></button>
-                        <button onClick={handleReset} className="p-2 rounded-lg bg-red-600 text-white" title="Reset"><Icons.Trash className="w-5 h-5" /></button>
+
+                        {/* Actions */}
+                        <button onClick={speakAll} className="p-2 rounded-lg bg-green-600 hover:bg-green-500 text-white" title="Ascolta tutto">
+                            <Icons.Volume className="w-5 h-5" />
+                        </button>
+                        <button onClick={exportImage} className="p-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white" title="Salva immagine">
+                            <Icons.Download className="w-5 h-5" />
+                        </button>
+                        <button onClick={shareMap} className="p-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white" title="Condividi">
+                            <Icons.Share className="w-5 h-5" />
+                        </button>
+                        <button onClick={handleReset} className="p-2 rounded-lg bg-red-600 hover:bg-red-500 text-white" title="Ricomincia">
+                            <Icons.Trash className="w-5 h-5" />
+                        </button>
                     </div>
 
+                    {/* Mode indicator */}
                     {mode === 'connect' && (
-                        <div className="bg-yellow-900/50 border-b border-yellow-600 px-4 py-2 text-center text-yellow-300 text-sm dsa-text">
-                            {selectedNode !== null ? `✋ Tocca un altro nodo per collegarlo!` : `👆 Tocca il primo nodo`}
+                        <div className="bg-yellow-900/50 border-b border-yellow-600 px-4 py-2 text-center text-yellow-300 text-sm dsa-text no-print">
+                            {selectedNode !== null 
+                                ? `✋ Ora tocca un altro nodo per collegarlo!`
+                                : `👆 Tocca il primo nodo da collegare`
+                            }
                         </div>
                     )}
 
-                    {/* Map */}
-                    <div ref={mapRef} className="flex-1 relative bg-slate-950 overflow-auto" style={{ minHeight: '250px' }}>
-                        <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" style={{ minHeight: '400px' }}>
-                            {lines.map(l => { const c = getLineCoords(l); return c ? <line key={l.id} x1={c.x1} y1={c.y1} x2={c.x2} y2={c.y2} stroke="#4ade80" strokeWidth="3" strokeOpacity="0.6" /> : null; })}
-                            {userLines.map(l => { const c = getLineCoords(l); return c ? (
-                                <g key={l.id}>
-                                    <line x1={c.x1} y1={c.y1} x2={c.x2} y2={c.y2} stroke="#fbbf24" strokeWidth="4" strokeDasharray="8,4" />
-                                    <circle cx={(c.x1 + c.x2) / 2} cy={(c.y1 + c.y2) / 2} r="12" fill="#ef4444" className="cursor-pointer pointer-events-auto" onClick={() => setUserLines(prev => prev.filter(x => x.id !== l.id))} />
-                                    <text x={(c.x1 + c.x2) / 2} y={(c.y1 + c.y2) / 2 + 4} textAnchor="middle" fill="white" fontSize="14" fontWeight="bold" className="pointer-events-none">×</text>
-                                </g>
-                            ) : null; })}
+                    {/* Map Area */}
+                    <div 
+                        ref={mapRef}
+                        className="flex-1 relative bg-slate-950 overflow-hidden"
+                        style={{ minHeight: '300px' }}
+                    >
+                        {/* Lines SVG */}
+                        <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                            {/* AI Lines */}
+                            {lines.map((line) => {
+                                const coords = getLineCoords(line);
+                                if (!coords) return null;
+                                return (
+                                    <line 
+                                        key={line.id}
+                                        x1={coords.x1} y1={coords.y1}
+                                        x2={coords.x2} y2={coords.y2}
+                                        stroke="#4ade80"
+                                        strokeWidth="3"
+                                        strokeOpacity="0.6"
+                                    />
+                                );
+                            })}
+                            
+                            {/* User Lines */}
+                            {userLines.map((line) => {
+                                const coords = getLineCoords(line);
+                                if (!coords) return null;
+                                return (
+                                    <g key={line.id}>
+                                        <line 
+                                            x1={coords.x1} y1={coords.y1}
+                                            x2={coords.x2} y2={coords.y2}
+                                            stroke="#fbbf24"
+                                            strokeWidth="4"
+                                            strokeDasharray="8,4"
+                                        />
+                                        {/* Delete button on line */}
+                                        <circle
+                                            cx={(coords.x1 + coords.x2) / 2}
+                                            cy={(coords.y1 + coords.y2) / 2}
+                                            r="12"
+                                            fill="#ef4444"
+                                            className="cursor-pointer pointer-events-auto"
+                                            onClick={() => deleteUserLine(line.id)}
+                                        />
+                                        <text
+                                            x={(coords.x1 + coords.x2) / 2}
+                                            y={(coords.y1 + coords.y2) / 2 + 4}
+                                            textAnchor="middle"
+                                            fill="white"
+                                            fontSize="14"
+                                            fontWeight="bold"
+                                            className="pointer-events-none"
+                                        >
+                                            ×
+                                        </text>
+                                    </g>
+                                );
+                            })}
                         </svg>
 
+                        {/* Nodes */}
                         {nodes.map(node => {
                             const cat = NODE_CATEGORIES[node.category] || NODE_CATEGORIES.concept;
+                            const isSelected = selectedNode === node.id;
+                            const isExpanded = expandedNode === node.id;
+                            
                             return (
-                                <div key={node.id} onClick={() => handleNodeClick(node)}
-                                    className={`absolute flex flex-col items-center justify-center p-2 text-white rounded-2xl cursor-pointer transition-all z-10 dsa-text ${cat.color} ${selectedNode === node.id ? 'node-selected ring-4 ring-yellow-400' : ''} ${node.isCentral ? 'text-base font-bold' : 'text-xs font-medium'} hover:scale-105 hover:z-20`}
-                                    style={{ left: node.x, top: node.y, width: node.w, height: node.h }}>
-                                    <div className={node.isCentral ? 'text-3xl mb-1' : 'text-xl mb-1'}>{cat.emoji}</div>
-                                    <div className="text-center leading-tight px-1">{node.label}</div>
-                                    {expandedNode === node.id && node.explanation && (
-                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-slate-800 border-2 border-white rounded-xl p-3 text-sm text-white shadow-2xl z-50 w-56 animate-fade-in" onClick={e => e.stopPropagation()}>
+                                <div
+                                    key={node.id}
+                                    onClick={() => handleNodeClick(node)}
+                                    className={`absolute flex flex-col items-center justify-center p-3 text-white rounded-2xl cursor-pointer transition-all z-10 dsa-text
+                                        ${cat.color}
+                                        ${isSelected ? 'node-selected ring-4 ring-yellow-400' : ''}
+                                        ${node.isCentral ? 'text-lg font-bold' : 'text-sm font-medium'}
+                                        hover:scale-105 hover:z-20
+                                    `}
+                                    style={{ 
+                                        left: node.x, 
+                                        top: node.y, 
+                                        width: node.w, 
+                                        height: node.h 
+                                    }}
+                                >
+                                    <div className="text-2xl mb-1">{cat.emoji}</div>
+                                    <div className="text-center leading-tight">{node.label}</div>
+                                    
+                                    {/* Expanded explanation */}
+                                    {isExpanded && node.explanation && (
+                                        <div 
+                                            className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-slate-800 border-2 border-white rounded-xl p-3 text-sm text-white shadow-2xl z-50 w-64 animate-fade-in"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
                                             <div className="font-bold text-yellow-400 mb-1">{cat.emoji} {node.label}</div>
                                             <div className="dsa-text">{node.explanation}</div>
                                         </div>
@@ -793,110 +791,98 @@ Se perfetto: []`;
                         })}
                     </div>
 
-                    {/* Summary */}
-                    <div className="bg-slate-800 border-t-2 border-green-500 p-3 shrink-0 max-h-36 overflow-y-auto">
-                        <div className="flex items-center gap-2 mb-2"><span className="text-xl">📝</span><span className="text-green-400 font-bold dsa-text">PUNTI CHIAVE</span></div>
+                    {/* Summary Panel */}
+                    <div className="bg-slate-800 border-t-2 border-green-500 p-4 shrink-0 max-h-48 overflow-y-auto no-print">
+                        <div className="flex items-center gap-3 mb-3">
+                            <span className="text-2xl">📝</span>
+                            <span className="text-green-400 font-bold text-lg dsa-text">PUNTI CHIAVE</span>
+                        </div>
+                        
                         {mapData?.summary_points ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                {mapData.summary_points.map((p, i) => (
-                                    <div key={i} className="bg-slate-700/50 rounded-lg px-3 py-2 text-slate-200 dsa-text text-sm flex items-start gap-2">
-                                        <span className="text-lg">{p.match(/^[^\w]/)?.[0] || '•'}</span>
-                                        <span>{p.replace(/^[^\w]+/, '')}</span>
+                                {mapData.summary_points.map((point, i) => (
+                                    <div 
+                                        key={i}
+                                        className="bg-slate-700/50 rounded-lg px-3 py-2 text-slate-200 dsa-text text-sm flex items-start gap-2"
+                                    >
+                                        <span className="text-lg">{point.match(/^[^\w]/)?.[0] || '•'}</span>
+                                        <span>{point.replace(/^[^\w]+/, '')}</span>
                                     </div>
                                 ))}
                             </div>
-                        ) : <p className="text-slate-400 dsa-text">Tocca i nodi per scoprire!</p>}
+                        ) : (
+                            <p className="text-slate-400 dsa-text">Tocca i nodi per scoprire i concetti!</p>
+                        )}
                     </div>
-                </div>
-            );
-        };
 
-        // ═══════════════════════════════════════════════════════════════
-        // TUTOR AI
-        // ═══════════════════════════════════════════════════════════════
-        const CyberTutor = () => {
-            const [messages, setMessages] = useState([{ role: 'model', text: 'Ciao! 👋 Sono il tuo Tutor. Cosa studi oggi?' }]);
-            const [input, setInput] = useState('');
-            const [loading, setLoading] = useState(false);
-            const endRef = useRef(null);
-
-            useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
-
-            const sendMessage = async () => {
-                if (!input.trim() || loading) return;
-                const userMsg = input.trim();
-                const newHistory = [...messages, { role: 'user', text: userMsg }];
-                setMessages(newHistory); setInput(''); setLoading(true);
-                try {
-                    const systemPrompt = "Sei un tutor gentile per un bambino di 9 anni con DSA. Frasi semplici, esempi concreti. Italiano.";
-                    const response = await GeminiService.chat([{ role: 'model', text: systemPrompt }, ...messages], userMsg);
-                    setMessages([...newHistory, { role: 'model', text: response }]);
-                    DB.addXP(5);
-                } catch (e) { setMessages([...newHistory, { role: 'model', text: '❌ ' + e.message }]); }
-                setLoading(false);
-            };
-
-            return (
-                <div className="h-full flex flex-col bg-slate-900">
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                        {messages.map((m, i) => (
-                            <div key={i} className={`p-4 max-w-[85%] text-sm rounded-xl animate-fade-in ${m.role === 'user' ? 'msg-user' : 'msg-ai'}`}>
-                                <div className="font-bold text-xs mb-1 opacity-70">{m.role === 'user' ? '👤 TU' : '🤖 TUTOR'}</div>
-                                {m.text}
+                    {/* Legend */}
+                    <div className="flex gap-4 justify-center p-2 bg-slate-900 text-xs text-slate-400 flex-wrap no-print">
+                        {Object.entries(NODE_CATEGORIES).filter(([k]) => k !== 'central').map(([key, val]) => (
+                            <div key={key} className="flex items-center gap-1">
+                                <span>{val.emoji}</span>
+                                <span>{val.label}</span>
                             </div>
                         ))}
-                        {loading && <div className="msg-ai p-4 max-w-[85%] rounded-xl"><div className="flex gap-2"><div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div><div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div><div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div></div></div>}
-                        <div ref={endRef}></div>
-                    </div>
-                    <div className="p-3 bg-slate-800 flex gap-2 border-t border-slate-700">
-                        <input type="text" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} className="flex-1 bg-slate-900 border border-slate-600 rounded-xl p-3 text-white placeholder-slate-500 outline-none" placeholder="Scrivi..." />
-                        <button onClick={sendMessage} disabled={loading} className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white p-3 rounded-xl w-14 flex items-center justify-center"><Icons.Send className="w-5 h-5" /></button>
+                        <div className="flex items-center gap-1 text-yellow-400">
+                            <span>- - -</span>
+                            <span>I tuoi collegamenti</span>
+                        </div>
                     </div>
                 </div>
             );
         };
 
         // ═══════════════════════════════════════════════════════════════
-        // SETTINGS
+        // COMPONENTE: IMPOSTAZIONI
         // ═══════════════════════════════════════════════════════════════
         const SettingsScreen = ({ onClose }) => {
             const [key, setKey] = useState(DB.getKey());
             const [saved, setSaved] = useState(false);
-            const saveKey = () => { DB.setKey(key); setSaved(true); setTimeout(() => { setSaved(false); onClose(); }, 1000); };
+
+            const saveKey = () => {
+                DB.setKey(key);
+                setSaved(true);
+                setTimeout(() => {
+                    setSaved(false);
+                    onClose();
+                }, 1000);
+            };
+
             return (
                 <div className="h-full w-full flex flex-col items-center justify-center p-4 bg-slate-900/95 absolute inset-0 z-50">
                     <div className="bg-slate-800 p-8 rounded-2xl border border-slate-600 max-w-md w-full text-center shadow-2xl animate-fade-in">
-                        <h2 className="text-2xl font-bold mb-4 text-purple-400">⚙️ IMPOSTAZIONI</h2>
-                        <input type="password" value={key} onChange={e => setKey(e.target.value)} placeholder="API Key..." className="w-full bg-slate-900 border border-slate-600 p-4 rounded-xl mb-4 text-white outline-none" />
-                        <button onClick={saveKey} className={`w-full p-4 rounded-xl font-bold text-white ${saved ? 'bg-green-600' : 'bg-purple-600 hover:bg-purple-500'}`}>{saved ? '✓ SALVATO!' : 'SALVA'}</button>
-                        <button onClick={onClose} className="mt-4 text-slate-400 text-sm underline">Chiudi</button>
-                        <div className="mt-4 p-3 bg-slate-900 rounded-xl text-left text-xs text-slate-500">📌 <a href="https://aistudio.google.com/apikey" target="_blank" className="text-purple-400 underline">aistudio.google.com/apikey</a></div>
-                    </div>
-                </div>
-            );
-        };
+                        <h2 className="text-2xl font-bold mb-2 text-purple-400">⚙️ IMPOSTAZIONI</h2>
+                        <p className="text-slate-400 text-sm mb-6">Inserisci la chiave API di Google AI Studio</p>
 
-        // ═══════════════════════════════════════════════════════════════
-        // HOME MENU
-        // ═══════════════════════════════════════════════════════════════
-        const HomeMenu = ({ setActiveTab }) => {
-            const cards = [
-                { id: 'math', title: 'CYBER MATRIX', icon: Icons.Calc, desc: 'Calcoli e Tabelline', color: 'border-yellow-500 text-yellow-400', bg: 'from-yellow-900/20' },
-                { id: 'board', title: 'LAVAGNA AI', icon: Icons.Brain, desc: 'Mappe Mentali', color: 'border-green-500 text-green-400', bg: 'from-green-900/20' },
-                { id: 'reader', title: 'SMART EDITOR', icon: Icons.Book, desc: 'Correttore', color: 'border-blue-500 text-blue-400', bg: 'from-blue-900/20' },
-                { id: 'tutor', title: 'TUTOR AI', icon: Icons.Chat, desc: 'Chat Aiuto', color: 'border-purple-500 text-purple-400', bg: 'from-purple-900/20' }
-            ];
-            return (
-                <div className="h-full w-full overflow-y-auto p-6 flex flex-col items-center justify-center">
-                    <div className="mb-8 text-center"><h1 className="text-4xl font-black text-white mb-2">🎮 EDUGAMER</h1><p className="text-slate-400">Scegli un modulo</p></div>
-                    <div className="grid grid-cols-2 gap-4 w-full max-w-lg">
-                        {cards.map(c => (
-                            <button key={c.id} onClick={() => setActiveTab(c.id)} className={`cyber-card p-4 min-h-[120px] rounded-2xl flex flex-col items-center justify-center gap-2 text-center ${c.color} border-2 bg-gradient-to-br ${c.bg} to-transparent`}>
-                                <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center"><c.icon className="w-5 h-5" /></div>
-                                <h2 className="text-sm font-bold">{c.title}</h2>
-                                <p className="text-slate-400 text-xs">{c.desc}</p>
-                            </button>
-                        ))}
+                        <input
+                            type="password"
+                            value={key}
+                            onChange={(e) => setKey(e.target.value)}
+                            placeholder="Incolla qui la API Key..."
+                            className="w-full bg-slate-900 border border-slate-600 p-4 rounded-xl mb-4 text-white placeholder-slate-500 outline-none focus:border-purple-500 transition-all"
+                        />
+
+                        <button
+                            onClick={saveKey}
+                            className={`w-full p-4 rounded-xl font-bold text-white transition-all ${
+                                saved ? 'bg-green-600' : 'bg-purple-600 hover:bg-purple-500'
+                            }`}
+                        >
+                            {saved ? '✓ SALVATO!' : 'SALVA'}
+                        </button>
+
+                        <button onClick={onClose} className="mt-4 text-slate-400 text-sm underline">
+                            Chiudi
+                        </button>
+
+                        <div className="mt-6 p-4 bg-slate-900 rounded-xl text-left">
+                            <p className="text-xs text-slate-500">
+                                📌 Ottieni la chiave gratis:<br />
+                                <a href="https://aistudio.google.com/apikey" target="_blank" className="text-purple-400 underline">
+                                    aistudio.google.com/apikey
+                                </a>
+                            </p>
+                        </div>
                     </div>
                 </div>
             );
@@ -905,60 +891,66 @@ Se perfetto: []`;
         // ═══════════════════════════════════════════════════════════════
         // APP PRINCIPALE
         // ═══════════════════════════════════════════════════════════════
-        const EduGamer = () => {
-            const [activeTab, setActiveTab] = useState('home');
+        const App = () => {
             const [showSettings, setShowSettings] = useState(false);
             const [xp, setXP] = useState(DB.getXP());
             const [level, setLevel] = useState(DB.getLevel());
 
             useEffect(() => {
-                const h = () => { setXP(DB.getXP()); setLevel(DB.getLevel()); };
-                window.addEventListener('xpChanged', h);
-                return () => window.removeEventListener('xpChanged', h);
+                const handleXPChange = () => {
+                    setXP(DB.getXP());
+                    setLevel(DB.getLevel());
+                };
+                window.addEventListener('xpChanged', handleXPChange);
+                return () => window.removeEventListener('xpChanged', handleXPChange);
             }, []);
-
-            const Content = () => {
-                if (showSettings) return <SettingsScreen onClose={() => setShowSettings(false)} />;
-                switch (activeTab) {
-                    case 'math': return <MathTool />;
-                    case 'board': return <CyberBoard />;
-                    case 'reader': return <ReadingTool />;
-                    case 'tutor': return <CyberTutor />;
-                    default: return <HomeMenu setActiveTab={setActiveTab} />;
-                }
-            };
 
             return (
                 <div className="h-full flex flex-col overflow-hidden">
-                    <header className="h-14 px-4 border-b border-slate-700 flex justify-between items-center bg-slate-950 shrink-0 z-50">
+                    {/* Header */}
+                    <header className="h-14 px-4 border-b border-slate-700 flex justify-between items-center bg-slate-950 shrink-0 z-50 no-print">
                         <div className="flex items-center gap-4">
-                            <div className="text-lg font-bold flex items-center gap-2 text-green-400 cursor-pointer" onClick={() => setActiveTab('home')}>
+                            <div className="text-xl font-bold tracking-tighter flex items-center gap-2 text-green-400">
                                 <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                                 EDUGAMER
                             </div>
-                            <div className="hidden sm:flex flex-col w-28">
-                                <div className="flex justify-between text-xs text-yellow-400 font-bold"><span>LV {level}</span><span>{xp} XP</span></div>
-                                <div className="h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-600"><div className="h-full xp-bar-fill" style={{ width: `${Math.min(100, xp % 100)}%` }}></div></div>
+
+                            <div className="hidden md:flex flex-col w-32">
+                                <div className="flex justify-between text-xs text-yellow-400 font-bold mb-1">
+                                    <span>LVL {level}</span>
+                                    <span>{xp} XP</span>
+                                </div>
+                                <div className="h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-600">
+                                    <div
+                                        className="h-full xp-bar-fill transition-all duration-500"
+                                        style={{ width: `${Math.min(100, (xp % 100))}%` }}
+                                    ></div>
+                                </div>
                             </div>
                         </div>
-                        <div className="flex gap-2">
-                            {activeTab !== 'home' && !showSettings && (
-                                <button onClick={() => setActiveTab('home')} className="px-3 py-2 rounded-lg border border-slate-600 hover:bg-slate-800 text-sm flex items-center gap-2">
-                                    <Icons.Home className="w-4 h-4" /> <span className="hidden sm:inline">HOME</span>
-                                </button>
-                            )}
-                            <button onClick={() => setShowSettings(!showSettings)} className="p-2 rounded-lg border border-slate-600 hover:bg-slate-800">
-                                <Icons.Settings className="w-5 h-5" />
-                            </button>
-                        </div>
+
+                        <button
+                            onClick={() => setShowSettings(!showSettings)}
+                            className="p-2 rounded-lg border border-slate-600 hover:bg-slate-800 transition-all"
+                        >
+                            <Icons.Settings className="w-5 h-5" />
+                        </button>
                     </header>
-                    <main className="flex-1 overflow-hidden relative bg-slate-900"><Content /></main>
+
+                    {/* Main Content */}
+                    <main className="flex-1 overflow-hidden relative bg-slate-900">
+                        {showSettings ? (
+                            <SettingsScreen onClose={() => setShowSettings(false)} />
+                        ) : (
+                            <CyberBoard />
+                        )}
+                    </main>
                 </div>
             );
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<EduGamer />);
+        root.render(<App />);
     </script>
 </body>
 </html>
