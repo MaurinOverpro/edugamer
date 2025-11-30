@@ -3,447 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EduGamer OS v17 - Print Edition</title>
-    
+    <title>EduGamer OS - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
     <style>
-        /* --- LAYOUT BASE --- */
-        * { box-sizing: border-box; }
-        body { 
-            background-color: #0a0e17; 
-            color: #e2e8f0; 
-            font-family: 'Verdana', sans-serif; 
-            margin: 0; 
-            height: 100dvh;
-            width: 100vw;
-            overflow: hidden; 
-        }
-        #root { height: 100%; width: 100%; }
-
-        /* Font alta leggibilità */
-        .dsa-text {
-            font-family: 'Verdana', 'Arial', sans-serif;
-            letter-spacing: 0.5px;
-            line-height: 1.6;
-        }
-
-        /* Animazioni */
-        @keyframes shimmer { 
-            0% { background-position: -200% 0; } 
-            100% { background-position: 200% 0; } 
-        }
-        .xp-bar-fill { 
-            background: linear-gradient(90deg, #16a34a, #4ade80, #16a34a); 
-            background-size: 200% 100%; 
-            animation: shimmer 2s infinite linear; 
-        }
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 5px rgba(74, 222, 128, 0.3); }
-            50% { box-shadow: 0 0 20px rgba(74, 222, 128, 0.6); }
-        }
-        .pulse-glow { animation: pulse-glow 2s infinite; }
-
-        @keyframes bounce-subtle {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-5px); }
-        }
-        .bounce-subtle { animation: bounce-subtle 2s infinite ease-in-out; }
-
-        /* UI Components */
-        .cyber-card {
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid #334155;
-            backdrop-filter: blur(10px);
-            transition: all 0.2s ease;
-        }
-        .cyber-box { 
-            background: rgba(15, 23, 42, 0.95); 
-            border: 2px solid #475569; 
-            box-shadow: 0 0 10px rgba(0,0,0,0.5); 
-            transition: all 0.3s ease; 
-        }
-
-        /* Nodi Mappa - Colori vivaci per contrasto */
-        .node-central {
-            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-            border: 3px solid #60a5fa;
-            box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
-        }
-        .node-movement { background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); border: 2px solid #5eead4; }
-        .node-body { background: linear-gradient(135deg, #c2410c 0%, #f97316 100%); border: 2px solid #fdba74; }
-        .node-effect { background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%); border: 2px solid #c4b5fd; }
-        .node-concept { background: linear-gradient(135deg, #be185d 0%, #ec4899 100%); border: 2px solid #f9a8d4; }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #1e293b; }
-        ::-webkit-scrollbar-thumb { background: #4ade80; border-radius: 3px; }
-
-        /* CLASSI PER LA STAMPA/PDF (Sfondo Bianco) */
-        .print-mode {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-        }
-        .print-mode .dsa-text { color: #000000 !important; }
-        .print-mode svg line { stroke: #000000 !important; stroke-width: 2px !important; }
-        .print-mode .node-central, .print-mode .node-movement, .print-mode .node-body, .print-mode .node-effect, .print-mode .node-concept {
-            box-shadow: none !important;
-            color: white !important; /* Testo dentro i nodi resta bianco */
-            border: 2px solid #333 !important;
-        }
+        body { background-color: #0a0e17; color: #e2e8f0; font-family: 'Verdana', sans-serif; height: 100vh; overflow: hidden; }
+        .cyber-card { background: rgba(30, 41, 59, 0.7); border: 1px solid #334155; transition: all 0.2s ease; }
+        .cyber-card:hover { border-color: #4ade80; transform: translateY(-5px); box-shadow: 0 0 20px rgba(74, 222, 128, 0.2); }
+        .xp-bar-fill { background: linear-gradient(90deg, #16a34a, #4ade80, #16a34a); background-size: 200% 100%; animation: shimmer 2s infinite linear; }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
     </style>
 </head>
 <body>
     <div id="root"></div>
-
     <script type="text/babel">
-        const { useState, useRef, useEffect } = React;
-        const { jsPDF } = window.jspdf;
-
-        // USARE 1.5 FLASH PER MASSIMA STABILITÀ (il 2.0 è ancora instabile)
-        const GEMINI_MODEL = "gemini-1.5-flash";
-
-        const NODE_CATEGORIES = {
-            central: { emoji: '📚', color: 'node-central', label: 'Tema' },
-            movement: { emoji: '🔄', color: 'node-movement', label: 'Movimento' },
-            body: { emoji: '🌍', color: 'node-body', label: 'Corpo celeste' },
-            effect: { emoji: '✨', color: 'node-effect', label: 'Effetto' },
-            concept: { emoji: '💡', color: 'node-concept', label: 'Concetto' }
-        };
-
-        const categorizeNode = (label) => {
-            const l = label.toLowerCase();
-            if (l.includes('rotazione') || l.includes('rivoluzione') || l.includes('moto')) return 'movement';
-            if (l.includes('terra') || l.includes('luna') || l.includes('sole')) return 'body';
-            if (l.includes('stagion') || l.includes('marea') || l.includes('effett')) return 'effect';
-            return 'concept';
-        };
-
-        const Icons = {
-            Brain: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>,
-            Home: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
-            Settings: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2 2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
-            Upload: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
-            Chat: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
-            Book: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
-            Calc: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>,
-            Magic: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M3 5h4"/><path d="M19 17v4"/><path d="M17 19h4"/></svg>,
-            Check: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
-            Send: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>,
-            Volume: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>,
-            Link: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
-            Eye: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>,
-            Share: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>,
-            Download: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
-            Trash: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
-        };
+        const { useState, useEffect } = React;
 
         const DB = {
             getKey: () => localStorage.getItem('gemini_api_key') || '',
             setKey: (key) => localStorage.setItem('gemini_api_key', key),
             getXP: () => parseInt(localStorage.getItem('edu_xp') || '0'),
-            getLevel: () => Math.floor(Math.sqrt(parseInt(localStorage.getItem('edu_xp') || '0') / 10)) + 1,
-            addXP: (amount) => {
-                const next = parseInt(localStorage.getItem('edu_xp') || '0') + amount;
-                localStorage.setItem('edu_xp', next.toString());
-                window.dispatchEvent(new Event('xpChanged'));
-                return next;
-            },
-            saveMap: (data) => localStorage.setItem('cyberboard_data', JSON.stringify(data)),
-            loadMap: () => { try { return JSON.parse(localStorage.getItem('cyberboard_data') || 'null'); } catch { return null; } },
-            clearMap: () => localStorage.removeItem('cyberboard_data')
+            getLevel: () => Math.floor(Math.sqrt(parseInt(localStorage.getItem('edu_xp') || '0') / 10)) + 1
         };
 
-        const getApiUrl = (key) => `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
+        const App = () => {
+            const [xp, setXp] = useState(DB.getXP());
+            const [showSettings, setShowSettings] = useState(false);
+            const [key, setKey] = useState(DB.getKey());
 
-        const GeminiService = {
-            generate: async (prompt, content = "") => {
-                const key = DB.getKey();
-                if (!key) throw new Error("Inserisci prima la API Key!");
-                const response = await fetch(getApiUrl(key), {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: content ? `${prompt}\n\nTesto: ${content}` : prompt }] }] })
-                });
-                if (!response.ok) throw new Error("Errore API");
-                const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "Nessuna risposta";
-            },
-
-            chat: async (history, message) => {
-                const key = DB.getKey();
-                if (!key) throw new Error("Inserisci prima la API Key!");
-                const contents = [...history.map(m => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.text }] })), { role: 'user', parts: [{ text: message }] }];
-                const response = await fetch(getApiUrl(key), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents }) });
-                if (!response.ok) throw new Error("Errore chat");
-                const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "...";
-            },
-
-            analyzeToMap: async (imagesInput) => {
-                const key = DB.getKey();
-                if (!key) throw new Error("Inserisci prima la API Key!");
-                const imagesArray = Array.isArray(imagesInput) ? imagesInput : [imagesInput];
-                const prompt = `Analizza queste immagini di un libro scolastico per creare una MAPPA MENTALE per un bambino di 9 anni con DSA.
-OBIETTIVI:
-1. Identifica il TEMA PRINCIPALE (nodo centrale)
-2. Estrai 4-6 CONCETTI CHIAVE
-3. Per ogni concetto scrivi una spiegazione SEMPLICISSIMA (max 15 parole)
-4. Crea un RIASSUNTO a PUNTI (5-7 punti, max 10 parole ciascuno)
-
-Rispondi SOLO JSON:
-{
-    "title": "Titolo tema",
-    "summary_points": ["🌍 Punto 1", "🔄 Punto 2"],
-    "nodes": [{"id": 1, "label": "Nome", "category": "movement", "explanation": "Spiegazione semplice"}],
-    "connections": [{"from": 0, "to": 1}]
-}`;
-                const imageParts = imagesArray.map(img => ({ inlineData: { mimeType: "image/jpeg", data: img.includes(',') ? img.split(',')[1] : img } }));
-                const response = await fetch(getApiUrl(key), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, ...imageParts] }], generationConfig: { temperature: 0.3 } })
-                });
-                if (!response.ok) { const err = await response.json(); throw new Error(err.error?.message || "Errore"); }
-                const data = await response.json();
-                let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-                const jsonMatch = text.match(/\{[\s\S]*\}/);
-                if (jsonMatch) return JSON.parse(jsonMatch[0]);
-                throw new Error("Risposta AI non valida");
-            },
-            
-            restructureText: async (text) => {
-                const key = DB.getKey();
-                if (!key) throw new Error("Inserisci prima la API Key!");
-                const response = await fetch(getApiUrl(key), {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: `Riscrivi in italiano corretto e semplice: "${text}"` }] }] })
-                });
-                if (!response.ok) throw new Error("Errore");
-                const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || text;
-            },
-
-            analyzeErrors: async (text) => {
-                const key = DB.getKey();
-                if (!key) throw new Error("Inserisci API Key!");
-                const prompt = `Sei un correttore per un bambino di 9 anni. Analizza: "${text}". Trova errori ORT, PUN, SIN. Rispondi SOLO JSON array.`;
-                const response = await fetch(getApiUrl(key), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
-                if (!response.ok) throw new Error("Errore API");
-                const data = await response.json();
-                let result = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
-                result = result.replace(/```json/g, '').replace(/```/g, '').trim();
-                const jsonMatch = result.match(/\[[\s\S]*\]/);
-                return jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-            }
-        };
-
-        // ═══════════════════════════════════════════════════════════════
-        // COMPONENTI MATRICE E CALCOLATRICE (Semplificati per brevità)
-        // ═══════════════════════════════════════════════════════════════
-        const Matrix = ({ highlight, setHighlight }) => {
-            // ... (logica identica al tuo file v14)
-            const handleCellClick = (r, c) => {
-                if(r===0 || c===0) { if(r===0 && c>0) setHighlight(p=>({...p,c:p.c===c?null:c})); else if(c===0 && r>0) setHighlight(p=>({...p,r:p.r===r?null:r})); }
-                else if(highlight.r && highlight.c) { const u = new SpeechSynthesisUtterance(`${highlight.r} per ${highlight.c} fa ${highlight.r*highlight.c}`); u.lang='it-IT'; speechSynthesis.speak(u); }
-            };
-            return (
-                <div className="matrix-wrapper"><div className="matrix-container">{[...Array(11)].map((_,r)=>[...Array(11)].map((_,c)=>{
-                    let cls = 'matrix-cell'; if(r===0||c===0){ cls+=' header'; if((r===0&&c===highlight.c)||(c===0&&r===highlight.r)) cls+=' active'; }
-                    else if(highlight.r && highlight.c) { if(r===highlight.r && c===highlight.c) cls+=' result'; else if(r===highlight.r||c===highlight.c) cls+=' path'; else cls+=' dimmed'; }
-                    return <div key={`${r}-${c}`} className={cls} onClick={()=>handleCellClick(r,c)}>{r===0&&c===0?'×':r===0?c:c===0?r:r*c}</div>
-                }))}</div></div>
-            );
-        };
-
-        const MathTool = () => {
-            const [mode, setMode] = useState('calc');
-            const [display, setDisplay] = useState('');
-            const [highlight, setHighlight] = useState({ r: null, c: null });
-            // ... (logica calcolatrice v14 mantenuta)
-            return (
-                <div className="h-full flex flex-col gap-4 p-4 overflow-hidden">
-                    <div className="flex gap-2 shrink-0 h-12">
-                        <button onClick={()=>setMode('calc')} className={`rounded-xl border-2 flex-1 font-bold flex items-center justify-center gap-2 ${mode==='calc'?'bg-slate-800 border-yellow-400 text-yellow-400':'border-slate-700 text-slate-500'}`}><Icons.Calc className="w-5 h-5"/> CALCOLA</button>
-                        <button onClick={()=>setMode('matrix')} className={`rounded-xl border-2 flex-1 font-bold flex items-center justify-center gap-2 ${mode==='matrix'?'bg-slate-800 border-yellow-400 text-yellow-400':'border-slate-700 text-slate-500'}`}>× TABELLINE</button>
-                    </div>
-                    <div className="flex-1 bg-slate-950 rounded-xl border-2 border-slate-700 overflow-hidden flex">
-                        {mode==='calc' ? (
-                            <div className="flex w-full h-full"><div className="w-full flex items-center justify-center text-slate-500">Calcolatrice Base (Vedi v14)</div></div>
-                        ) : <Matrix highlight={highlight} setHighlight={setHighlight} />}
-                    </div>
-                </div>
-            );
-        };
-
-        const ReadingTool = () => {
-            // ... (logica editor v14 mantenuta)
-            return <div className="flex items-center justify-center h-full text-slate-500">Smart Editor (Vedi v14)</div>;
-        };
-
-        // ═══════════════════════════════════════════════════════════════
-        // LAVAGNA AI (Con PDF Export & Email)
-        // ═══════════════════════════════════════════════════════════════
-        const CyberBoard = () => {
-            const [stage, setStage] = useState('upload');
-            const [images, setImages] = useState([]);
-            const [mapData, setMapData] = useState(null);
-            const [nodes, setNodes] = useState([]);
-            const [lines, setLines] = useState([]);
-            const [mode, setMode] = useState('study');
-            const mapRef = useRef(null);
-
+            // Aggiorna XP ogni volta che si torna alla pagina
             useEffect(() => {
-                const saved = DB.loadMap();
-                if (saved?.nodes?.length) { setMapData(saved.mapData); setNodes(saved.nodes); setLines(saved.lines || []); setStage('playing'); }
+                const interval = setInterval(() => setXp(DB.getXP()), 1000);
+                return () => clearInterval(interval);
             }, []);
 
-            const handleImageUpload = (e) => {
-                const file = e.target.files[0]; if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (evt) => setImages(prev => [...prev, evt.target.result]);
-                reader.readAsDataURL(file);
-            };
+            const saveKey = () => { DB.setKey(key); setShowSettings(false); alert("Chiave Salvata!"); };
 
-            const startAnalysis = async () => {
-                if (!images.length) return;
-                setStage('scanning');
-                try {
-                    const aiData = await GeminiService.analyzeToMap(images);
-                    setMapData(aiData);
-                    // ... (Logica creazione nodi v14)
-                    // Per brevità, creo un nodo demo se l'AI risponde, in produzione usa la logica completa v14
-                    const cx = window.innerWidth / 2; const cy = window.innerHeight / 3;
-                    const centralNode = { id: 0, label: aiData.title || "Tema", category: 'central', x: cx-80, y: 20, w: 160, h: 80, isCentral: true };
-                    const satNodes = (aiData.nodes || []).map((n, i) => ({ ...n, id: i+1, category: 'concept', x: cx + (i%2===0?-150:150), y: cy + i*60, w: 130, h: 70, isCentral: false }));
-                    setNodes([centralNode, ...satNodes]);
-                    setLines(satNodes.map(n => ({ id: `l${n.id}`, from: 0, to: n.id })));
-                    setStage('playing');
-                } catch (e) { alert("Errore: " + e.message); setStage('upload'); }
-            };
+            const modules = [
+                { name: "LAVAGNA AI", file: "lavagna.html", icon: "🧠", color: "text-green-400", border: "border-green-500" },
+                { name: "MATEMATICA", file: "matematica.html", icon: "📐", color: "text-yellow-400", border: "border-yellow-500" },
+                { name: "ITALIANO", file: "italiano.html", icon: "📖", color: "text-blue-400", border: "border-blue-500" },
+                { name: "TUTOR AI", file: "tutor.html", icon: "🤖", color: "text-purple-400", border: "border-purple-500" },
+            ];
 
-            // --- FUNZIONE EXPORT PDF ---
-            const exportPDF = async () => {
-                if (!mapRef.current) return;
-                try {
-                    // 1. Clona il nodo per manipolarlo senza toccare l'originale
-                    const element = mapRef.current;
-                    
-                    // 2. Usa html2canvas con opzioni speciali
-                    const canvas = await html2canvas(element, {
-                        backgroundColor: '#ffffff', // Sfondo bianco
-                        scale: 2, // Alta qualità
-                        onclone: (clonedDoc) => {
-                            // Trucco: Applica la classe "print-mode" al clone
-                            const clonedElement = clonedDoc.querySelector('.cyber-board-area');
-                            if (clonedElement) clonedElement.classList.add('print-mode');
-                        }
-                    });
-
-                    // 3. Crea PDF
-                    const imgData = canvas.toDataURL('image/jpeg', 1.0);
-                    const pdf = new jsPDF({ orientation: 'landscape' });
-                    const imgProps = pdf.getImageProperties(imgData);
-                    const pdfWidth = pdf.internal.pageSize.getWidth();
-                    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-                    
-                    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-                    pdf.save(`Mappa-${mapData?.title || 'Studio'}.pdf`);
-                    DB.addXP(10);
-
-                } catch (e) { alert("Errore PDF: " + e.message); }
-            };
-
-            // --- FUNZIONE EMAIL (Share Nativo) ---
-            const shareViaEmail = async () => {
-                if (!mapRef.current) return;
-                try {
-                    const canvas = await html2canvas(mapRef.current, { backgroundColor: '#ffffff', scale: 2 });
-                    canvas.toBlob(async (blob) => {
-                        const file = new File([blob], "mappa.png", { type: "image/png" });
-                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                            await navigator.share({
-                                title: 'La mia Mappa Mentale',
-                                text: 'Guarda la mappa che ho creato con EduGamer!',
-                                files: [file]
-                            });
-                        } else {
-                            alert("Il tuo browser non supporta la condivisione diretta di file. Scarica il PDF e invialo!");
-                        }
-                    });
-                } catch (e) { alert("Errore Share: " + e.message); }
-            };
-
-            if (stage === 'upload') {
+            if (showSettings) {
                 return (
-                    <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-                        <div className="border-2 border-dashed border-slate-600 rounded-3xl p-10 flex flex-col items-center gap-6">
-                            <h2 className="text-2xl font-bold text-white">CARICA FOTO</h2>
-                            <label className="bg-blue-600 text-white font-bold py-3 px-6 rounded-xl cursor-pointer">
-                                <input type="file" onChange={handleImageUpload} className="hidden" accept="image/*" />
-                                📷 SCATTA FOTO
-                            </label>
-                            {images.length > 0 && <button onClick={startAnalysis} className="bg-green-600 text-white font-bold py-3 px-6 rounded-xl">🚀 CREA MAPPA</button>}
+                    <div className="h-full flex items-center justify-center p-6">
+                        <div className="bg-slate-800 p-8 rounded-2xl border border-slate-600 max-w-md w-full text-center">
+                            <h2 className="text-2xl font-bold mb-4 text-white">⚙️ IMPOSTAZIONI</h2>
+                            <input type="password" value={key} onChange={e => setKey(e.target.value)} placeholder="API Key..." className="w-full bg-slate-900 p-4 rounded-xl mb-4 text-white outline-none border border-slate-600" />
+                            <button onClick={saveKey} className="w-full bg-green-600 text-white font-bold p-4 rounded-xl mb-2">SALVA</button>
+                            <button onClick={() => setShowSettings(false)} className="text-slate-400 underline">Indietro</button>
                         </div>
                     </div>
                 );
             }
 
-            if (stage === 'scanning') return <div className="h-full flex items-center justify-center text-green-400 text-2xl font-bold">🤖 ANALISI...</div>;
-
             return (
-                <div className="h-full flex flex-col overflow-hidden">
-                    <div className="flex gap-2 p-2 bg-slate-900 border-b border-slate-700 shrink-0">
-                        <button onClick={exportPDF} className="p-2 rounded bg-red-600 text-white font-bold flex items-center gap-2"><Icons.Download className="w-5 h-5"/> PDF (Bianco)</button>
-                        <button onClick={shareViaEmail} className="p-2 rounded bg-blue-600 text-white font-bold flex items-center gap-2"><Icons.Share className="w-5 h-5"/> EMAIL</button>
-                        <div className="flex-1"></div>
-                        <button onClick={() => setStage('upload')} className="p-2 rounded bg-slate-700 text-white">ESCI</button>
+                <div className="h-full flex flex-col p-6 max-w-4xl mx-auto">
+                    <header className="flex justify-between items-center mb-8">
+                        <div className="text-3xl font-black text-white flex items-center gap-3">
+                            <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
+                            EDUGAMER OS
+                        </div>
+                        <button onClick={() => setShowSettings(true)} className="text-2xl">⚙️</button>
+                    </header>
+
+                    {/* XP CARD */}
+                    <div className="bg-slate-800 p-6 rounded-2xl border border-slate-600 mb-8 shadow-xl">
+                        <div className="flex justify-between items-end mb-2">
+                            <span className="text-2xl font-bold text-yellow-400">LIVELLO {DB.getLevel()}</span>
+                            <span className="text-slate-400">{xp} XP Totali</span>
+                        </div>
+                        <div className="h-4 bg-slate-900 rounded-full overflow-hidden border border-slate-700">
+                            <div className="h-full xp-bar-fill" style={{ width: `${Math.min(100, xp % 100)}%` }}></div>
+                        </div>
+                        <p className="text-center text-slate-500 text-sm mt-2">Completa le attività per salire di livello!</p>
                     </div>
 
-                    {/* Area Mappa con classe identificativa per l'export */}
-                    <div ref={mapRef} className="cyber-board-area flex-1 relative bg-slate-950 overflow-auto">
-                        <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-                            {lines.map(l => {
-                                const n1 = nodes.find(n=>n.id===l.from); const n2 = nodes.find(n=>n.id===l.to);
-                                if(!n1||!n2) return null;
-                                return <line key={l.id} x1={n1.x+n1.w/2} y1={n1.y+n1.h/2} x2={n2.x+n2.w/2} y2={n2.y+n2.h/2} stroke="#4ade80" strokeWidth="3" />;
-                            })}
-                        </svg>
-                        {nodes.map(n => (
-                            <div key={n.id} className={`absolute flex items-center justify-center p-2 text-white rounded-2xl text-center border-2 ${n.category==='central'?'bg-blue-600 border-blue-400':'bg-slate-700 border-slate-500'}`}
-                                style={{ left: n.x, top: n.y, width: n.w, height: n.h }}>
-                                {n.label}
-                            </div>
+                    {/* GRID MODULI */}
+                    <div className="grid grid-cols-2 gap-4 flex-1 overflow-y-auto">
+                        {modules.map(m => (
+                            <a key={m.name} href={m.file} className={`cyber-card p-6 rounded-2xl flex flex-col items-center justify-center gap-4 border-2 ${m.border} bg-slate-800/50 no-underline`}>
+                                <div className="text-5xl">{m.icon}</div>
+                                <h2 className={`text-xl font-bold ${m.color}`}>{m.name}</h2>
+                                <span className="text-xs text-slate-400 bg-slate-900 px-3 py-1 rounded-full">CLICCA PER APRIRE</span>
+                            </a>
                         ))}
                     </div>
                 </div>
             );
         };
-
-        const SettingsScreen = ({ onClose }) => { /* ... (codice v14) ... */ return <div className="text-white p-10">Settings (Vedi v14) <button onClick={onClose}>Chiudi</button></div>; };
-        const HomeMenu = ({ setActiveTab }) => { /* ... (codice v14) ... */ return <div className="p-10"><button onClick={()=>setActiveTab('board')} className="bg-blue-600 text-white p-4 rounded">VAI A LAVAGNA</button></div>; };
-        
-        const EduGamer = () => {
-            const [activeTab, setActiveTab] = useState('home');
-            const [showSettings, setShowSettings] = useState(false);
-            const Content = () => {
-                if (showSettings) return <SettingsScreen onClose={() => setShowSettings(false)} />;
-                switch (activeTab) {
-                    case 'board': return <CyberBoard />;
-                    default: return <HomeMenu setActiveTab={setActiveTab} />;
-                }
-            };
-            return <div className="h-full flex flex-col bg-slate-900 text-white"><main className="flex-1 overflow-hidden relative"><Content /></main></div>;
-        };
-
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<EduGamer />);
+        root.render(<App />);
     </script>
 </body>
 </html>
