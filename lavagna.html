@@ -14,7 +14,7 @@
     <style>
         body { background-color: #0a0e17; color: white; font-family: 'Verdana', sans-serif; height: 100dvh; overflow: hidden; }
         
-        /* --- STILI NODI --- */
+        /* Nodi Mappa */
         .node-base {
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
@@ -22,8 +22,9 @@
             text-align: center; padding: 10px; border-radius: 16px;
             backdrop-filter: blur(4px);
             cursor: pointer;
+            position: absolute;
         }
-        .node-base:hover { transform: scale(1.05); z-index: 50; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .node-base:hover { transform: scale(1.1); z-index: 50; box-shadow: 0 0 25px rgba(74, 222, 128, 0.6); }
         
         .node-central { 
             background: linear-gradient(135deg, #2563eb, #1d4ed8); 
@@ -39,12 +40,9 @@
         
         .node-satellite.active { border-color: #4ade80; background: #064e3b; }
 
-        /* Frecce Animate */
+        /* Frecce */
         .flow-arrow { stroke-dasharray: 10; animation: dash 1s linear infinite; }
         @keyframes dash { to { stroke-dashoffset: -20; } }
-
-        /* Classe per nascondere le frecce quando il flusso è OFF */
-        .flow-hidden { display: none; }
 
         /* Pulsante Upload Gigante */
         .btn-upload-big {
@@ -55,7 +53,7 @@
         }
         .btn-upload-big:active { transform: scale(0.95); }
 
-        /* --- MODALITÀ STAMPA (PDF) --- */
+        /* --- MODALITÀ STAMPA PDF --- */
         .print-mode {
             background-color: white !important;
             color: black !important;
@@ -64,22 +62,18 @@
             background: white !important;
             color: black !important;
             box-shadow: none !important;
-            border-width: 2px !important;
+            border: 3px solid black !important;
         }
-        .print-mode .node-central { border-color: #2563eb !important; color: black !important; }
-        .print-mode .node-satellite { border-color: #000 !important; color: black !important; }
+        .print-mode .node-central { border-color: #2563eb !important; }
         .print-mode .node-label { color: black !important; font-weight: bold !important; }
-        .print-mode .node-content { color: #333 !important; font-size: 0.8rem !important; }
-
-        /* Regole per le linee nel PDF */
+        .print-mode .node-content { color: #333 !important; }
+        
+        /* Linee nere in stampa */
         .print-mode line { stroke: #000000 !important; stroke-width: 2px !important; opacity: 1 !important; }
         .print-mode path { stroke: #000000 !important; stroke-width: 2px !important; opacity: 1 !important; }
         .print-mode marker path { fill: #000000 !important; }
 
-        /* Se stampiamo "DA COMPLETARE", nascondi tutte le linee */
         .hide-lines svg { display: none !important; }
-
-        /* Se stampiamo "RISOLTO", forza le frecce visibili anche se erano nascoste */
         .force-show-flow .flow-hidden { display: block !important; }
 
     </style>
@@ -89,7 +83,7 @@
     <script type="text/babel">
         const { useState, useRef, useEffect } = React;
         const { jsPDF } = window.jspdf;
-        const MODEL = "gemini-2.0-flash"; // Stabile e veloce
+        const MODEL = "gemini-2.0-flash"; // Stabile
 
         const DB = {
             getKey: () => localStorage.getItem('gemini_api_key'),
@@ -98,9 +92,9 @@
                 localStorage.setItem('edu_xp', next.toString());
                 return next;
             },
-            save: (data) => localStorage.setItem('lavagna_data', JSON.stringify(data)),
-            load: () => JSON.parse(localStorage.getItem('lavagna_data') || 'null'),
-            clear: () => localStorage.removeItem('lavagna_data')
+            save: (data) => localStorage.setItem('lavagna_data_v2', JSON.stringify(data)), // Cambio nome chiave per evitare conflitti
+            load: () => JSON.parse(localStorage.getItem('lavagna_data_v2') || 'null'),
+            clear: () => localStorage.removeItem('lavagna_data_v2')
         };
 
         const analyzeImages = async (images) => {
@@ -108,21 +102,12 @@
             if(!key) throw new Error("Manca API Key! Vai su Home.");
             
             const parts = images.map(img => ({ inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] } }));
-            
-            // Prompt ottimizzato per Mappe Radialli
-            const prompt = `Analizza queste pagine e crea una MAPPA CONCETTUALE per un bambino.
+            const prompt = `Analizza queste pagine. OBIETTIVO: Mappa concettuale per bambino DSA.
             1. TEMA PRINCIPALE (Centro).
-            2. 5-6 PUNTI CHIAVE (Satelliti intorno).
-            3. Per ogni punto, scrivi un breve approfondimento (2 frasi semplici).
-            4. Definisci l'ordine di lettura (1, 2, 3...).
-
-            Rispondi SOLO JSON: 
-            { 
-                "theme": "Titolo Tema", 
-                "nodes": [
-                    { "id": 1, "label": "Nome Concetto", "content": "Spiegazione semplice...", "order": 1 }
-                ] 
-            }`;
+            2. 5-6 PUNTI CHIAVE (Satelliti).
+            3. APPROFONDIMENTO semplice per ogni punto.
+            4. ORDINE LOGICO (1, 2, 3...).
+            Rispondi SOLO JSON: { "theme": "Titolo", "nodes": [{ "id": 1, "label": "Nome", "content": "Spiegazione", "order": 1 }] }`;
 
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -144,11 +129,17 @@
             const mapRef = useRef(null);
 
             useEffect(() => {
-                const saved = DB.load();
-                if(saved) { 
-                    setMapData(saved); 
-                    setStage('view'); 
-                }
+                // Caricamento sicuro
+                try {
+                    const saved = DB.load();
+                    if(saved && saved.nodes && saved.theme) { 
+                        setMapData(saved); 
+                        setStage('view'); 
+                    } else {
+                        // Se i dati sono corrotti o vecchi, resetta silenziosamente
+                        DB.clear();
+                    }
+                } catch(e) { console.log("Reset dati corrotti"); DB.clear(); }
             }, []);
 
             useEffect(() => { if(mapData) DB.save(mapData); }, [mapData]);
@@ -178,41 +169,40 @@
                 window.speechSynthesis.speak(u);
             };
 
-            // --- PDF EXPORT CORRETTO ---
             const generatePDF = async (mode) => {
                 if(!mapRef.current) return;
+                const originalBg = mapRef.current.style.backgroundColor;
                 
                 try {
+                    // Ritardo per assicurare il rendering
+                    await new Promise(r => setTimeout(r, 100));
+
                     const canvas = await html2canvas(mapRef.current, {
-                        backgroundColor: '#ffffff', // Sfondo bianco
-                        scale: 2, // Alta qualità
+                        backgroundColor: '#ffffff', 
+                        scale: 2, 
                         useCORS: true,
+                        logging: false,
                         onclone: (clonedDoc) => {
                             const mapDiv = clonedDoc.querySelector('#map-container');
-                            
-                            // 1. Applica stile stampa (bianco/nero)
                             mapDiv.classList.add('print-mode');
                             
-                            // 2. Gestione Linee
                             if (mode === 'blank') {
-                                // Se è un esercizio, nascondi TUTTE le linee
                                 mapDiv.classList.add('hide-lines');
                             } else {
-                                // Se è "Risolto", FORZA la visualizzazione delle frecce
-                                // anche se l'utente le aveva spente sullo schermo
-                                mapDiv.classList.add('force-show-flow');
+                                // Forza visualizzazione frecce anche se nascoste
+                                const hiddenArrows = mapDiv.querySelectorAll('.flow-hidden');
+                                hiddenArrows.forEach(el => el.style.display = 'block');
                             }
                         }
                     });
 
-                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                    const pdf = new jsPDF('l', 'mm', 'a4'); // Orizzontale
+                    const imgData = canvas.toDataURL('image/jpeg', 0.9);
+                    const pdf = new jsPDF('l', 'mm', 'a4');
                     const pdfW = pdf.internal.pageSize.getWidth();
                     const pdfH = pdf.internal.pageSize.getHeight();
                     
                     pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
                     
-                    // Aggiungi Intestazione
                     pdf.setFontSize(14);
                     pdf.setTextColor(100);
                     const header = mode === 'blank' ? "COLLEGA I CONCETTI CON UNA FRECCIA ✏️" : "MAPPA CONCETTUALE COMPLETA ✅";
@@ -227,19 +217,18 @@
             };
 
             const reset = () => {
-                if(confirm("Vuoi creare una nuova mappa? Quella attuale verrà cancellata.")) {
-                    DB.clear(); 
-                    setImages([]); 
-                    setMapData(null); 
-                    setStage('upload');
+                if(confirm("Vuoi creare una nuova mappa?")) {
+                    DB.clear(); setImages([]); setMapData(null); setStage('upload');
                 }
             };
 
+            // Renderizzazione Mappa
             const renderMap = () => {
-                if (!mapData) return null;
+                if (!mapData || !mapData.nodes) return null;
+                
                 const cx = window.innerWidth / 2;
-                const cy = (window.innerHeight - 100) / 2;
-                const radius = Math.min(window.innerWidth, window.innerHeight) * 0.35;
+                const cy = (window.innerHeight - 80) / 2;
+                const radius = Math.min(window.innerWidth, window.innerHeight) * 0.32;
                 const sortedNodes = [...mapData.nodes].sort((a, b) => a.order - b.order);
 
                 return (
@@ -249,7 +238,6 @@
                                 <marker id="arrow" markerWidth="10" markerHeight="10" refX="20" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4ade80" /></marker>
                             </defs>
                             
-                            {/* Raggi fissi (dal centro ai nodi) */}
                             {sortedNodes.map((node, i) => {
                                 const angle = (i / sortedNodes.length) * 2 * Math.PI - Math.PI / 2;
                                 const x = cx + radius * Math.cos(angle);
@@ -257,8 +245,6 @@
                                 return <line key={`c-${i}`} x1={cx} y1={cy} x2={x} y2={y} stroke="#334155" strokeWidth="2" />;
                             })}
 
-                            {/* Frecce di Flusso (1->2->3) */}
-                            {/* Nota: le renderizziamo SEMPRE, ma usiamo CSS per nasconderle/mostrarle */}
                             {sortedNodes.map((node, i) => {
                                 if (i === sortedNodes.length - 1) return null;
                                 const j = i+1;
@@ -267,6 +253,7 @@
                                 const x1 = cx + radius*Math.cos(a1); const y1 = cy + radius*Math.sin(a1);
                                 const x2 = cx + radius*Math.cos(a2); const y2 = cy + radius*Math.sin(a2);
                                 
+                                // Classe flow-hidden nasconde la freccia se showFlow è false
                                 return (
                                     <path 
                                         key={`f-${i}`} 
@@ -281,21 +268,18 @@
                             })}
                         </svg>
 
-                        {/* Nodo Centrale */}
-                        <div className="absolute node-base node-central flex items-center justify-center" style={{left:cx-90, top:cy-90}} onClick={()=>speak(mapData.theme)}>
+                        <div className="node-base node-central" style={{left:cx-90, top:cy-90}} onClick={()=>speak(mapData.theme)}>
                             <div className="node-label text-white">{mapData.theme}</div>
                         </div>
 
-                        {/* Nodi Satellite */}
                         {sortedNodes.map((node, i) => {
                             const angle = (i / sortedNodes.length) * 2 * Math.PI - Math.PI / 2;
                             const x = cx + radius * Math.cos(angle) - 75; 
                             const y = cy + radius * Math.sin(angle) - 50;
                             return (
-                                <div key={i} className={`absolute node-base node-satellite ${selectedNode===node?'active':''}`} style={{left:x, top:y}}
+                                <div key={i} className={`node-base node-satellite ${selectedNode===node?'active':''}`} style={{left:x, top:y}}
                                      onClick={()=>{setSelectedNode(node); speak(node.label + ". " + node.content);}}>
                                     
-                                    {/* Badge numerico: visibile se showFlow è ON oppure nel PDF completo */}
                                     <div className={`absolute -top-3 -left-3 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center font-bold text-black border-2 border-white z-50 ${showFlow ? '' : 'flow-hidden'}`}>
                                         {node.order}
                                     </div>
@@ -317,17 +301,11 @@
                             {images.length === 0 ? <span className="text-slate-500 m-auto">Nessuna foto caricata</span> : 
                             images.map((src,i)=><img key={i} src={src} className="h-20 rounded border-2 border-slate-500"/>)}
                         </div>
-                        
                         <label className="btn-upload-big w-full py-6 rounded-2xl font-bold text-xl cursor-pointer text-white flex items-center justify-center gap-3">
                             <input type="file" onChange={addImage} className="hidden" accept="image/*" /> 
                             📷 FAI UNA FOTO
                         </label>
-                        
-                        {images.length > 0 && (
-                            <button onClick={start} className="w-full bg-green-600 hover:bg-green-500 py-4 rounded-xl font-bold text-white text-lg animate-pulse shadow-lg">
-                                🚀 CREA MAPPA ORA
-                            </button>
-                        )}
+                        {images.length > 0 && <button onClick={start} className="w-full bg-green-600 hover:bg-green-500 py-4 rounded-xl font-bold text-white text-lg animate-pulse shadow-lg">🚀 CREA MAPPA ORA</button>}
                     </div>
                     <a href="index.html" className="text-slate-400 bg-slate-800 px-4 py-2 rounded-lg">🏠 Torna al Menu</a>
                 </div>
@@ -337,8 +315,7 @@
 
             return (
                 <div className="h-full flex flex-col bg-slate-900 overflow-hidden">
-                    {/* Toolbar */}
-                    <div className="p-3 flex gap-2 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg overflow-x-auto">
+                    <div className="p-2 flex gap-2 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg overflow-x-auto">
                         <a href="index.html" className="bg-slate-700 px-3 py-2 rounded text-white font-bold shrink-0">🏠</a>
                         
                         <button onClick={()=>setShowFlow(!showFlow)} className={`px-3 py-2 rounded font-bold shrink-0 text-sm transition-all ${showFlow?'bg-green-600 text-white':'bg-slate-700 text-slate-400'}`}>
@@ -347,7 +324,6 @@
 
                         <div className="flex-1"></div>
                         
-                        {/* TASTI PDF */}
                         <button onClick={() => generatePDF('blank')} className="bg-yellow-600 hover:bg-yellow-500 px-3 py-2 rounded text-white font-bold text-sm shrink-0 flex items-center gap-1 shadow-lg">
                             📝 DA COMPLETARE
                         </button>
@@ -355,8 +331,7 @@
                             ✅ RISOLTO
                         </button>
                         
-                        {/* TASTO NUOVA LEZIONE */}
-                        <button onClick={reset} className="bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded text-white font-bold shrink-0 flex items-center gap-1 ml-2 border-2 border-blue-400 shadow-lg">
+                        <button onClick={reset} className="bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded text-white font-bold shrink-0 flex items-center gap-1 ml-2">
                             📷 NUOVA
                         </button>
                     </div>
@@ -364,7 +339,6 @@
                     <div ref={mapRef} className="flex-1 relative bg-slate-900 overflow-hidden">
                         {renderMap()}
                         
-                        {/* Pannello Lettura */}
                         {selectedNode && (
                             <div className="absolute bottom-0 left-0 right-0 bg-slate-800/95 border-t border-green-500 p-6 z-50 rounded-t-3xl shadow-2xl">
                                 <div className="flex justify-between items-start mb-2">
@@ -378,6 +352,9 @@
                             </div>
                         )}
                     </div>
+                    
+                    {/* Tasto di emergenza in caso di blocco */}
+                    <div className="absolute bottom-2 right-2 text-xs text-slate-600 opacity-50 cursor-pointer z-[100]" onClick={()=>{DB.clear(); location.reload()}}>Reset Forzato</div>
                 </div>
             );
         };
