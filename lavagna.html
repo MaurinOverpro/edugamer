@@ -14,33 +14,45 @@
     <style>
         body { background-color: #0a0e17; color: white; font-family: 'Verdana', sans-serif; height: 100dvh; overflow: hidden; }
         
-        /* STILI NODI (Modalità Schermo Scuro) */
+        /* Nodi Mappa */
         .node-base {
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            text-align: center; padding: 10px; border-radius: 20px;
-            cursor: pointer; z-index: 20;
+            text-align: center; padding: 10px; border-radius: 16px;
+            backdrop-filter: blur(4px);
+            cursor: pointer;
         }
-        .node-base:hover { transform: scale(1.1); z-index: 50; box-shadow: 0 0 25px rgba(74, 222, 128, 0.4); }
+        .node-base:hover { transform: scale(1.05); z-index: 50; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         
         .node-central { 
-            background: linear-gradient(135deg, #2563eb, #1e40af); 
-            border: 4px solid #60a5fa; width: 160px; height: 160px; border-radius: 50%;
-            font-size: 1.1rem; font-weight: bold;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8); 
+            border: 4px solid #60a5fa; width: 180px; height: 180px; z-index: 20; 
+            font-size: 1.1rem; font-weight: bold; border-radius: 50%;
         }
         
         .node-satellite { 
-            background: linear-gradient(135deg, #1e293b, #0f172a); 
-            border: 2px solid #94a3b8; width: 140px; min-height: 90px; 
+            background: linear-gradient(135deg, #334155, #1e293b); 
+            border: 2px solid #94a3b8; width: 150px; min-height: 100px; z-index: 10; 
             font-size: 0.9rem;
         }
+        
+        .node-satellite.active { border-color: #4ade80; background: #064e3b; }
 
+        /* Frecce */
         .flow-arrow { stroke-dasharray: 10; animation: dash 1s linear infinite; }
         @keyframes dash { to { stroke-dashoffset: -20; } }
 
-        /* --- MODALITÀ STAMPA (Inchiostro su Carta) --- */
-        /* Questa classe viene applicata temporaneamente durante il download del PDF */
+        /* Pulsante Upload Gigante */
+        .btn-upload-big {
+            background: linear-gradient(45deg, #3b82f6, #2563eb);
+            border: 2px solid #60a5fa;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+            transition: all 0.3s ease;
+        }
+        .btn-upload-big:active { transform: scale(0.95); }
+
+        /* --- MODALITÀ STAMPA PDF (CSS FIX) --- */
         .print-mode {
             background-color: white !important;
             color: black !important;
@@ -49,17 +61,20 @@
             background: white !important;
             color: black !important;
             box-shadow: none !important;
-            border-width: 3px !important;
+            border-width: 2px !important;
         }
-        .print-mode .node-central { border-color: #2563eb !important; } /* Blu per il centro */
-        .print-mode .node-satellite { border-color: #333 !important; } /* Nero per i satelliti */
+        .print-mode .node-central { border-color: #2563eb !important; color: black !important; }
+        .print-mode .node-satellite { border-color: #000 !important; color: black !important; }
         .print-mode .node-label { color: black !important; font-weight: bold !important; }
-        .print-mode .node-content { color: #444 !important; font-size: 0.8rem !important; }
+        .print-mode .node-content { color: #333 !important; }
+        
+        /* Fix per le linee in stampa */
+        .print-mode line { stroke: #000000 !important; stroke-width: 2px !important; opacity: 1 !important; }
+        .print-mode path { stroke: #000000 !important; stroke-width: 2px !important; opacity: 1 !important; }
+        .print-mode marker path { fill: #000000 !important; }
+
         /* Nasconde le linee se richiesto */
         .hide-lines svg { display: none !important; }
-        /* Forza le linee nere se visibili */
-        .print-mode line { stroke: #999 !important; stroke-width: 2px !important; }
-        .print-mode path { stroke: #000 !important; stroke-width: 2px !important; }
 
     </style>
 </head>
@@ -68,7 +83,7 @@
     <script type="text/babel">
         const { useState, useRef, useEffect } = React;
         const { jsPDF } = window.jspdf;
-        const MODEL = "gemini-2.0-flash"; // Stabile
+        const MODEL = "gemini-2.0-flash";
 
         const DB = {
             getKey: () => localStorage.getItem('gemini_api_key'),
@@ -82,28 +97,27 @@
             clear: () => localStorage.removeItem('lavagna_data')
         };
 
-        const GeminiService = {
-            analyzeToMap: async (images) => {
-                const key = DB.getKey();
-                if(!key) throw new Error("Manca API Key!");
-                
-                const parts = images.map(img => ({ inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] } }));
-                const prompt = `Analizza queste pagine. Crea una MAPPA CONCETTUALE RADIALE per un bambino DSA.
-                1. TEMA: Il concetto centrale.
-                2. NODI: 5-6 concetti chiave che ruotano attorno.
-                3. CONTENUTO: Spiegazione semplicissima per ogni nodo.
-                4. ORDINE: Sequenza logica (1, 2, 3...).
-                Rispondi SOLO JSON: { "theme": "Titolo", "nodes": [{ "id": 1, "label": "Nome", "content": "Spiegazione", "order": 1 }] }`;
+        const analyzeImages = async (images) => {
+            const key = DB.getKey();
+            if(!key) throw new Error("Manca API Key! Vai su Home.");
+            
+            const parts = images.map(img => ({ inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] } }));
+            
+            const prompt = `Analizza queste pagine. OBIETTIVO: Mappa concettuale per bambino DSA.
+            1. TEMA PRINCIPALE (Centro).
+            2. 5-6 PUNTI CHIAVE (Satelliti).
+            3. APPROFONDIMENTO semplice per ogni punto.
+            4. ORDINE LOGICO (1, 2, 3...).
+            Rispondi SOLO JSON: { "theme": "Titolo", "nodes": [{ "id": 1, "label": "Nome", "content": "Spiegazione", "order": 1 }] }`;
 
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, ...parts] }] })
-                });
-                if(!res.ok) throw new Error("Errore AI");
-                const data = await res.json();
-                let text = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
-                return JSON.parse(text);
-            }
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, ...parts] }] })
+            });
+            if(!res.ok) throw new Error("Errore AI");
+            const data = await res.json();
+            let text = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
+            return JSON.parse(text);
         };
 
         const App = () => {
@@ -112,7 +126,7 @@
             const [mapData, setMapData] = useState(null);
             const [showFlow, setShowFlow] = useState(false);
             const [selectedNode, setSelectedNode] = useState(null);
-            const mapRef = useRef(null); // Riferimento all'area della mappa per la "foto"
+            const mapRef = useRef(null);
 
             useEffect(() => {
                 const saved = DB.load();
@@ -132,7 +146,7 @@
                 if(!images.length) return;
                 setStage('scanning');
                 try {
-                    const data = await GeminiService.analyzeToMap(images);
+                    const data = await analyzeImages(images);
                     setMapData(data);
                     DB.addXP(50);
                     setStage('view');
@@ -146,44 +160,39 @@
                 window.speechSynthesis.speak(u);
             };
 
-            // --- FUNZIONE GENERAZIONE PDF INTELLIGENTE ---
+            // --- GENERAZIONE PDF (JPEG FIX) ---
             const generatePDF = async (mode) => {
                 if(!mapRef.current) return;
                 
-                // 1. Preparazione: Cloniamo l'area della mappa per non toccare quella visibile
-                // Usiamo html2canvas con opzioni speciali
                 try {
+                    // 1. Usa html2canvas
                     const canvas = await html2canvas(mapRef.current, {
-                        backgroundColor: '#ffffff', // Forza sfondo bianco
-                        scale: 2, // Alta qualità
+                        backgroundColor: '#ffffff', 
+                        scale: 2, 
+                        useCORS: true, // Aiuta stabilità
                         onclone: (clonedDoc) => {
                             const mapDiv = clonedDoc.querySelector('#map-container');
-                            
-                            // Applica stili "Carta" (Bianco/Nero)
                             mapDiv.classList.add('print-mode');
+                            if (mode === 'blank') mapDiv.classList.add('hide-lines');
                             
-                            // Se richiesto, nascondi le linee (Mappa da completare)
-                            if (mode === 'blank') {
-                                mapDiv.classList.add('hide-lines');
-                            } else {
-                                // Se le linee ci sono, rendile nere
-                                const lines = mapDiv.querySelectorAll('line');
-                                lines.forEach(l => { l.style.stroke = '#000'; l.style.strokeWidth = '2px'; });
-                                const paths = mapDiv.querySelectorAll('path');
-                                paths.forEach(p => { p.style.stroke = '#000'; p.style.strokeWidth = '2px'; });
+                            // Forza visibilità linee nel clone se mode è full
+                            if (mode === 'full') {
+                                const svg = mapDiv.querySelector('svg');
+                                if(svg) svg.style.display = 'block';
                             }
                         }
                     });
 
-                    // 2. Creazione PDF
-                    const imgData = canvas.toDataURL('image/png');
-                    const pdf = new jsPDF('l', 'mm', 'a4'); // Landscape (Orizzontale)
+                    // 2. Converti in JPEG (non PNG) per evitare l'errore "corrupt file"
+                    const imgData = canvas.toDataURL('image/jpeg', 0.98); 
+
+                    // 3. Crea PDF
+                    const pdf = new jsPDF('l', 'mm', 'a4');
                     const pdfW = pdf.internal.pageSize.getWidth();
                     const pdfH = pdf.internal.pageSize.getHeight();
                     
-                    pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
+                    pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
                     
-                    // Aggiungi un titolo in alto
                     pdf.setFontSize(14);
                     pdf.setTextColor(100);
                     const headerText = mode === 'blank' ? "Unisci i concetti con una freccia!" : "Mappa Concettuale Completa";
@@ -198,7 +207,7 @@
             };
 
             const reset = () => {
-                if(confirm("Cancellare la mappa attuale?")) {
+                if(confirm("Sicuro? Cancellerai la mappa attuale.")) {
                     DB.clear(); setImages([]); setMapData(null); setStage('upload');
                 }
             };
@@ -206,25 +215,24 @@
             const renderMap = () => {
                 if (!mapData) return null;
                 const cx = window.innerWidth / 2;
-                const cy = (window.innerHeight - 80) / 2;
-                const radius = Math.min(window.innerWidth, window.innerHeight) * 0.32;
+                const cy = (window.innerHeight - 100) / 2;
+                const radius = Math.min(window.innerWidth, window.innerHeight) * 0.35;
                 const sortedNodes = [...mapData.nodes].sort((a, b) => a.order - b.order);
 
                 return (
-                    <div id="map-container" className="relative w-full h-full bg-slate-900"> {/* ID per export */}
+                    <div id="map-container" className="relative w-full h-full bg-slate-900">
                         <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
                             <defs>
                                 <marker id="arrow" markerWidth="10" markerHeight="10" refX="20" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4ade80" /></marker>
                             </defs>
-                            {/* Linee fisse (raggi) */}
                             {sortedNodes.map((node, i) => {
                                 const angle = (i / sortedNodes.length) * 2 * Math.PI - Math.PI / 2;
                                 const x = cx + radius * Math.cos(angle);
                                 const y = cy + radius * Math.sin(angle);
                                 return <line key={`c-${i}`} x1={cx} y1={cy} x2={x} y2={y} stroke="#334155" strokeWidth="2" />;
                             })}
-                            {/* Linee di flusso (Frecce) - Visibili solo se showFlow è true O se stiamo stampando la versione completa */}
-                            {showFlow && sortedNodes.map((node, i) => {
+                            {/* Mostra frecce se showFlow è attivo OPPURE se stiamo stampando */}
+                            {(showFlow) && sortedNodes.map((node, i) => {
                                 if (i === sortedNodes.length - 1) return null;
                                 const j = i+1;
                                 const a1 = (i/sortedNodes.length)*2*Math.PI - Math.PI/2;
@@ -235,18 +243,16 @@
                             })}
                         </svg>
 
-                        {/* Centro */}
                         <div className="absolute node-base node-central flex items-center justify-center" style={{left:cx-90, top:cy-90}} onClick={()=>speak(mapData.theme)}>
-                            <div className="node-label">{mapData.theme}</div>
+                            <div className="node-label text-white">{mapData.theme}</div>
                         </div>
 
-                        {/* Satelliti */}
                         {sortedNodes.map((node, i) => {
                             const angle = (i / sortedNodes.length) * 2 * Math.PI - Math.PI / 2;
                             const x = cx + radius * Math.cos(angle) - 75; 
                             const y = cy + radius * Math.sin(angle) - 50;
                             return (
-                                <div key={i} className="absolute node-base node-satellite" style={{left:x, top:y}}
+                                <div key={i} className={`absolute node-base node-satellite ${selectedNode===node?'active':''}`} style={{left:x, top:y}}
                                      onClick={()=>{setSelectedNode(node); speak(node.label + ". " + node.content);}}>
                                     {showFlow && <div className="absolute -top-3 -left-3 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center font-bold text-black border-2 border-white z-50">{node.order}</div>}
                                     <div className="font-bold text-yellow-400 mb-1 node-label">{node.label}</div>
@@ -263,9 +269,10 @@
                     <h1 className="text-3xl font-bold text-green-400">LAVAGNA AI</h1>
                     <div className="border-2 border-dashed border-slate-600 p-8 rounded-3xl flex flex-col items-center gap-4 bg-slate-800/50 w-full max-w-2xl">
                         <div className="flex gap-2 overflow-auto max-w-full p-2 min-h-[80px]">
-                            {images.length === 0 ? <span className="text-slate-500 m-auto">Nessuna foto caricata</span> : images.map((src,i)=><img key={i} src={src} className="h-20 rounded border-2 border-slate-500"/>)}
+                            {images.length === 0 ? <span className="text-slate-500 m-auto">Nessuna foto caricata</span> : 
+                            images.map((src,i)=><img key={i} src={src} className="h-20 rounded border-2 border-slate-500"/>)}
                         </div>
-                        <label className="bg-blue-600 hover:bg-blue-500 w-full py-6 rounded-2xl font-bold text-xl cursor-pointer text-white flex items-center justify-center gap-3 shadow-lg">
+                        <label className="btn-upload-big w-full py-6 rounded-2xl font-bold text-xl cursor-pointer text-white flex items-center justify-center gap-3">
                             <input type="file" onChange={addImage} className="hidden" accept="image/*" /> 
                             📷 FAI UNA FOTO
                         </label>
@@ -279,51 +286,5 @@
 
             return (
                 <div className="h-full flex flex-col bg-slate-900 overflow-hidden">
-                    {/* Toolbar Superiore */}
                     <div className="p-2 flex gap-2 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg overflow-x-auto">
-                        <a href="index.html" className="bg-slate-700 px-3 py-2 rounded text-white font-bold shrink-0">🏠</a>
-                        
-                        <button onClick={()=>setShowFlow(!showFlow)} className={`px-3 py-2 rounded font-bold shrink-0 text-sm transition-all ${showFlow?'bg-green-600 text-white':'bg-slate-700 text-slate-400'}`}>
-                            {showFlow ? '1️⃣2️⃣3️⃣ FLUSSO ON' : '🙈 FLUSSO OFF'}
-                        </button>
-
-                        <div className="flex-1"></div>
-                        
-                        {/* TASTI PDF */}
-                        <button onClick={() => generatePDF('blank')} className="bg-yellow-600 hover:bg-yellow-500 px-3 py-2 rounded text-white font-bold text-sm shrink-0 flex items-center gap-1">
-                            📝 DA COMPLETARE
-                        </button>
-                        <button onClick={() => generatePDF('full')} className="bg-purple-600 hover:bg-purple-500 px-3 py-2 rounded text-white font-bold text-sm shrink-0 flex items-center gap-1">
-                            ✅ RISOLTO
-                        </button>
-                        
-                        {/* TASTO NUOVA LEZIONE */}
-                        <button onClick={reset} className="bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded text-white font-bold shrink-0 flex items-center gap-1 ml-2">
-                            📷 NUOVA
-                        </button>
-                    </div>
-
-                    <div ref={mapRef} className="flex-1 relative bg-slate-900 overflow-hidden">
-                        {renderMap()}
-                        
-                        {selectedNode && (
-                            <div className="absolute bottom-0 left-0 right-0 bg-slate-800/95 border-t border-green-500 p-6 z-50 rounded-t-3xl shadow-2xl">
-                                <div className="flex justify-between items-start mb-2">
-                                    <h3 className="text-2xl font-bold text-yellow-400 flex items-center gap-3">
-                                        <span className="bg-green-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-lg">{selectedNode.order}</span>
-                                        {selectedNode.label}
-                                    </h3>
-                                    <button onClick={()=>setSelectedNode(null)} className="text-slate-400 text-2xl p-2">✕</button>
-                                </div>
-                                <p className="text-xl text-white leading-relaxed">{selectedNode.content}</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-        };
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+                        <a href="index.html" className="bg-slate-700 px-3 py-2
