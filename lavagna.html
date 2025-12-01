@@ -21,13 +21,14 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             text-align: center; padding: 10px; border-radius: 16px;
             backdrop-filter: blur(4px);
+            cursor: pointer;
         }
         .node-base:hover { transform: scale(1.05); z-index: 50; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         
         .node-central { 
             background: linear-gradient(135deg, #2563eb, #1d4ed8); 
             border: 4px solid #60a5fa; width: 180px; height: 180px; z-index: 20; 
-            font-size: 1.1rem; font-weight: bold; border-radius: 50%; /* Cerchio */
+            font-size: 1.1rem; font-weight: bold; border-radius: 50%;
         }
         
         .node-satellite { 
@@ -38,7 +39,7 @@
         
         .node-satellite.active { border-color: #4ade80; background: #064e3b; }
 
-        /* Frecce di Flusso */
+        /* Frecce */
         .flow-arrow { stroke-dasharray: 10; animation: dash 1s linear infinite; }
         @keyframes dash { to { stroke-dashoffset: -20; } }
 
@@ -57,7 +58,7 @@
     <script type="text/babel">
         const { useState, useRef, useEffect } = React;
         const { jsPDF } = window.jspdf;
-        const MODEL = "gemini-2.0-flash"; // Aggiornato!
+        const MODEL = "gemini-2.0-flash";
 
         const DB = {
             getKey: () => localStorage.getItem('gemini_api_key'),
@@ -71,35 +72,23 @@
             clear: () => localStorage.removeItem('lavagna_data')
         };
 
-        // ANALISI AI (Con Prompt Potenziato)
         const analyzeImages = async (images) => {
             const key = DB.getKey();
             if(!key) throw new Error("Manca API Key! Vai su Home.");
             
             const parts = images.map(img => ({ inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] } }));
-            
-            const prompt = `Analizza queste pagine di libro scolastico.
-            OBIETTIVO: Creare una mappa concettuale chiara per un bambino DSA.
-            
-            1. Trova il TEMA PRINCIPALE (Centro).
-            2. Trova 5-6 PUNTI CHIAVE (Satelliti).
-            3. Per ogni punto, scrivi un APPROFONDIMENTO semplice.
-            4. Decidi un ORDINE LOGICO (1, 2, 3...).
-
-            Rispondi SOLO JSON: 
-            { 
-                "theme": "Titolo Tema", 
-                "nodes": [
-                    { "id": 1, "label": "Nome Concetto", "content": "Spiegazione semplice...", "order": 1 }
-                ] 
-            }`;
+            const prompt = `Analizza queste pagine. OBIETTIVO: Mappa concettuale per bambino DSA.
+            1. TEMA PRINCIPALE (Centro).
+            2. 5-6 PUNTI CHIAVE (Satelliti).
+            3. APPROFONDIMENTO semplice per ogni punto.
+            4. ORDINE LOGICO (1, 2, 3...).
+            Rispondi SOLO JSON: { "theme": "Titolo", "nodes": [{ "id": 1, "label": "Nome", "content": "Spiegazione", "order": 1 }] }`;
 
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, ...parts] }] })
             });
-            
-            if(!res.ok) throw new Error("Errore AI (Controlla connessione o chiave)");
+            if(!res.ok) throw new Error("Errore AI");
             const data = await res.json();
             let text = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
             return JSON.parse(text);
@@ -113,16 +102,11 @@
             const [selectedNode, setSelectedNode] = useState(null);
             const mapRef = useRef(null);
 
-            // Caricamento Memoria
             useEffect(() => {
                 const saved = DB.load();
-                if(saved) { 
-                    setMapData(saved); 
-                    setStage('view'); // Se c'è una mappa, vai diretto alla vista
-                }
+                if(saved) { setMapData(saved); setStage('view'); }
             }, []);
 
-            // Autosave
             useEffect(() => { if(mapData) DB.save(mapData); }, [mapData]);
 
             const addImage = (e) => {
@@ -151,13 +135,10 @@
             };
 
             const downloadPDF = () => {
-                if(!mapData) return;
                 const doc = new jsPDF();
                 const title = mapData.theme || "Mappa";
-                
                 doc.setFontSize(22); doc.setTextColor(0,0,255); doc.text(title, 20, 20);
                 doc.setFontSize(12); doc.setTextColor(100); doc.text("Scheda di Studio", 20, 30);
-
                 let y = 40;
                 mapData.nodes.sort((a,b)=>a.order-b.order).forEach((node) => {
                     if(y > 250) { doc.addPage(); y=20; }
@@ -168,11 +149,12 @@
                     doc.text(doc.splitTextToSize(node.content, 170), 20, y+20);
                     y += 40;
                 });
-                doc.save(`${title}_Scheda.pdf`);
+                doc.save(`${title}.pdf`);
             };
 
+            // Questa funzione cancella tutto e ti riporta all'upload
             const reset = () => {
-                if(confirm("Cancellare tutto e creare una nuova mappa?")) {
+                if(confirm("Sicuro? Cancellerai la mappa attuale.")) {
                     DB.clear(); 
                     setImages([]); 
                     setMapData(null); 
@@ -180,7 +162,6 @@
                 }
             };
 
-            // --- LAYOUT RESPONSIVE (RADIALE) ---
             const renderMap = () => {
                 if (!mapData) return null;
                 const cx = window.innerWidth / 2;
@@ -210,13 +191,7 @@
                                 return <path key={`f-${i}`} d={`M${x1},${y1} Q${cx},${cy} ${x2},${y2}`} fill="none" stroke="#4ade80" strokeWidth="3" markerEnd="url(#arrow)" className="flow-arrow" />;
                             })}
                         </svg>
-
-                        {/* Centro */}
-                        <div className="absolute node-base node-central flex items-center justify-center" style={{left:cx-90, top:cy-90}} onClick={()=>speak(mapData.theme)}>
-                            {mapData.theme}
-                        </div>
-
-                        {/* Satelliti */}
+                        <div className="absolute node-base node-central flex items-center justify-center" style={{left:cx-90, top:cy-90}} onClick={()=>speak(mapData.theme)}>{mapData.theme}</div>
                         {sortedNodes.map((node, i) => {
                             const angle = (i / sortedNodes.length) * 2 * Math.PI - Math.PI / 2;
                             const x = cx + radius * Math.cos(angle) - 75; 
@@ -234,36 +209,28 @@
                 );
             };
 
+            // SCHERMATA UPLOAD
             if(stage === 'upload') return (
                 <div className="h-full flex flex-col items-center justify-center p-6 gap-6">
                     <h1 className="text-3xl font-bold text-green-400">LAVAGNA AI</h1>
                     <div className="border-2 border-dashed border-slate-600 p-8 rounded-3xl flex flex-col items-center gap-4 bg-slate-800/50 w-full max-w-2xl">
                         <div className="flex gap-2 overflow-auto max-w-full p-2 min-h-[80px]">
-                            {images.length === 0 ? <span className="text-slate-500 m-auto">Nessuna foto caricata</span> : 
-                            images.map((src,i)=><img key={i} src={src} className="h-20 rounded border-2 border-slate-500"/>)}
+                            {images.length === 0 ? <span className="text-slate-500 m-auto">Nessuna foto caricata</span> : images.map((src,i)=><img key={i} src={src} className="h-20 rounded border-2 border-slate-500"/>)}
                         </div>
-                        
-                        {/* PULSANTE UPLOAD GIGANTE */}
                         <label className="btn-upload-big w-full py-6 rounded-2xl font-bold text-xl cursor-pointer text-white flex items-center justify-center gap-3">
-                            <input type="file" onChange={addImage} className="hidden" accept="image/*" /> 
-                            📷 FAI UNA FOTO
+                            <input type="file" onChange={addImage} className="hidden" accept="image/*" /> 📷 FAI UNA FOTO
                         </label>
-                        
-                        {images.length > 0 && (
-                            <button onClick={start} className="w-full bg-green-600 hover:bg-green-500 py-4 rounded-xl font-bold text-white text-lg animate-pulse shadow-lg">
-                                🚀 CREA MAPPA ORA
-                            </button>
-                        )}
+                        {images.length > 0 && <button onClick={start} className="w-full bg-green-600 hover:bg-green-500 py-4 rounded-xl font-bold text-white text-lg animate-pulse shadow-lg">🚀 CREA MAPPA ORA</button>}
                     </div>
                     <a href="index.html" className="text-slate-400 bg-slate-800 px-4 py-2 rounded-lg">🏠 Torna al Menu</a>
                 </div>
             );
 
-            if(stage === 'scanning') return <div className="h-full flex items-center justify-center text-2xl font-bold text-green-400 animate-pulse">🤖 LEGGO E ORGANIZZO...</div>;
+            if(stage === 'scanning') return <div className="h-full flex items-center justify-center text-2xl font-bold text-green-400 animate-pulse">🤖 STO LEGGENDO...</div>;
 
+            // SCHERMATA MAPPA (VIEW)
             return (
                 <div className="h-full flex flex-col bg-slate-900 overflow-hidden">
-                    {/* Toolbar */}
                     <div className="p-3 flex gap-2 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg overflow-x-auto">
                         <a href="index.html" className="bg-slate-700 px-3 py-2 rounded text-white font-bold shrink-0">🏠</a>
                         <button onClick={()=>setShowFlow(!showFlow)} className={`px-4 py-2 rounded font-bold shrink-0 transition-all ${showFlow?'bg-green-600 text-white':'bg-slate-700 text-slate-400'}`}>
@@ -272,34 +239,16 @@
                         <div className="flex-1"></div>
                         <button onClick={downloadPDF} className="bg-purple-600 px-3 py-2 rounded text-white font-bold flex items-center gap-2 shadow-lg shrink-0">📄 PDF</button>
                         
-                        {/* PULSANTE RESET BEN VISIBILE */}
-                        <button onClick={reset} className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded text-white font-bold shrink-0 flex items-center gap-2">
-                            🔄 NUOVA LEZIONE
+                        {/* ECCO IL PULSANTE CHE MANCAVA: È QUESTO QUI SOTTO */}
+                        <button onClick={reset} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-white font-bold shrink-0 flex items-center gap-2 border-2 border-blue-400 shadow-lg">
+                            📷 NUOVA LEZIONE
                         </button>
                     </div>
 
-                    {/* Area Mappa */}
                     <div ref={mapRef} className="flex-1 relative bg-slate-900 overflow-hidden">
                         {renderMap()}
-                        {/* Bottom Sheet Lettura */}
                         {selectedNode && (
                             <div className="absolute bottom-0 left-0 right-0 bg-slate-800/95 border-t border-green-500 p-6 z-50 rounded-t-3xl shadow-2xl">
                                 <div className="flex justify-between items-start mb-2">
                                     <h3 className="text-2xl font-bold text-yellow-400 flex items-center gap-3">
-                                        <span className="bg-green-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-lg">{selectedNode.order}</span>
-                                        {selectedNode.label}
-                                    </h3>
-                                    <button onClick={()=>setSelectedNode(null)} className="text-slate-400 text-2xl p-2">✕</button>
-                                </div>
-                                <p className="text-xl text-white leading-relaxed">{selectedNode.content}</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-        };
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+                                        <span className="bg-green-60
