@@ -3,22 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lavagna AI</title>
+    <title>Lavagna AI - EduGamer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
     <style>
         body { background-color: #0a0e17; color: white; font-family: 'Verdana', sans-serif; height: 100dvh; overflow: hidden; }
-        .cyber-box { background: rgba(15,23,42,0.95); border: 2px solid #475569; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
-        .node-central { background: linear-gradient(135deg, #1e40af, #3b82f6); border: 3px solid #60a5fa; box-shadow: 0 0 30px rgba(59,130,246,0.5); }
-        .node-concept { background: linear-gradient(135deg, #0f766e, #14b8a6); border: 2px solid #5eead4; }
-        /* Stili Stampa */
-        .print-mode { background: white !important; color: black !important; }
-        .print-mode svg line { stroke: black !important; stroke-width: 2px !important; }
-        .print-mode .node-central, .print-mode .node-concept { box-shadow: none !important; border: 2px solid black !important; color: white !important; }
+        
+        /* Nodi Mappa */
+        .node-base {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 10px; border-radius: 16px;
+            backdrop-filter: blur(4px);
+        }
+        .node-base:hover { transform: scale(1.05); z-index: 50; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        
+        .node-central { 
+            background: linear-gradient(135deg, #2563eb, #1d4ed8); 
+            border: 4px solid #60a5fa; width: 180px; height: 180px; z-index: 20; 
+            font-size: 1.1rem; font-weight: bold; border-radius: 50%; /* Cerchio */
+        }
+        
+        .node-satellite { 
+            background: linear-gradient(135deg, #334155, #1e293b); 
+            border: 2px solid #94a3b8; width: 150px; min-height: 100px; z-index: 10; 
+            font-size: 0.9rem;
+        }
+        
+        .node-satellite.active { border-color: #4ade80; background: #064e3b; }
+
+        /* Frecce di Flusso */
+        .flow-arrow { stroke-dasharray: 10; animation: dash 1s linear infinite; }
+        @keyframes dash { to { stroke-dashoffset: -20; } }
+
+        /* Stili Stampa (PDF) */
+        .print-container { background: white; color: black; padding: 20px; }
+        .print-node { border: 2px solid black; padding: 10px; margin-bottom: 10px; border-radius: 10px; page-break-inside: avoid; }
+        .print-title { font-size: 20px; font-weight: bold; color: #2563eb; margin-bottom: 5px; }
+        .print-text { font-size: 14px; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -26,7 +54,7 @@
     <script type="text/babel">
         const { useState, useRef, useEffect } = React;
         const { jsPDF } = window.jspdf;
-        const MODEL = "gemini-2.0-flash"; // Aggiornato!
+        const MODEL = "gemini-1.5-flash"; 
 
         const DB = {
             getKey: () => localStorage.getItem('gemini_api_key'),
@@ -40,17 +68,33 @@
             clear: () => localStorage.removeItem('lavagna_data')
         };
 
+        // --- 1. & 2. & 5. PROMPT AGGIORNATO PER TEMA CENTRALE E APPROFONDIMENTI ---
         const analyzeImages = async (images) => {
             const key = DB.getKey();
             if(!key) throw new Error("Manca API Key! Vai su Home.");
             
             const parts = images.map(img => ({ inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] } }));
-            const prompt = `Analizza queste pagine di libro scolastico. 
-            Crea una mappa mentale per bambino di 9 anni.
-            1. Unisci il testo.
-            2. Estrai 5-6 concetti chiave.
-            3. Spiegazioni SEMPLICI.
-            Rispondi SOLO JSON: { "title": "Titolo", "summary_points": ["Punto 1", "Punto 2"], "nodes": [{"id": 1, "label": "Concetto", "explanation": "Spiegazione"}], "connections": [{"from": 0, "to": 1}] }`;
+            const prompt = `Analizza queste pagine di libro scolastico.
+            
+            OBIETTIVO: Creare una mappa concettuale radiale.
+            
+            1. Trova il TEMA PRINCIPALE (sarà il centro).
+            2. Trova 5-6 PUNTI CHIAVE (saranno i satelliti). Cerca parole in grassetto o titoli di paragrafo.
+            3. Per ogni punto, scrivi un APPROFONDIMENTO (spiegazione chiara, 2-3 frasi semplici).
+            4. Decidi un ORDINE LOGICO di lettura (1, 2, 3...).
+
+            Rispondi SOLO JSON: 
+            { 
+                "theme": "Titolo Centrale", 
+                "nodes": [
+                    {
+                        "id": 1, 
+                        "label": "Titolo Punto Chiave", 
+                        "content": "Testo approfondito dell'argomento...", 
+                        "order": 1 
+                    }
+                ] 
+            }`;
 
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -66,16 +110,16 @@
             const [stage, setStage] = useState('upload');
             const [images, setImages] = useState([]);
             const [mapData, setMapData] = useState(null);
-            const [nodes, setNodes] = useState([]);
-            const [lines, setLines] = useState([]);
+            const [showFlow, setShowFlow] = useState(false); // 4. FLUSSO NASCOSTO DI DEFAULT
+            const [selectedNode, setSelectedNode] = useState(null);
             const mapRef = useRef(null);
 
             useEffect(() => {
                 const saved = DB.load();
-                if(saved) { setMapData(saved.mapData); setNodes(saved.nodes); setLines(saved.lines); setStage('view'); }
+                if(saved) { setMapData(saved); setStage('view'); }
             }, []);
 
-            useEffect(() => { if(nodes.length) DB.save({mapData, nodes, lines}); }, [nodes]);
+            useEffect(() => { if(mapData) DB.save(mapData); }, [mapData]);
 
             const addImage = (e) => {
                 const f = e.target.files[0]; if(!f) return;
@@ -90,44 +134,166 @@
                 try {
                     const data = await analyzeImages(images);
                     setMapData(data);
-                    
-                    const cx = window.innerWidth/2; const cy = window.innerHeight/3;
-                    const central = { id: 0, label: data.title, category: 'central', x: cx-80, y: 50, w: 160, h: 90, explanation: "Tema principale" };
-                    const sats = data.nodes.map((n,i) => {
-                        const angle = (i/data.nodes.length)*Math.PI + Math.PI/4;
-                        return { ...n, id: i+1, category: 'concept', x: cx + 300*Math.cos(angle)-70, y: cy + 150 + 150*Math.sin(angle), w: 140, h: 80 };
-                    });
-                    setNodes([central, ...sats]);
-                    setLines(data.connections.map(c => ({ from: c.from, to: c.to })));
-                    if(!data.connections.length) setLines(sats.map(n => ({ from: 0, to: n.id })));
-                    
                     DB.addXP(50);
                     setStage('view');
                 } catch(e) { alert(e.message); setStage('upload'); }
             };
 
-            const exportPDF = async () => {
-                const el = mapRef.current;
-                const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2, onclone: (d) => d.querySelector('.map-area').classList.add('print-mode') });
-                const pdf = new jsPDF('l', 'mm', 'a4');
-                pdf.addImage(canvas.toDataURL('image/jpeg'), 'JPEG', 0, 0, 297, 210);
-                pdf.save('Mappa.pdf');
+            const speak = (text) => {
+                window.speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'it-IT'; u.rate = 0.9;
+                window.speechSynthesis.speak(u);
             };
 
-            const share = async () => {
-                const canvas = await html2canvas(mapRef.current, { backgroundColor: '#ffffff', scale: 2 });
-                canvas.toBlob(blob => navigator.share({ files: [new File([blob], 'mappa.png', {type: 'image/png'})] }));
+            // --- 6. DOWNLOAD PDF "SCHEDA DI STUDIO" ---
+            const downloadPDF = () => {
+                const doc = new jsPDF();
+                const title = mapData.theme || "Mappa Concettuale";
+                
+                // Titolo
+                doc.setFontSize(22);
+                doc.setTextColor(0, 0, 255); // Blu
+                doc.text(title, 20, 20);
+                
+                // Istruzioni
+                doc.setFontSize(12);
+                doc.setTextColor(100);
+                doc.text("Collega i concetti e studia i riquadri!", 20, 30);
+
+                let y = 40;
+                
+                // Genera i box di testo (Le "Schede")
+                mapData.nodes.sort((a,b) => a.order - b.order).forEach((node, i) => {
+                    if (y > 250) { doc.addPage(); y = 20; } // Nuova pagina se serve
+                    
+                    // Box
+                    doc.setDrawColor(0);
+                    doc.setFillColor(245, 245, 245); // Grigio chiarissimo
+                    doc.roundedRect(15, y, 180, 35, 3, 3, 'FD');
+                    
+                    // Numero Ordine
+                    doc.setFontSize(14);
+                    doc.setTextColor(255, 0, 0); // Rosso
+                    doc.text(`${node.order}.`, 20, y + 10);
+                    
+                    // Titolo Nodo
+                    doc.setFontSize(14);
+                    doc.setTextColor(0);
+                    doc.setFont("helvetica", "bold");
+                    doc.text(node.label, 30, y + 10);
+                    
+                    // Approfondimento
+                    doc.setFontSize(11);
+                    doc.setFont("helvetica", "normal");
+                    doc.setTextColor(60);
+                    const splitText = doc.splitTextToSize(node.content, 170);
+                    doc.text(splitText, 20, y + 20);
+                    
+                    y += 40;
+                });
+
+                doc.save(`${title}_SchedaStudio.pdf`);
             };
 
-            const reset = () => { DB.clear(); setImages([]); setNodes([]); setStage('upload'); };
+            // --- 3. VISUALIZZAZIONE RESPONSIVE (RADIALE) ---
+            const renderMap = () => {
+                if (!mapData) return null;
+                
+                const cx = window.innerWidth / 2;
+                const cy = (window.innerHeight - 100) / 2;
+                const radius = Math.min(window.innerWidth, window.innerHeight) * 0.35; // 35% della dimensione minore
+                
+                // Ordina i nodi per il flusso
+                const sortedNodes = [...mapData.nodes].sort((a, b) => a.order - b.order);
+
+                return (
+                    <div className="relative w-full h-full">
+                        {/* Linee di Flusso (SVG) */}
+                        <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                            <defs>
+                                <marker id="arrow" markerWidth="10" markerHeight="10" refX="20" refY="3" orient="auto" markerUnits="strokeWidth">
+                                    <path d="M0,0 L0,6 L9,3 z" fill="#4ade80" />
+                                </marker>
+                            </defs>
+                            {/* Linee dal Centro ai Satelliti (Sempre visibili ma sottili) */}
+                            {sortedNodes.map((node, i) => {
+                                const angle = (i / sortedNodes.length) * 2 * Math.PI - Math.PI / 2;
+                                const x = cx + radius * Math.cos(angle);
+                                const y = cy + radius * Math.sin(angle);
+                                return (
+                                    <line key={`c-${i}`} x1={cx} y1={cy} x2={x} y2={y} stroke="#334155" strokeWidth="2" />
+                                );
+                            })}
+                            
+                            {/* 7. LINEE DI FLUSSO (Solo se attive) */}
+                            {showFlow && sortedNodes.map((node, i) => {
+                                if (i === sortedNodes.length - 1) return null; // Ultimo non va a nessuno
+                                const nextNode = sortedNodes[i + 1];
+                                
+                                const angle1 = (i / sortedNodes.length) * 2 * Math.PI - Math.PI / 2;
+                                const x1 = cx + radius * Math.cos(angle1);
+                                const y1 = cy + radius * Math.sin(angle1);
+
+                                const j = i + 1;
+                                const angle2 = (j / sortedNodes.length) * 2 * Math.PI - Math.PI / 2;
+                                const x2 = cx + radius * Math.cos(angle2);
+                                const y2 = cy + radius * Math.sin(angle2);
+
+                                return (
+                                    <path key={`f-${i}`} d={`M${x1},${y1} Q${cx},${cy} ${x2},${y2}`} 
+                                          fill="none" stroke="#4ade80" strokeWidth="3" markerEnd="url(#arrow)" 
+                                          className="flow-arrow" />
+                                );
+                            })}
+                        </svg>
+
+                        {/* Nodo Centrale */}
+                        <div className="absolute node-base node-central flex items-center justify-center" 
+                             style={{ left: cx - 90, top: cy - 90 }}
+                             onClick={() => speak(mapData.theme)}>
+                            {mapData.theme}
+                        </div>
+
+                        {/* Nodi Satellite */}
+                        {sortedNodes.map((node, i) => {
+                            const angle = (i / sortedNodes.length) * 2 * Math.PI - Math.PI / 2;
+                            const x = cx + radius * Math.cos(angle) - 75; // 75 è metà larghezza nodo
+                            const y = cy + radius * Math.sin(angle) - 50; // 50 è metà altezza nodo
+                            
+                            return (
+                                <div key={i} 
+                                     className={`absolute node-base node-satellite ${selectedNode===node ? 'active' : ''}`}
+                                     style={{ left: x, top: y }}
+                                     onClick={() => {
+                                         setSelectedNode(node);
+                                         speak(node.label + ". " + node.content);
+                                     }}>
+                                    {/* Badge Ordine (Visibile solo col flusso) */}
+                                    {showFlow && (
+                                        <div className="absolute -top-3 -left-3 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center font-bold text-black border-2 border-white shadow">
+                                            {node.order}
+                                        </div>
+                                    )}
+                                    <div className="font-bold text-yellow-400 mb-1">{node.label}</div>
+                                    {/* Testo troncato per pulizia visiva, espanso al click */}
+                                    <div className="text-xs text-slate-300 line-clamp-3">{node.content}</div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                );
+            };
+
+            const reset = () => { DB.clear(); setImages([]); setMapData(null); setStage('upload'); };
 
             if(stage === 'upload') return (
                 <div className="h-full flex flex-col items-center justify-center p-6 gap-6">
                     <h1 className="text-3xl font-bold text-green-400">LAVAGNA AI</h1>
                     <div className="border-2 border-dashed border-slate-600 p-10 rounded-3xl flex flex-col items-center gap-4 bg-slate-800/50">
                         <div className="flex gap-2 overflow-auto max-w-full p-2">{images.map((src,i)=><img key={i} src={src} className="h-20 rounded border"/>)}</div>
-                        <label className="bg-blue-600 px-6 py-3 rounded-xl font-bold cursor-pointer text-white">
-                            <input type="file" onChange={addImage} className="hidden" /> 📷 AGGIUNGI FOTO
+                        <label className="bg-blue-600 px-6 py-3 rounded-xl font-bold cursor-pointer text-white hover:bg-blue-500 transition-all">
+                            <input type="file" onChange={addImage} className="hidden" accept="image/*" /> 📷 AGGIUNGI FOTO
                         </label>
                         {images.length > 0 && <button onClick={start} className="bg-green-600 px-8 py-3 rounded-xl font-bold text-white animate-pulse">🚀 CREA MAPPA</button>}
                     </div>
@@ -135,36 +301,49 @@
                 </div>
             );
 
-            if(stage === 'scanning') return <div className="h-full flex items-center justify-center text-2xl font-bold text-green-400">🤖 ANALISI IN CORSO...</div>;
+            if(stage === 'scanning') return <div className="h-full flex items-center justify-center text-2xl font-bold text-green-400 animate-pulse">🤖 LEGGO E ORGANIZZO...</div>;
 
             return (
-                <div className="h-full flex flex-col bg-slate-900">
-                    <div className="p-3 flex gap-2 border-b border-slate-700 bg-slate-800">
-                        <a href="index.html" className="bg-slate-700 px-3 py-2 rounded text-white">🏠</a>
+                <div className="h-full flex flex-col bg-slate-900 overflow-hidden">
+                    {/* Top Bar */}
+                    <div className="p-3 flex gap-2 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg">
+                        <a href="index.html" className="bg-slate-700 px-3 py-2 rounded text-white font-bold">🏠</a>
+                        
+                        {/* 7. PULSANTE FLUSSO */}
+                        <button 
+                            onClick={() => setShowFlow(!showFlow)} 
+                            className={`px-4 py-2 rounded font-bold flex items-center gap-2 transition-all ${showFlow ? 'bg-green-600 text-white shadow-[0_0_15px_#16a34a]' : 'bg-slate-700 text-slate-400'}`}
+                        >
+                            {showFlow ? '🔄 FLUSSO VISIBILE' : '🙈 FLUSSO NASCOSTO'}
+                        </button>
+
                         <div className="flex-1"></div>
-                        <button onClick={exportPDF} className="bg-red-600 px-3 py-2 rounded text-white font-bold">📄 PDF</button>
-                        <button onClick={share} className="bg-blue-600 px-3 py-2 rounded text-white font-bold">📧 EMAIL</button>
-                        <button onClick={reset} className="bg-slate-600 px-3 py-2 rounded text-white">🗑️</button>
+                        
+                        {/* 6. DOWNLOAD PDF BIANCO CON TESTI */}
+                        <button onClick={downloadPDF} className="bg-purple-600 hover:bg-purple-500 px-3 py-2 rounded text-white font-bold flex items-center gap-2 shadow-lg">
+                            📄 SCARICA SCHEDA
+                        </button>
+                        
+                        <button onClick={reset} className="bg-red-600 px-3 py-2 rounded text-white">🗑️</button>
                     </div>
-                    <div ref={mapRef} className="map-area flex-1 relative overflow-auto bg-slate-900">
-                        <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                            {lines.map((l,i) => {
-                                const n1 = nodes.find(n=>n.id===l.from); const n2 = nodes.find(n=>n.id===l.to);
-                                if(!n1||!n2) return null;
-                                return <line key={i} x1={n1.x+n1.w/2} y1={n1.y+n1.h/2} x2={n2.x+n2.w/2} y2={n2.y+n2.h/2} stroke="#4ade80" strokeWidth="3" />
-                            })}
-                        </svg>
-                        {nodes.map(n => (
-                            <div key={n.id} onClick={() => { const u = new SpeechSynthesisUtterance(n.explanation); u.lang='it-IT'; speechSynthesis.speak(u); }}
-                                className={`absolute p-2 flex items-center justify-center text-center text-white rounded-xl cursor-pointer border-2 ${n.category==='central'?'node-central':'node-concept'}`}
-                                style={{left:n.x, top:n.y, width:n.w, height:n.h}}>
-                                {n.label}
+
+                    {/* Map Area */}
+                    <div ref={mapRef} className="flex-1 relative bg-slate-900 overflow-hidden">
+                        {renderMap()}
+                        
+                        {/* Pannello Lettura (Bottom Sheet) */}
+                        {selectedNode && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-slate-800/95 border-t border-green-500 p-4 z-50 rounded-t-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] transition-transform duration-300">
+                                <div className="flex justify-between items-start mb-2">
+                                    <h3 className="text-xl font-bold text-yellow-400 flex items-center gap-2">
+                                        <span className="bg-green-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">{selectedNode.order}</span>
+                                        {selectedNode.label}
+                                    </h3>
+                                    <button onClick={() => setSelectedNode(null)} className="text-slate-400 text-xl">✕</button>
+                                </div>
+                                <p className="text-lg text-white leading-relaxed">{selectedNode.content}</p>
                             </div>
-                        ))}
-                    </div>
-                    <div className="p-4 bg-slate-800 border-t-2 border-green-500 max-h-40 overflow-auto">
-                        <h3 className="font-bold text-green-400 mb-2">📌 PUNTI CHIAVE</h3>
-                        <div className="grid grid-cols-2 gap-2 text-sm">{mapData?.summary_points?.map((p,i)=><div key={i} className="bg-slate-700 p-2 rounded">• {p}</div>)}</div>
+                        )}
                     </div>
                 </div>
             );
