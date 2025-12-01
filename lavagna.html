@@ -102,11 +102,16 @@
             const [selectedNode, setSelectedNode] = useState(null);
             const mapRef = useRef(null);
 
+            // Caricamento Memoria
             useEffect(() => {
                 const saved = DB.load();
-                if(saved) { setMapData(saved); setStage('view'); }
+                if(saved) { 
+                    setMapData(saved); 
+                    setStage('view'); 
+                }
             }, []);
 
+            // Autosave
             useEffect(() => { if(mapData) DB.save(mapData); }, [mapData]);
 
             const addImage = (e) => {
@@ -152,9 +157,8 @@
                 doc.save(`${title}.pdf`);
             };
 
-            // Questa funzione cancella tutto e ti riporta all'upload
             const reset = () => {
-                if(confirm("Sicuro? Cancellerai la mappa attuale.")) {
+                if(confirm("Cancellare tutto e creare una nuova mappa?")) {
                     DB.clear(); 
                     setImages([]); 
                     setMapData(null); 
@@ -215,12 +219,20 @@
                     <h1 className="text-3xl font-bold text-green-400">LAVAGNA AI</h1>
                     <div className="border-2 border-dashed border-slate-600 p-8 rounded-3xl flex flex-col items-center gap-4 bg-slate-800/50 w-full max-w-2xl">
                         <div className="flex gap-2 overflow-auto max-w-full p-2 min-h-[80px]">
-                            {images.length === 0 ? <span className="text-slate-500 m-auto">Nessuna foto caricata</span> : images.map((src,i)=><img key={i} src={src} className="h-20 rounded border-2 border-slate-500"/>)}
+                            {images.length === 0 ? <span className="text-slate-500 m-auto">Nessuna foto caricata</span> : 
+                            images.map((src,i)=><img key={i} src={src} className="h-20 rounded border-2 border-slate-500"/>)}
                         </div>
+                        
                         <label className="btn-upload-big w-full py-6 rounded-2xl font-bold text-xl cursor-pointer text-white flex items-center justify-center gap-3">
-                            <input type="file" onChange={addImage} className="hidden" accept="image/*" /> 📷 FAI UNA FOTO
+                            <input type="file" onChange={addImage} className="hidden" accept="image/*" /> 
+                            📷 FAI UNA FOTO
                         </label>
-                        {images.length > 0 && <button onClick={start} className="w-full bg-green-600 hover:bg-green-500 py-4 rounded-xl font-bold text-white text-lg animate-pulse shadow-lg">🚀 CREA MAPPA ORA</button>}
+                        
+                        {images.length > 0 && (
+                            <button onClick={start} className="w-full bg-green-600 hover:bg-green-500 py-4 rounded-xl font-bold text-white text-lg animate-pulse shadow-lg">
+                                🚀 CREA MAPPA ORA
+                            </button>
+                        )}
                     </div>
                     <a href="index.html" className="text-slate-400 bg-slate-800 px-4 py-2 rounded-lg">🏠 Torna al Menu</a>
                 </div>
@@ -239,7 +251,7 @@
                         <div className="flex-1"></div>
                         <button onClick={downloadPDF} className="bg-purple-600 px-3 py-2 rounded text-white font-bold flex items-center gap-2 shadow-lg shrink-0">📄 PDF</button>
                         
-                        {/* ECCO IL PULSANTE CHE MANCAVA: È QUESTO QUI SOTTO */}
+                        {/* PULSANTE NUOVA LEZIONE */}
                         <button onClick={reset} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-white font-bold shrink-0 flex items-center gap-2 border-2 border-blue-400 shadow-lg">
                             📷 NUOVA LEZIONE
                         </button>
@@ -263,3 +275,8 @@
                 </div>
             );
         };
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
