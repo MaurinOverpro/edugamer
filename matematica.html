@@ -70,7 +70,7 @@
             # 🔍 I DATI
             (Elenca i numeri e cosa rappresentano)
 
-            # 🧠 RAGIONAMENTO
+            # 🧠 RAGIONIAMO
             (Spiega a parole semplici quale operazione useremo e perché. Usa emoji ma non troppe)
 
             # ✏️ I CALCOLI
@@ -104,16 +104,19 @@
                 <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-600 w-full animate-fade-in">
                     {label && <div className="text-xs text-slate-400 font-bold mb-1 uppercase">{label}: {n}</div>}
                     <div className="holo-container">
+                        {/* Centinaia */}
                         {[...Array(hundreds)].map((_, i) => (
                             <div key={`h-${i}`} className="hundred-block">
                                 {[...Array(100)].map((_, j) => <div key={j} className="hundred-segment"></div>)}
                             </div>
                         ))}
+                        {/* Decine */}
                         {[...Array(tens)].map((_, i) => (
                             <div key={`t-${i}`} className="ten-block">
                                 {[...Array(10)].map((_, j) => <div key={j} className="ten-segment"></div>)}
                             </div>
                         ))}
+                        {/* Unità */}
                         <div className="flex flex-wrap gap-1">
                             {[...Array(units)].map((_, i) => <div key={`u-${i}`} className="unit-block"></div>)}
                         </div>
