@@ -10,8 +10,6 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        * { box-sizing: border-box; }
-        
         body { 
             background-color: #0a0e17; 
             color: white; 
@@ -19,24 +17,20 @@
             margin: 0; 
             height: 100dvh; 
             width: 100vw;
-            overflow: hidden;
-            position: fixed;
-            top: 0;
-            left: 0;
+            overflow: hidden; 
         }
 
         /* --- CONTAINER SCROLLABILE (FIX TABLET) --- */
         .scroll-area {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            overflow: scroll; /* IMPORTANTE: scroll invece di auto */
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            position: relative;
             background-image: radial-gradient(#1e293b 2px, transparent 2px);
             background-size: 40px 40px;
+            /* Importante: permette lo scroll col dito */
+            touch-action: pan-x pan-y; 
+            -webkit-overflow-scrolling: touch;
         }
 
         /* Mappa Gigante */
@@ -44,9 +38,6 @@
             width: 3000px; 
             height: 3000px;
             position: relative;
-            /* Questo assicura che il canvas sia sempre scrollabile */
-            min-width: 3000px;
-            min-height: 3000px;
         }
 
         /* --- STILI NODI --- */
@@ -59,8 +50,6 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.6);
             user-select: none;
             background: rgba(15, 23, 42, 0.95);
-            /* IMPORTANTE: permette il tap ma non blocca lo scroll */
-            touch-action: manipulation;
         }
         .node-base:active { transform: scale(0.95); }
         
@@ -130,23 +119,13 @@
             animation: slide-up 0.3s ease-out;
         }
         @keyframes slide-up { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
-
-        /* Container vista mappa - IMPORTANTE per tablet */
-        .map-viewport {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            overflow: hidden;
-        }
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="text/babel">
-        const { useState, useRef, useEffect, useCallback } = React;
-        const MODEL = "gemini-2.0-flash";
+        const { useState, useRef, useEffect } = React;
+        const MODEL = "gemini-2.0-flash"; // Stabile e veloce
 
         const DB = {
             getKey: () => localStorage.getItem('gemini_api_key'),
@@ -161,6 +140,7 @@
             clear: () => localStorage.removeItem('lavagna_interactive_v2')
         };
 
+        // --- LOGICA AI ---
         const AI = {
             analyzeMap: async (images) => {
                 const key = DB.getKey();
@@ -168,6 +148,7 @@
                 
                 const parts = images.map(img => ({ inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] } }));
                 
+                // Prompt semplificato per massima chiarezza
                 const prompt = `Analizza queste pagine per un bambino.
                 Crea una MAPPA MENTALE.
                 1. TEMA PRINCIPALE.
@@ -214,6 +195,7 @@
             const [aiMessage, setAiMessage] = useState(null);
             const scrollRef = useRef(null);
 
+            // Caricamento
             useEffect(() => {
                 try {
                     const saved = DB.load();
@@ -224,31 +206,26 @@
                 } catch(e) { DB.clear(); }
             }, []);
 
+            // Autosave
             useEffect(() => { if(nodes.length) DB.save({ mapData, nodes, lines }); }, [nodes, lines]);
 
-            // CENTRATURA MIGLIORATA PER TABLET
-            const centerMap = useCallback(() => {
-                const el = scrollRef.current;
-                if (!el) return;
-                
-                const centerX = 1500 - (window.innerWidth / 2);
-                const centerY = 1500 - (window.innerHeight / 2);
-                
-                // Imposta direttamente senza animazione per evitare glitch
-                el.scrollLeft = Math.max(0, centerX);
-                el.scrollTop = Math.max(0, centerY);
-            }, []);
-
+            // CENTRATURA AUTOMATICA (FIX TABLET)
             useEffect(() => {
-                if(stage === 'view') {
-                    // Doppio requestAnimationFrame per assicurare il render completo
-                    requestAnimationFrame(() => {
-                        requestAnimationFrame(() => {
-                            centerMap();
-                        });
-                    });
+                if(stage === 'view' && scrollRef.current) {
+                    // Piccolo ritardo per dare tempo al browser di renderizzare il canvas gigante
+                    setTimeout(() => {
+                        const el = scrollRef.current;
+                        if(el) {
+                            // Centro del canvas (1500,1500) meno metà viewport
+                            el.scrollTo({
+                                top: 1500 - (el.clientHeight / 2),
+                                left: 1500 - (el.clientWidth / 2),
+                                behavior: 'smooth'
+                            });
+                        }
+                    }, 100);
                 }
-            }, [stage, centerMap]);
+            }, [stage]);
 
             const addImage = (e) => {
                 const f = e.target.files[0]; if(!f) return;
@@ -264,6 +241,7 @@
                     const data = await AI.analyzeMap(images);
                     setMapData(data);
 
+                    // Coordinate Spazio Gigante (Centro 1500, 1500)
                     const cx = 1500; 
                     const cy = 1500;
                     const radius = 420; 
@@ -296,23 +274,28 @@
                 window.speechSynthesis.speak(u);
             };
 
+            // LOGICA COLLEGAMENTO
             const handleNodeClick = async (node) => {
+                // 1. Clicco tema centrale -> Legge titolo
                 if(node.isCentral) {
                     speak(`Tema: ${node.label}. Tocca gli altri concetti per collegarli!`);
                     return;
                 }
 
+                // 2. Seleziono primo nodo
                 if (!selectedNode) {
                     setSelectedNode(node);
                     speak(node.label + ". " + node.content);
                     return;
                 }
 
+                // 3. Deseleziono
                 if (selectedNode.id === node.id) {
                     setSelectedNode(null);
                     return;
                 }
 
+                // 4. Collego
                 const exists = lines.some(l => (l.from === selectedNode.id && l.to === node.id) || (l.from === node.id && l.to === selectedNode.id));
                 
                 if (!exists) {
@@ -331,16 +314,18 @@
 
             const reset = () => {
                 if(confirm("Creare nuova mappa?")) {
-                    DB.clear(); setImages([]); setMapData(null); setNodes([]); setLines([]); setStage('upload');
+                    DB.clear(); setImages([]); setMapData(null); setStage('upload');
                 }
             };
 
+            // Render Grafico
             const renderCanvas = () => {
                 return (
                     <div className="scroll-area" ref={scrollRef}>
                         <div className="map-canvas">
-                            <svg className="absolute inset-0 pointer-events-none z-10" 
-                                 style={{width: '3000px', height: '3000px'}}>
+                            
+                            {/* Linee */}
+                            <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
                                 {lines.map((line, i) => {
                                     const n1 = nodes.find(n => n.id === line.from);
                                     const n2 = nodes.find(n => n.id === line.to);
@@ -356,6 +341,7 @@
                                 })}
                             </svg>
 
+                            {/* Nodi */}
                             {nodes.map(node => {
                                 const isSel = selectedNode?.id === node.id;
                                 const isConnected = lines.some(l => l.from === node.id || l.to === node.id);
@@ -370,7 +356,7 @@
                                         style={{ left: node.x, top: node.y, width: node.w, height: node.h }}
                                         onClick={(e) => { e.stopPropagation(); handleNodeClick(node); }}
                                     >
-                                        <div className="font-bold text-yellow-300 mb-2 leading-tight">{node.label}</div>
+                                        <div className="font-bold text-yellow-300 mb-2 leading-tight text-shadow">{node.label}</div>
                                         {!node.isCentral && <div className="text-sm text-gray-200 line-clamp-3 leading-snug font-medium">{node.content}</div>}
                                     </div>
                                 );
@@ -412,27 +398,25 @@
             );
 
             return (
-                <div className="h-screen w-screen flex flex-col overflow-hidden" style={{position: 'fixed', top: 0, left: 0}}>
+                <div className="h-full flex flex-col bg-slate-900 overflow-hidden">
                     {/* Toolbar */}
-                    <div className="flex-shrink-0 p-3 flex gap-3 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg">
+                    <div className="p-3 flex gap-3 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg">
                         <a href="index.html" className="bg-slate-700 px-4 py-2 rounded-xl text-white font-bold text-xl">🏠</a>
                         <div className="flex-1 text-center text-yellow-400 font-bold hidden sm:block animate-pulse text-lg">
                             {selectedNode ? "👇 TOCCA UN ALTRO PER COLLEGARLI!" : "👆 TOCCA I CONCETTI PER UNIRLI"}
                         </div>
-                        <button onClick={centerMap} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-blue-400">
-                            🎯
-                        </button>
                         <button onClick={reset} className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-red-400">
-                            🔄
+                            🔄 NUOVA
                         </button>
                     </div>
 
                     {/* Area di Gioco Scrollabile */}
-                    <div className="map-viewport flex-1">
+                    <div className="flex-1 relative bg-slate-900 overflow-hidden">
                         {renderCanvas()}
                         
+                        {/* Fumetto AI */}
                         {aiMessage && (
-                            <div className="ai-bubble">
+                            <div className="ai-bubble animate-fade-in">
                                 <span className="text-3xl">🤖</span>
                                 <span>{aiMessage}</span>
                             </div>
