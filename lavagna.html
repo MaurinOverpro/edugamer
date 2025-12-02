@@ -3,22 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lavagna Interattiva - EduGamer</title>
+    <title>Lavagna AI - EduGamer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
-        body { 
-            background-color: #0a0e17; 
-            color: white; 
-            font-family: 'Verdana', sans-serif; 
-            margin: 0; 
-            height: 100dvh; 
-            width: 100vw;
-            overflow: hidden; 
-            touch-action: none; /* Impedisce lo scroll nativo per gestire il canvas */
+        body { background-color: #0a0e17; color: white; font-family: 'Verdana', sans-serif; height: 100dvh; overflow: hidden; }
+        
+        /* --- SCROLL AREA & CANVAS --- */
+        .scroll-container {
+            width: 100%;
+            height: 100%;
+            overflow: auto; /* Abilita lo scroll */
+            position: relative;
+            background-image: radial-gradient(#1e293b 1px, transparent 1px);
+            background-size: 40px 40px; /* Griglia di sfondo per orientarsi */
+            cursor: grab;
+        }
+        .scroll-container:active { cursor: grabbing; }
+
+        .big-canvas {
+            width: 2500px; /* Tela gigante */
+            height: 2500px;
+            position: relative;
         }
 
         /* --- STILI NODI --- */
@@ -28,52 +39,42 @@
             text-align: center; padding: 15px; border-radius: 20px;
             cursor: pointer; z-index: 20;
             transition: transform 0.2s, box-shadow 0.2s;
-            user-select: none;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            user-select: none;
         }
-        .node-base:active { transform: scale(0.95); }
+        .node-base:hover { transform: scale(1.1); z-index: 50; box-shadow: 0 0 25px rgba(74, 222, 128, 0.6); }
         
         .node-central { 
             background: linear-gradient(135deg, #2563eb, #1d4ed8); 
-            border: 4px solid #60a5fa; width: 180px; height: 180px; border-radius: 50%;
-            font-size: 1.2rem; font-weight: bold;
-            box-shadow: 0 0 40px rgba(37, 99, 235, 0.4);
+            border: 4px solid #60a5fa; width: 200px; height: 200px; border-radius: 50%;
+            font-size: 1.3rem; font-weight: bold;
         }
         
         .node-satellite { 
             background: linear-gradient(135deg, #1e293b, #0f172a); 
-            border: 2px solid #94a3b8; width: 160px; min-height: 100px; 
+            border: 2px solid #94a3b8; width: 180px; min-height: 110px; 
             font-size: 1rem;
         }
+        
+        .node-satellite.active { border-color: #facc15; background: #422006; } /* Selezione Gialla */
+        .node-satellite.connected { border-color: #4ade80; background: #064e3b; } /* Collegamento Verde */
 
-        /* Effetto Selezione (Primo tocco) */
-        .node-selected {
-            border-color: #facc15 !important; /* Giallo */
-            box-shadow: 0 0 30px rgba(250, 204, 21, 0.6) !important;
-            animation: pulse-yellow 1s infinite;
-        }
-
-        /* Effetto Collegato (Appena unito) */
-        .node-connected {
-            border-color: #4ade80 !important; /* Verde */
-            box-shadow: 0 0 40px rgba(74, 222, 128, 0.8) !important;
-            transition: all 0.5s;
-        }
-
-        @keyframes pulse-yellow {
-            0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(250, 204, 21, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
-        }
-
-        /* Linea Neon che brilla */
+        /* Linea Neon */
         .neon-line {
-            stroke-dasharray: 1000;
-            stroke-dashoffset: 1000;
-            animation: draw-line 1s forwards;
+            stroke-dasharray: 1000; stroke-dashoffset: 1000;
+            animation: draw 1s forwards;
             filter: drop-shadow(0 0 5px #4ade80);
         }
-        @keyframes draw-line { to { stroke-dashoffset: 0; } }
+        @keyframes draw { to { stroke-dashoffset: 0; } }
+
+        /* Loading Spinner per AI */
+        .ai-thinking {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.95); border: 2px solid #a855f7;
+            padding: 10px 20px; border-radius: 30px; color: #e9d5ff;
+            display: flex; align-items: center; gap: 10px; z-index: 100;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+        }
 
         /* Pulsante Upload Gigante */
         .btn-upload-big {
@@ -83,27 +84,13 @@
             transition: all 0.3s ease;
         }
         .btn-upload-big:active { transform: scale(0.95); }
-
-        /* Scroll Container */
-        .scroll-area {
-            width: 100%; height: 100%; overflow: auto; position: relative;
-            background-image: radial-gradient(#1e293b 1px, transparent 1px);
-            background-size: 30px 30px; /* Griglia per orientarsi */
-        }
-        
-        /* Contenitore Mappa Gigante */
-        .map-canvas {
-            width: 2000px; height: 2000px; /* Area molto grande scrollabile */
-            position: relative;
-        }
-
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useRef, useEffect } = React;
-        const MODEL = "gemini-2.0-flash"; // O 1.5-flash se preferisci
+        const MODEL = "gemini-2.0-flash"; // Veloce per la voce in tempo reale
 
         const DB = {
             getKey: () => localStorage.getItem('gemini_api_key'),
@@ -112,39 +99,53 @@
                 localStorage.setItem('edu_xp', next.toString());
                 return next;
             },
-            save: (data) => localStorage.setItem('lavagna_interactive', JSON.stringify(data)),
-            load: () => JSON.parse(localStorage.getItem('lavagna_interactive') || 'null'),
-            clear: () => localStorage.removeItem('lavagna_interactive')
+            save: (data) => localStorage.setItem('lavagna_data_v4', JSON.stringify(data)),
+            load: () => JSON.parse(localStorage.getItem('lavagna_data_v4') || 'null'),
+            clear: () => localStorage.removeItem('lavagna_data_v4')
         };
 
-        const analyzeImages = async (images) => {
-            const key = DB.getKey();
-            if(!key) throw new Error("Manca API Key! Vai su Home.");
-            
-            const parts = images.map(img => ({ inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] } }));
-            
-            // Prompt Semplificato per concetti chiari
-            const prompt = `Analizza queste pagine per un bambino DSA.
-            1. TEMA PRINCIPALE (Centro).
-            2. 6-8 CONCETTI CHIAVE (Satelliti).
-            3. Per ogni concetto: Titolo breve + Spiegazione chiarissima (max 20 parole).
-            Rispondi SOLO JSON: 
-            { 
-                "theme": "Titolo Tema", 
-                "nodes": [
-                    { "id": 1, "label": "Concetto", "content": "Spiegazione..." }
-                ] 
-            }`;
+        // --- GESTIONE AI ---
+        const AI = {
+            // Analisi Iniziale (Mappa)
+            analyzeMap: async (images) => {
+                const key = DB.getKey();
+                if(!key) throw new Error("Manca API Key! Vai su Home.");
+                const parts = images.map(img => ({ inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] } }));
+                
+                const prompt = `Analizza queste pagine per un bambino DSA.
+                1. TEMA PRINCIPALE.
+                2. 5-7 CONCETTI CHIAVE.
+                3. SPIEGAZIONE BREVE (max 15 parole) per ognuno.
+                Rispondi SOLO JSON: { "theme": "Titolo", "nodes": [{ "id": 1, "label": "Nome", "content": "Spiegazione" }] }`;
 
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, ...parts] }] })
-            });
-            
-            if(!res.ok) throw new Error("Errore AI. Riprova.");
-            const data = await res.json();
-            let text = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
-            return JSON.parse(text);
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, ...parts] }] })
+                });
+                const data = await res.json();
+                let text = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
+                return JSON.parse(text);
+            },
+
+            // Sintesi Vocale del Collegamento
+            synthesizeConnection: async (label1, label2) => {
+                const key = DB.getKey();
+                if(!key) return `Hai collegato ${label1} con ${label2}`;
+
+                const prompt = `Un bambino ha appena collegato il concetto "${label1}" con "${label2}" sulla lavagna.
+                Spiega in UNA frase semplicissima qual è il legame tra i due. Usa un tono incoraggiante.`;
+
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    const data = await res.json();
+                    return data.candidates[0].content.parts[0].text;
+                } catch(e) {
+                    return `Hai collegato ${label1} con ${label2}!`;
+                }
+            }
         };
 
         const App = () => {
@@ -152,250 +153,4 @@
             const [images, setImages] = useState([]);
             const [mapData, setMapData] = useState(null);
             const [nodes, setNodes] = useState([]);
-            const [lines, setLines] = useState([]); // Linee disegnate dall'utente
-            
-            const [selectedNode, setSelectedNode] = useState(null); // Primo nodo toccato
-            const [justConnected, setJustConnected] = useState([]); // Per effetto flash
-
-            const scrollContainerRef = useRef(null);
-
-            // Caricamento
-            useEffect(() => {
-                try {
-                    const saved = DB.load();
-                    if(saved && saved.nodes) { 
-                        setMapData(saved.mapData); 
-                        setNodes(saved.nodes);
-                        setLines(saved.lines || []);
-                        setStage('view'); 
-                    }
-                } catch(e) { DB.clear(); }
-            }, []);
-
-            // Autosave
-            useEffect(() => { if(nodes.length) DB.save({ mapData, nodes, lines }); }, [nodes, lines]);
-
-            // Centra la vista all'avvio della mappa
-            useEffect(() => {
-                if(stage === 'view' && scrollContainerRef.current) {
-                    // Scrolla al centro del canvas (1000, 1000) meno metà schermo
-                    const el = scrollContainerRef.current;
-                    el.scrollTop = (2000 - el.clientHeight) / 2;
-                    el.scrollLeft = (2000 - el.clientWidth) / 2;
-                }
-            }, [stage]);
-
-            const addImage = (e) => {
-                const f = e.target.files[0]; if(!f) return;
-                const r = new FileReader();
-                r.onload = (evt) => setImages(p => [...p, evt.target.result]);
-                r.readAsDataURL(f);
-            };
-
-            const start = async () => {
-                if(!images.length) return;
-                setStage('scanning');
-                try {
-                    const data = await analyzeImages(images);
-                    setMapData(data);
-
-                    // Creazione Coordinate (Spazio Gigante 2000x2000)
-                    const cx = 1000; 
-                    const cy = 1000;
-                    const radius = 350; // Raggio ampio per non sovrapporre
-
-                    const centralNode = { 
-                        id: 0, label: data.theme, content: "Tema Principale", 
-                        x: cx - 90, y: cy - 90, w: 180, h: 180, isCentral: true 
-                    };
-                    
-                    const satNodes = data.nodes.map((n, i) => {
-                        const angle = (i / data.nodes.length) * 2 * Math.PI - Math.PI / 2;
-                        return {
-                            ...n,
-                            x: cx + radius * Math.cos(angle) - 80,
-                            y: cy + radius * Math.sin(angle) - 60,
-                            w: 160, h: 120, isCentral: false
-                        };
-                    });
-
-                    setNodes([centralNode, ...satNodes]);
-                    setLines([]); // Reset linee (deve farle lui!)
-                    DB.addXP(50);
-                    setStage('view');
-                } catch(e) { alert(e.message); setStage('upload'); }
-            };
-
-            const speak = (text) => {
-                window.speechSynthesis.cancel();
-                const u = new SpeechSynthesisUtterance(text);
-                u.lang = 'it-IT'; u.rate = 0.95;
-                window.speechSynthesis.speak(u);
-            };
-
-            // --- LOGICA DI COLLEGAMENTO ---
-            const handleNodeClick = (node) => {
-                // 1. Se non ho selezionato nulla, seleziono questo
-                if (!selectedNode) {
-                    setSelectedNode(node);
-                    speak(node.label); // Legge solo il titolo
-                    return;
-                }
-
-                // 2. Se tocco lo stesso, deseleziono
-                if (selectedNode.id === node.id) {
-                    setSelectedNode(null);
-                    return;
-                }
-
-                // 3. Se tocco un altro nodo -> CREA COLLEGAMENTO!
-                
-                // Controlla se esiste già
-                const exists = lines.some(l => 
-                    (l.from === selectedNode.id && l.to === node.id) || 
-                    (l.from === node.id && l.to === selectedNode.id)
-                );
-
-                if (!exists) {
-                    // Nuova linea
-                    setLines(prev => [...prev, { from: selectedNode.id, to: node.id }]);
-                    
-                    // Effetto visivo "Flash" sui due nodi
-                    setJustConnected([selectedNode.id, node.id]);
-                    setTimeout(() => setJustConnected([]), 1000); // Rimuovi flash dopo 1s
-
-                    // Feedback Vocale Intelligente
-                    const frase = `Hai collegato ${selectedNode.label} con ${node.label}.`;
-                    speak(frase);
-                    
-                    // Feedback Sonoro XP
-                    DB.addXP(10);
-                }
-
-                // Resetta selezione
-                setSelectedNode(null);
-            };
-
-            const reset = () => {
-                if(confirm("Vuoi creare una nuova mappa?")) {
-                    DB.clear(); setImages([]); setMapData(null); setStage('upload');
-                }
-            };
-
-            // Calcolo centro di un nodo per le linee
-            const getCenter = (n) => ({ x: n.x + n.w/2, y: n.y + n.h/2 });
-
-            const renderMap = () => {
-                return (
-                    <div className="scroll-area" ref={scrollContainerRef}>
-                        <div className="map-canvas">
-                            
-                            {/* SVG per le linee */}
-                            <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
-                                {lines.map((line, i) => {
-                                    const n1 = nodes.find(n => n.id === line.from);
-                                    const n2 = nodes.find(n => n.id === line.to);
-                                    if(!n1 || !n2) return null;
-                                    
-                                    const c1 = getCenter(n1);
-                                    const c2 = getCenter(n2);
-                                    
-                                    return (
-                                        <line 
-                                            key={i} 
-                                            x1={c1.x} y1={c1.y} x2={c2.x} y2={c2.y} 
-                                            stroke="#4ade80" strokeWidth="4" strokeLinecap="round"
-                                            className="neon-line"
-                                        />
-                                    );
-                                })}
-                                
-                                {/* Linea temporanea mentre trascini (opzionale, qui usiamo click-click) */}
-                                {selectedNode && (
-                                    // Qui potremmo disegnare una linea che segue il mouse, ma su tablet è meglio il click-click
-                                    null 
-                                )}
-                            </svg>
-
-                            {/* Nodi */}
-                            {nodes.map(node => {
-                                const isSel = selectedNode?.id === node.id;
-                                const isConn = justConnected.includes(node.id);
-                                
-                                return (
-                                    <div 
-                                        key={node.id} 
-                                        className={`node-base 
-                                            ${node.isCentral ? 'node-central' : 'node-satellite'}
-                                            ${isSel ? 'node-selected' : ''}
-                                            ${isConn ? 'node-connected' : ''}
-                                        `}
-                                        style={{ left: node.x, top: node.y, width: node.w, height: node.h }}
-                                        onClick={(e) => { e.stopPropagation(); handleNodeClick(node); }}
-                                    >
-                                        <div className="font-bold mb-1 leading-tight text-yellow-300 text-shadow">
-                                            {node.label}
-                                        </div>
-                                        {!node.isCentral && (
-                                            <div className="text-xs text-gray-300 line-clamp-3 leading-snug">
-                                                {node.content}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-
-                        </div>
-                    </div>
-                );
-            };
-
-            if(stage === 'upload') return (
-                <div className="h-full flex flex-col items-center justify-center p-6 gap-6">
-                    <h1 className="text-3xl font-bold text-green-400">LAVAGNA INTERATTIVA</h1>
-                    <div className="border-2 border-dashed border-slate-600 p-8 rounded-3xl flex flex-col items-center gap-4 bg-slate-800/50 w-full max-w-2xl">
-                        <div className="flex gap-2 overflow-auto max-w-full p-2 min-h-[80px]">
-                            {images.length === 0 ? <span className="text-slate-500 m-auto">Nessuna foto caricata</span> : 
-                            images.map((src,i)=><img key={i} src={src} className="h-20 rounded border-2 border-slate-500"/>)}
-                        </div>
-                        <label className="btn-upload-big w-full py-6 rounded-2xl font-bold text-xl cursor-pointer text-white flex items-center justify-center gap-3 bg-blue-600 shadow-lg">
-                            <input type="file" onChange={addImage} className="hidden" accept="image/*" /> 
-                            📷 FAI UNA FOTO
-                        </label>
-                        {images.length > 0 && <button onClick={start} className="w-full bg-green-600 hover:bg-green-500 py-4 rounded-xl font-bold text-white text-lg animate-pulse shadow-lg">🚀 CREA MAPPA ORA</button>}
-                    </div>
-                    <a href="index.html" className="text-slate-400 bg-slate-800 px-4 py-2 rounded-lg">🏠 Torna al Menu</a>
-                </div>
-            );
-
-            if(stage === 'scanning') return <div className="h-full flex items-center justify-center text-2xl font-bold text-green-400 animate-pulse">🤖 PREPARO I CONCETTI...</div>;
-
-            return (
-                <div className="h-full flex flex-col bg-slate-900 overflow-hidden">
-                    {/* Toolbar Semplificata */}
-                    <div className="p-3 flex gap-2 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg">
-                        <a href="index.html" className="bg-slate-700 px-3 py-2 rounded text-white font-bold shrink-0">🏠</a>
-                        
-                        <div className="text-yellow-400 font-bold text-sm ml-2 hidden sm:block animate-bounce">
-                           👆 Tocca due concetti per unirli!
-                        </div>
-
-                        <div className="flex-1"></div>
-                        
-                        <button onClick={reset} className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-xl text-white font-bold shrink-0 flex items-center gap-1 shadow-lg">
-                            🔄 NUOVA LEZIONE
-                        </button>
-                    </div>
-
-                    {/* Area Mappa Scrollabile */}
-                    <div className="flex-1 relative bg-slate-900 overflow-hidden">
-                        {renderMap()}
-                    </div>
-                </div>
-            );
-        };
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+            const [lines, setLines] = useState([]); // Linee fatte dall'utente
