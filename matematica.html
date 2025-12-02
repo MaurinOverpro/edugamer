@@ -10,25 +10,23 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
+    <!-- FONT OPENDYSLEXIC -->
     <link href="https://fonts.cdnfonts.com/css/opendyslexic" rel="stylesheet">
 
     <style>
-        * { letter-spacing: 0.02em; }
-
-        html, body, #root {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
+        * {
+            letter-spacing: 0.02em;
         }
 
         body { 
             background-color: #0a0e17; 
             color: white; 
-            font-family: 'OpenDyslexic', Verdana, sans-serif;
+            font-family: 'OpenDyslexic', Verdana, sans-serif; 
+            height: 100dvh; 
+            overflow: hidden; 
         }
         
-        /* BLOCCHI VISIVI */
+        /* STILI BLOCCHI VISIVI */
         .holo-container {
             display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px;
             align-items: center; padding: 8px; background: rgba(0, 0, 0, 0.2);
@@ -45,67 +43,97 @@
         .hundred-block { display: grid; grid-template-columns: repeat(10, 1fr); width: 70px; border: 2px solid #a855f7; border-radius: 2px; flex-shrink: 0; background: #581c87; }
         .hundred-segment { width: 100%; height: 7px; border: 0.5px solid rgba(168, 85, 247, 0.3); }
 
+        /* Gruppi */
         .group-section { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; padding-right: 6px; border-right: 1px solid #334155; margin-right: 4px; }
         .group-section:last-child { border-right: none; }
 
+        /* Animazioni */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
 
-        /* TASTIERA COMPATTA */
+        /* TASTIERA CALCOLATRICE */
         .btn-calc { 
-            font-size: 1.2rem; 
+            font-size: 1.4rem; 
             font-weight: bold; 
-            border-radius: 10px; 
+            border-radius: 12px; 
             transition: 0.1s; 
-            box-shadow: 0 2px 0 #1e293b; 
-            height: 42px;
+            box-shadow: 0 3px 0 #1e293b; 
+            height: 55px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
         .btn-calc:active { 
-            transform: translateY(2px); 
+            transform: translateY(3px); 
             box-shadow: none; 
         }
 
         /* Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         
-        .prose h1, .prose h2 { color: #facc15; font-weight: bold; margin-top: 10px; font-size: 1.1rem; }
+        .prose h1, .prose h2 { color: #facc15; font-weight: bold; margin-top: 10px; }
         .prose strong { color: #4ade80; font-weight: bold; }
         .prose p { margin-bottom: 8px; line-height: 1.6; color: #e2e8f0; }
 
-        /* AREA SCROLLABILE */
-        .scroll-area {
+        /* AREA RISULTATO SCROLLABILE */
+        .visual-area {
             flex: 1;
             overflow-y: auto;
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
+            padding: 16px;
+            padding-bottom: 80px;
         }
 
-        /* SHARE BUTTONS */
-        .share-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            padding: 10px 14px;
+        /* GRUPPO DIVISIONE */
+        .division-group {
+            background: #1e293b;
+            padding: 8px;
             border-radius: 12px;
-            font-weight: bold;
-            font-size: 0.9rem;
-            transition: all 0.2s;
+            border: 2px solid #3b82f6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 70px;
         }
-        .share-btn:active { transform: scale(0.95); }
+        .division-group .blocks-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            justify-content: center;
+            max-width: 90px;
+            min-height: 20px;
+        }
+        .division-group .block-unit {
+            width: 12px;
+            height: 12px;
+            background: #3b82f6;
+            border-radius: 2px;
+            border: 1px solid #1e40af;
+        }
+        .division-group .group-label {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+        .division-group .group-count {
+            font-size: 12px;
+            color: #60a5fa;
+            font-weight: bold;
+            margin-top: 4px;
+            background: #0f172a;
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-        const MODEL = "gemini-2.0-flash"; 
+        const { useState, useEffect } = React;
+        const MODEL = "gemini-2.5-flash"; 
 
         const DB = {
             getKey: () => localStorage.getItem('gemini_api_key'),
@@ -142,7 +170,7 @@
             return data.candidates[0].content.parts[0].text;
         };
 
-        // PULIZIA TESTO PER SINTESI VOCALE
+        // PULIZIA TESTO PER SINTESI VOCALE (rimuove emoji)
         const cleanTextForSpeech = (text) => {
             return text
                 .replace(/[*#_`~]/g, '')
@@ -165,16 +193,6 @@
                 .trim();
         };
 
-        // PULIZIA PER CONDIVISIONE (rimuove markdown ma mantiene struttura)
-        const cleanTextForShare = (text) => {
-            return text
-                .replace(/#{1,3}\s*/g, '')
-                .replace(/\*\*/g, '')
-                .replace(/\*/g, '')
-                .replace(/_/g, '')
-                .trim();
-        };
-
         const Base10Renderer = ({ num, label }) => {
             if (!num || isNaN(num)) return null;
             const n = Math.min(Math.floor(Math.abs(Number(num))), 999);
@@ -188,10 +206,10 @@
                 <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700 w-full animate-fade-in mb-3">
                     <div className="flex justify-between items-center mb-2">
                         {label && <div className="text-sm text-slate-300 font-bold uppercase">{label}: <span className="text-white text-lg">{n}</span></div>}
-                        <div className="flex gap-2 text-[9px] uppercase tracking-wider text-slate-500">
-                            <div className="flex items-center gap-1"><div className="w-2 h-2 border border-[#a855f7] bg-[#581c87]"></div>100</div>
-                            <div className="flex items-center gap-1"><div className="w-2 h-2 bg-[#3b82f6]"></div>10</div>
-                            <div className="flex items-center gap-1"><div className="w-2 h-2 bg-[#4ade80]"></div>1</div>
+                        <div className="flex gap-3 text-[10px] uppercase tracking-wider text-slate-500">
+                            <div className="flex items-center gap-1"><div className="w-3 h-3 border border-[#a855f7] bg-[#581c87]"></div>100</div>
+                            <div className="flex items-center gap-1"><div className="w-3 h-3 bg-[#3b82f6]"></div>10</div>
+                            <div className="flex items-center gap-1"><div className="w-3 h-3 bg-[#4ade80]"></div>1</div>
                         </div>
                     </div>
                     <div className="holo-container">
@@ -223,6 +241,42 @@
                 window.speechSynthesis.speak(u);
             };
 
+            // === FUNZIONI CONDIVISIONE ===
+            const getShareText = () => {
+                if (!solution) return '';
+                let content = `PROBLEMA RISOLTO - EduGamer\n${'='.repeat(30)}\n\n`;
+                content += cleanTextForSpeech(solution);
+                content += `\n\n${'='.repeat(30)}\nRisolto con EduGamer`;
+                return content;
+            };
+
+            const shareViaWhatsApp = () => {
+                const msg = encodeURIComponent(getShareText());
+                window.open(`https://wa.me/?text=${msg}`, '_blank');
+                setShowShareMenu(false);
+            };
+
+            const shareViaEmail = () => {
+                const subject = encodeURIComponent('Problema risolto - EduGamer');
+                const body = encodeURIComponent(getShareText());
+                window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+                setShowShareMenu(false);
+            };
+
+            const saveAsFile = () => {
+                const content = getShareText();
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `problema_${new Date().toISOString().slice(0,10)}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                setShowShareMenu(false);
+            };
+
             const handleBtn = (v) => {
                 if(v === 'C') setDisplay('');
                 else if(v === '⌫') setDisplay(p => p.slice(0, -1));
@@ -252,52 +306,17 @@
                     const text = await solveProblem(solverImg);
                     setSolution(text);
                     DB.addXP(50);
-                    speak("Ho trovato la soluzione.");
+                    speak("Ho trovato la soluzione. Tocca il pulsante leggi per ascoltarla.");
                 } catch(e) { alert("Errore: " + e.message); }
                 setLoading(false);
             };
 
-            // === FUNZIONI CONDIVISIONE ===
-            const shareViaWhatsApp = () => {
-                if(!solution) return;
-                const text = cleanTextForShare(solution);
-                const msg = encodeURIComponent(`📚 PROBLEMA RISOLTO\n\n${text}\n\n✅ Risolto con EduGamer`);
-                window.open(`https://wa.me/?text=${msg}`, '_blank');
-                setShowShareMenu(false);
-            };
-
-            const shareViaEmail = () => {
-                if(!solution) return;
-                const text = cleanTextForShare(solution);
-                const subject = encodeURIComponent('Problema di matematica risolto - EduGamer');
-                const body = encodeURIComponent(`Ciao!\n\nEcco il problema che ho risolto:\n\n${text}\n\n---\nRisolto con EduGamer 📚`);
-                window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
-                setShowShareMenu(false);
-            };
-
-            const saveAsFile = () => {
-                if(!solution) return;
-                const text = cleanTextForShare(solution);
-                const content = `PROBLEMA RISOLTO - EduGamer\n${'='.repeat(40)}\n\n${text}\n\n${'='.repeat(40)}\nData: ${new Date().toLocaleDateString('it-IT')}`;
-                
-                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `problema_${new Date().toISOString().slice(0,10)}.txt`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                setShowShareMenu(false);
-            };
-
             const renderCalcVisuals = () => {
                 if (!display) return (
-                    <div className="flex flex-col items-center justify-center h-full opacity-40 py-8">
-                        <div className="text-5xl mb-3">🔢</div>
-                        <p className="text-base">Scrivi un numero o un'operazione</p>
-                        <p className="text-xs text-slate-500 mt-1">Es: 25 + 13</p>
+                    <div className="flex flex-col items-center justify-center h-full opacity-40">
+                        <div className="text-6xl mb-4">🔢</div>
+                        <p className="text-lg">Scrivi un numero o un'operazione...</p>
+                        <p className="text-sm text-slate-500 mt-2">Es: 25 + 13</p>
                     </div>
                 );
                 
@@ -315,39 +334,83 @@
                     const res = Math.round(resVal * 100) / 100;
 
                     if (op === '/') {
+                        const divisor = Math.floor(b);
                         const floorQuotient = Math.floor(a / b);
                         const rem = Math.round((a % b) * 100) / 100;
                         
+                        // Limite gruppi visibili (max 15 gruppi)
+                        const maxGroupsToShow = Math.min(floorQuotient, 15);
+                        const hasMoreGroups = floorQuotient > 15;
+                        
+                        // Limite blocchi per gruppo (max 15 blocchi, poi solo numero)
+                        const maxBlocksToShow = Math.min(divisor, 15);
+                        const showBlocksVisually = divisor <= 15;
+                        
                         return (
-                            <div className="flex flex-col gap-3 w-full pb-8">
-                                <Base10Renderer num={a} label="Totale" />
-                                <div className="text-center text-yellow-400 font-bold py-2 bg-slate-800/50 rounded-xl">
-                                    ⬇️ DIVIDO PER {b} ⬇️
+                            <div className="flex flex-col gap-3 w-full">
+                                <Base10Renderer num={a} label="Totale da dividere" />
+                                
+                                <div className="text-center text-yellow-400 font-bold text-lg py-2 bg-slate-800/50 rounded-xl">
+                                    ⬇️ DIVIDO IN GRUPPI DA {divisor} ⬇️
                                 </div>
-                                <div className="flex flex-wrap gap-2 justify-center p-3 bg-slate-800/30 rounded-xl">
-                                    {[...Array(Math.min(floorQuotient, 12))].map((_, i) => (
-                                        <div key={i} className="bg-slate-800 p-2 rounded-lg border-2 border-blue-500 flex flex-col items-center">
-                                            <span className="text-[10px] text-slate-400 mb-1">Gr.{i+1}</span>
-                                            <div className="flex flex-wrap gap-1 justify-center" style={{maxWidth:'50px'}}>
-                                                {[...Array(Math.min(Math.floor(b), 10))].map((_,j)=><div key={j} className="w-2 h-2 bg-blue-500 rounded-sm"></div>)}
-                                            </div>
+                                
+                                {/* GRUPPI DIVISIONE */}
+                                <div className="flex flex-wrap gap-3 justify-center p-4 bg-slate-800/30 rounded-xl">
+                                    {[...Array(maxGroupsToShow)].map((_, i) => (
+                                        <div key={i} className="division-group">
+                                            <span className="group-label">Gruppo {i+1}</span>
+                                            
+                                            {showBlocksVisually ? (
+                                                /* Mostra blocchi esatti */
+                                                <div className="blocks-container">
+                                                    {[...Array(divisor)].map((_,j) => (
+                                                        <div key={j} className="block-unit"></div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                /* Troppi blocchi: mostra simbolico */
+                                                <div className="blocks-container">
+                                                    {[...Array(6)].map((_,j) => (
+                                                        <div key={j} className="block-unit"></div>
+                                                    ))}
+                                                    <span className="text-slate-400 text-xs">...</span>
+                                                </div>
+                                            )}
+                                            
+                                            <span className="group-count">= {divisor}</span>
                                         </div>
                                     ))}
+                                    
+                                    {hasMoreGroups && (
+                                        <div className="division-group border-dashed border-slate-500">
+                                            <span className="text-slate-400 text-2xl">...</span>
+                                            <span className="group-count text-slate-400">+{floorQuotient - 15} altri</span>
+                                        </div>
+                                    )}
                                 </div>
+                                
+                                {/* RESTO */}
                                 {rem > 0 && (
                                     <div className="bg-slate-800 p-3 rounded-xl border-2 border-yellow-500 self-center">
-                                        <div className="text-sm text-yellow-500 font-bold text-center mb-1">RESTO ({rem})</div>
-                                        <div className="flex gap-1 justify-center">
-                                            {[...Array(Math.floor(rem))].map((_,i)=><div key={i} className="w-3 h-3 bg-yellow-500 rounded-sm"></div>)}
+                                        <div className="text-sm text-yellow-500 font-bold text-center mb-2">⚠️ RESTO</div>
+                                        <div className="flex gap-1 justify-center flex-wrap" style={{maxWidth: '120px'}}>
+                                            {[...Array(Math.min(Math.floor(rem), 15))].map((_,i) => (
+                                                <div key={i} className="w-4 h-4 bg-yellow-500 rounded-sm border border-yellow-600"></div>
+                                            ))}
                                         </div>
+                                        <div className="text-center text-yellow-400 font-bold mt-2 text-lg">= {rem}</div>
                                     </div>
                                 )}
-                                <div className="bg-slate-800 p-3 rounded-xl border-2 border-green-500 text-center">
-                                    <div className="text-lg font-bold text-white">
-                                        Risultato: {floorQuotient} <span className="text-sm font-normal text-slate-400">resto {rem}</span>
+                                
+                                {/* RISULTATO FINALE */}
+                                <div className="mt-3 bg-slate-800 p-4 rounded-xl border-2 border-green-500 text-center">
+                                    <div className="text-sm text-slate-400 mb-1">Ho fatto</div>
+                                    <div className="text-2xl font-bold text-green-400">
+                                        {floorQuotient} gruppi
+                                        {rem > 0 && <span className="text-yellow-400 text-lg ml-2">+ resto {rem}</span>}
                                     </div>
-                                    <div className="text-base text-cyan-400 font-mono border-t border-slate-700 pt-1 mt-1">
-                                        Esatto: {res}
+                                    <div className="text-lg text-cyan-400 font-mono border-t border-slate-700 pt-2 mt-2">
+                                        {a} ÷ {divisor} = {res}
                                     </div>
                                 </div>
                             </div>
@@ -355,15 +418,15 @@
                     }
                     
                     return (
-                        <div className="flex flex-col w-full animate-fade-in gap-2 pb-8">
-                            <Base10Renderer num={a} label="Primo" />
-                            <div className="text-2xl font-bold text-center text-yellow-400 py-1">{op}</div>
-                            <Base10Renderer num={b} label="Secondo" />
-                            <div className="text-2xl font-bold text-center text-white py-1">=</div>
-                            <div className="text-center text-3xl font-bold text-green-400 p-3 bg-slate-800 rounded-xl border-2 border-green-500">
+                        <div className="flex flex-col w-full animate-fade-in gap-2">
+                            <Base10Renderer num={a} label="Primo numero" />
+                            <div className="text-3xl font-bold text-center text-yellow-400 py-2">{op}</div>
+                            <Base10Renderer num={b} label="Secondo numero" />
+                            <div className="text-3xl font-bold text-center text-white py-2">=</div>
+                            <div className="text-center text-4xl font-bold text-green-400 p-4 bg-slate-800 rounded-xl border-2 border-green-500">
                                 {res}
                             </div>
-                            {res > 0 && res < 500 && <Base10Renderer num={res} label="Risultato" />}
+                            {res > 0 && res < 1000 && <Base10Renderer num={res} label="Risultato" />}
                         </div>
                     );
                 }
@@ -373,186 +436,227 @@
                 return null;
             };
 
-            // TASTIERA COMPATTA: 123 in alto, 789 in basso
+            // TASTIERA RIORGANIZZATA: Numeri a sinistra, comandi a destra
             const renderKeyboard = () => {
+                const numbers = [
+                    ['7', '8', '9'],
+                    ['4', '5', '6'],
+                    ['1', '2', '3'],
+                    ['0', '.', '=']
+                ];
+                
+                const operators = [
+                    { label: '÷', value: '/' },
+                    { label: '×', value: '*' },
+                    { label: '−', value: '-' },
+                    { label: '+', value: '+' }
+                ];
+                
                 return (
-                    <div className="flex gap-2 p-2 bg-slate-900 border-b border-slate-700 shrink-0">
+                    <div className="flex gap-2 p-3 bg-slate-900 border-b border-slate-700">
                         {/* DISPLAY */}
-                        <div className="bg-slate-950 px-3 rounded-xl text-right text-2xl font-mono text-yellow-400 border-2 border-slate-600 h-12 flex items-center justify-end overflow-hidden min-w-[120px]">
+                        <div className="bg-slate-950 px-4 rounded-xl text-right text-3xl font-mono text-yellow-400 border-2 border-slate-600 h-16 flex items-center justify-end overflow-hidden min-w-[180px] flex-shrink-0">
                             {display || '0'}
                         </div>
 
-                        {/* NUMERI: 123 in alto, 789 in basso */}
-                        <div className="grid grid-cols-3 gap-1 flex-1">
-                            {['1','2','3','4','5','6','7','8','9','.','0','='].map(b => (
+                        {/* NUMERI (griglia 4x3) */}
+                        <div className="grid grid-cols-3 gap-2 flex-1">
+                            {numbers.flat().map(b => (
                                 <button 
                                     key={b} 
                                     onClick={() => handleBtn(b)} 
-                                    className={`btn-calc ${b === '=' ? 'bg-green-600 text-white' : 'bg-slate-800 text-white'}`}
+                                    className={`btn-calc ${b === '=' ? 'bg-green-600 text-white' : 'bg-slate-800 text-white hover:bg-slate-700'}`}
                                 >
                                     {b}
                                 </button>
                             ))}
                         </div>
 
-                        {/* OPERATORI */}
-                        <div className="grid grid-cols-1 gap-1 w-12">
-                            {[{l:'÷',v:'/'},{l:'×',v:'*'},{l:'−',v:'-'},{l:'+',v:'+'}].map(op => (
-                                <button key={op.v} onClick={() => handleBtn(op.v)} className="btn-calc bg-blue-600 text-white">{op.l}</button>
+                        {/* OPERATORI (colonna) */}
+                        <div className="grid grid-cols-1 gap-2 w-16">
+                            {operators.map(op => (
+                                <button 
+                                    key={op.value} 
+                                    onClick={() => handleBtn(op.value)} 
+                                    className="btn-calc bg-blue-600 text-white hover:bg-blue-500"
+                                >
+                                    {op.label}
+                                </button>
                             ))}
                         </div>
 
-                        {/* COMANDI */}
-                        <div className="grid grid-cols-1 gap-1 w-12">
-                            <button onClick={() => handleBtn('⌫')} className="btn-calc bg-orange-600 text-white text-base">⌫</button>
-                            <button onClick={() => handleBtn('C')} className="btn-calc bg-red-600 text-white row-span-3 h-full">C</button>
-                        </div>
-                    </div>
-                );
-            };
-
-            // MENU CONDIVISIONE
-            const renderShareMenu = () => {
-                if(!showShareMenu) return null;
-                
-                return (
-                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setShowShareMenu(false)}>
-                        <div className="bg-slate-800 rounded-2xl p-4 w-full max-w-sm border-2 border-slate-600" onClick={e => e.stopPropagation()}>
-                            <h3 className="text-xl font-bold text-center text-white mb-4">📤 Condividi Soluzione</h3>
-                            
-                            <div className="flex flex-col gap-3">
-                                <button onClick={shareViaWhatsApp} className="share-btn bg-green-600 text-white">
-                                    <span className="text-xl">💬</span> WhatsApp
-                                </button>
-                                
-                                <button onClick={shareViaEmail} className="share-btn bg-blue-600 text-white">
-                                    <span className="text-xl">📧</span> Email
-                                </button>
-                                
-                                <button onClick={saveAsFile} className="share-btn bg-purple-600 text-white">
-                                    <span className="text-xl">💾</span> Salva File
-                                </button>
-                                
-                                <button onClick={() => setShowShareMenu(false)} className="share-btn bg-slate-600 text-white mt-2">
-                                    ✕ Chiudi
-                                </button>
-                            </div>
+                        {/* COMANDI (colonna) */}
+                        <div className="grid grid-cols-1 gap-2 w-16">
+                            <button onClick={() => handleBtn('⌫')} className="btn-calc bg-orange-600 text-white hover:bg-orange-500">⌫</button>
+                            <button onClick={() => handleBtn('C')} className="btn-calc bg-red-600 text-white hover:bg-red-500 row-span-3 h-full">C</button>
                         </div>
                     </div>
                 );
             };
 
             return (
-                <div className="h-full flex flex-col p-2 gap-2 bg-slate-900">
+                <div className="h-full flex flex-col p-3 gap-3 bg-slate-900">
                     {/* Header Navigation */}
-                    <div className="flex gap-2 shrink-0 h-11">
-                        <a href="index.html" className="bg-slate-700 text-white px-3 rounded-xl font-bold flex items-center justify-center text-lg active:scale-95">🏠</a>
-                        <button onClick={()=>setMode('calc')} className={`flex-1 rounded-xl font-bold active:scale-95 ${mode==='calc'?'bg-blue-600 text-white':'bg-slate-800 text-slate-400'}`}>CALCOLA</button>
-                        <button onClick={()=>setMode('matrix')} className={`flex-1 rounded-xl font-bold active:scale-95 ${mode==='matrix'?'bg-yellow-600 text-white':'bg-slate-800 text-slate-400'}`}>TABELLINE</button>
-                        <button onClick={()=>setMode('solver')} className={`flex-1 rounded-xl font-bold active:scale-95 ${mode==='solver'?'bg-green-600 text-white':'bg-slate-800 text-slate-400'}`}>RISOLVI</button>
+                    <div className="flex gap-2 shrink-0 h-12">
+                        <a href="index.html" className="bg-slate-700 hover:bg-slate-600 text-white px-4 rounded-xl font-bold flex items-center justify-center text-xl active:scale-95">🏠</a>
+                        <button onClick={()=>setMode('calc')} className={`flex-1 rounded-xl font-bold text-lg active:scale-95 ${mode==='calc'?'bg-blue-600 text-white':'bg-slate-800 text-slate-400'}`}>CALCOLA</button>
+                        <button onClick={()=>setMode('matrix')} className={`flex-1 rounded-xl font-bold text-lg active:scale-95 ${mode==='matrix'?'bg-yellow-600 text-white':'bg-slate-800 text-slate-400'}`}>TABELLINE</button>
+                        <button onClick={()=>setMode('solver')} className={`flex-1 rounded-xl font-bold text-lg active:scale-95 ${mode==='solver'?'bg-green-600 text-white':'bg-slate-800 text-slate-400'}`}>RISOLVI</button>
                     </div>
 
-                    <div className="flex-1 bg-slate-950 rounded-2xl border-2 border-slate-700 overflow-hidden flex flex-col">
+                    <div className="flex-1 bg-slate-950 rounded-2xl border-2 border-slate-700 overflow-hidden relative flex flex-col">
                         
                         {mode === 'calc' && (
                             <>
+                                {/* TASTIERA RIORGANIZZATA */}
                                 {renderKeyboard()}
-                                <div className="scroll-area p-3 bg-slate-900">
+
+                                {/* AREA VISUALE SCROLLABILE */}
+                                <div className="visual-area bg-slate-900">
                                     {renderCalcVisuals()}
                                 </div>
                             </>
                         )}
 
                         {mode === 'matrix' && (
-                            <div className="scroll-area p-2">
-                                <div className="grid grid-cols-11 gap-1 min-h-full">
-                                    {[...Array(11)].map((_,r)=>[...Array(11)].map((_,c)=>(
-                                        <div key={`${r}-${c}`} 
-                                            onClick={() => { if(r>0 && c>0) { setHighlight({r,c}); speak(`${r} per ${c} fa ${r*c}`); }}}
-                                            className={`flex items-center justify-center rounded cursor-pointer text-base h-9 active:scale-95
-                                                ${r===0||c===0 ? 'bg-slate-900 text-yellow-400 font-bold' : 
-                                                  (highlight.r===r && highlight.c===c) ? 'bg-green-500 text-black scale-110 z-10 font-bold border-2 border-white' : 
-                                                  ((highlight.r===r && c>0) || (highlight.c===c && r>0)) ? 'bg-slate-700 text-green-300' : 'bg-slate-800 text-slate-400'}
-                                            `}
-                                        >
-                                            {r===0&&c===0?'×':r===0?c:c===0?r:r*c}
-                                        </div>
-                                    )))}
-                                </div>
+                            <div className="grid grid-cols-11 gap-1 h-full w-full overflow-auto p-2">
+                                {[...Array(11)].map((_,r)=>[...Array(11)].map((_,c)=>(
+                                    <div key={`${r}-${c}`} 
+                                        onClick={() => { if(r>0 && c>0) { setHighlight({r,c}); speak(`${r} per ${c} fa ${r*c}`); }}}
+                                        className={`flex items-center justify-center rounded cursor-pointer text-lg h-10 active:scale-95
+                                            ${r===0||c===0 ? 'bg-slate-900 text-yellow-400 font-bold' : 
+                                              (highlight.r===r && highlight.c===c) ? 'bg-green-500 text-black scale-110 z-10 font-bold border-2 border-white' : 
+                                              ((highlight.r===r && c>0) || (highlight.c===c && r>0)) ? 'bg-slate-700 text-green-300' : 'bg-slate-800 text-slate-400'}
+                                        `}
+                                    >
+                                        {r===0&&c===0?'×':r===0?c:c===0?r:r*c}
+                                    </div>
+                                )))}
                             </div>
                         )}
 
                         {mode === 'solver' && (
-                            <div className="scroll-area p-3">
+                            <div className="h-full flex flex-col p-4 overflow-y-auto">
                                 {!solverImg ? (
-                                    <div className="flex flex-col items-center justify-center min-h-[300px] gap-4 text-center">
-                                        <div className="text-5xl animate-bounce">📐</div>
-                                        <h2 className="text-xl font-bold text-white">FOTO AL PROBLEMA</h2>
-                                        <p className="text-slate-400 text-sm">Scatta una foto al problema di matematica</p>
-                                        <label className="bg-blue-600 text-white font-bold py-3 px-6 rounded-xl cursor-pointer shadow-lg flex items-center gap-2 active:scale-95">
+                                    <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
+                                        <div className="text-6xl animate-bounce">📐</div>
+                                        <h2 className="text-2xl font-bold text-white">FOTO AL PROBLEMA</h2>
+                                        <p className="text-slate-400">Scatta una foto al problema di matematica</p>
+                                        <label className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-8 rounded-xl cursor-pointer shadow-lg flex items-center gap-2 border-b-4 border-blue-800 active:border-b-0 active:translate-y-1">
                                             <input type="file" onChange={handleUpload} className="hidden" accept="image/*" />
                                             📷 SCATTA FOTO
                                         </label>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col gap-3">
-                                        {/* CONTROLLI */}
-                                        <div className="flex gap-2 items-center bg-slate-800 p-2 rounded-xl border border-slate-600 shrink-0">
-                                            <img src={solverImg} className="h-14 w-14 rounded-lg object-cover border-2 border-slate-500" />
-                                            <button onClick={runSolver} disabled={loading} className="flex-1 bg-green-600 text-white font-bold py-2 rounded-xl active:scale-95">
-                                                {loading ? '⏳ Leggo...' : '🚀 RISOLVI'}
+                                    <div className="flex flex-col gap-4 h-full">
+                                        <div className="flex gap-3 items-center bg-slate-800 p-3 rounded-xl border border-slate-600 shrink-0">
+                                            <img src={solverImg} className="h-20 w-20 rounded-lg object-cover border-2 border-slate-500" />
+                                            <button onClick={runSolver} disabled={loading} className="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-xl text-lg active:scale-95">
+                                                {loading ? '⏳ Sto leggendo...' : '🚀 RISOLVI'}
                                             </button>
-                                            <button onClick={()=>{setSolverImg(null); setSolution(null);}} className="bg-red-600 text-white px-3 py-2 rounded-xl font-bold active:scale-95">🗑️</button>
+                                            <button onClick={()=>{setSolverImg(null); setSolution(null);}} className="bg-red-600 hover:bg-red-500 text-white px-4 py-3 rounded-xl font-bold active:scale-95">🗑️</button>
                                         </div>
                                         
-                                        {/* SOLUZIONE */}
-                                        {solution && (
-                                            <div className="bg-slate-800/50 rounded-xl border border-slate-600 p-3">
-                                                {/* PULSANTI AZIONE */}
-                                                <div className="flex gap-2 mb-3 flex-wrap">
-                                                    <button onClick={() => speak(solution)} className="share-btn bg-purple-600 text-white text-sm py-2 px-3">
-                                                        🔊 Leggi
-                                                    </button>
-                                                    <button onClick={() => window.speechSynthesis.cancel()} className="share-btn bg-red-600 text-white text-sm py-2 px-3">
-                                                        ⏹️ Stop
-                                                    </button>
-                                                    <button onClick={() => setShowShareMenu(true)} className="share-btn bg-green-600 text-white text-sm py-2 px-3">
-                                                        📤 Condividi
-                                                    </button>
-                                                </div>
-                                                
-                                                <div className="prose prose-invert text-sm" dangerouslySetInnerHTML={{__html: marked.parse(solution)}}></div>
+                                        <div className="flex-1 flex flex-col md:flex-row gap-4 overflow-hidden">
+                                            {/* SOLUZIONE */}
+                                            <div className="flex-1 bg-slate-800/50 rounded-xl border border-slate-600 p-4 overflow-y-auto relative">
+                                                {solution ? (
+                                                    <div>
+                                                        <div className="flex gap-2 float-right mb-2">
+                                                            <button 
+                                                                onClick={() => window.speechSynthesis.cancel()} 
+                                                                className="bg-red-600 hover:bg-red-500 p-3 rounded-xl text-sm font-bold text-white active:scale-95"
+                                                            >
+                                                                ⏹️
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => speak(solution)} 
+                                                                className="bg-purple-600 hover:bg-purple-500 p-3 rounded-xl text-sm font-bold text-white flex items-center gap-2 active:scale-95"
+                                                            >
+                                                                🔊 LEGGI
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => setShowShareMenu(true)} 
+                                                                className="bg-green-600 hover:bg-green-500 p-3 rounded-xl text-sm font-bold text-white flex items-center gap-2 active:scale-95"
+                                                            >
+                                                                📤 CONDIVIDI
+                                                            </button>
+                                                        </div>
+                                                        <div className="prose prose-invert text-base clear-both" dangerouslySetInnerHTML={{__html: marked.parse(solution)}}></div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                                                        <div className="text-4xl mb-4">✨</div>
+                                                        <p>Premi RISOLVI per vedere la soluzione spiegata</p>
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                        
-                                        {!solution && !loading && (
-                                            <div className="flex flex-col items-center justify-center py-8 text-slate-500">
-                                                <div className="text-4xl mb-3">✨</div>
-                                                <p>Premi RISOLVI per vedere la soluzione</p>
-                                            </div>
-                                        )}
 
-                                        {/* VISUALIZZATORE NUMERI */}
-                                        <div className="bg-slate-900 rounded-xl border-2 border-dashed border-slate-600 p-3">
-                                            <div className="text-center text-yellow-400 font-bold mb-2 text-sm">👀 VISUALIZZA NUMERO</div>
-                                            <div className="text-xs text-slate-400 text-center mb-2">Se dice "25 mele", scrivi 25:</div>
-                                            <input 
-                                                type="number" 
-                                                value={visualizerNum}
-                                                onChange={(e) => setVisualizerNum(e.target.value)}
-                                                placeholder="Es: 25"
-                                                className="w-full bg-slate-800 border-2 border-slate-500 rounded-lg p-2 text-center text-lg font-bold text-white mb-2 focus:border-green-400 outline-none"
-                                            />
-                                            {visualizerNum && <Base10Renderer num={visualizerNum} label="Blocchi" />}
+                                            {/* VISUALIZZATORE */}
+                                            <div className="w-full md:w-1/3 bg-slate-900 rounded-xl border-2 border-dashed border-slate-600 p-3 flex flex-col">
+                                                <div className="text-center text-yellow-400 font-bold mb-2">👀 VISUALIZZA NUMERO</div>
+                                                <div className="text-xs text-slate-400 text-center mb-2">Se il problema dice "25 mele", scrivi 25:</div>
+                                                <input 
+                                                    type="number" 
+                                                    value={visualizerNum}
+                                                    onChange={(e) => setVisualizerNum(e.target.value)}
+                                                    placeholder="Es: 25"
+                                                    className="w-full bg-slate-800 border-2 border-slate-500 rounded-lg p-3 text-center text-xl font-bold text-white mb-3 focus:border-green-400 outline-none"
+                                                />
+                                                <div className="flex-1 overflow-y-auto bg-slate-950 rounded-lg p-2 border border-slate-800">
+                                                    {visualizerNum ? (
+                                                        <Base10Renderer num={visualizerNum} label="Blocchi" />
+                                                    ) : (
+                                                        <div className="text-center text-slate-600 mt-10">I blocchi appariranno qui...</div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
                             </div>
                         )}
+
                     </div>
 
                     {/* MENU CONDIVISIONE */}
-                    {renderShareMenu()}
+                    {showShareMenu && (
+                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setShowShareMenu(false)}>
+                            <div className="bg-slate-800 rounded-2xl p-5 w-full max-w-sm border-2 border-slate-600" onClick={e => e.stopPropagation()}>
+                                <h3 className="text-xl font-bold text-center text-white mb-4">📤 Condividi Soluzione</h3>
+                                
+                                <div className="flex flex-col gap-3">
+                                    <button 
+                                        onClick={shareViaWhatsApp} 
+                                        className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded-xl active:scale-95"
+                                    >
+                                        💬 WhatsApp
+                                    </button>
+                                    
+                                    <button 
+                                        onClick={shareViaEmail} 
+                                        className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl active:scale-95"
+                                    >
+                                        📧 Email
+                                    </button>
+                                    
+                                    <button 
+                                        onClick={saveAsFile} 
+                                        className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-4 rounded-xl active:scale-95"
+                                    >
+                                        💾 Salva File
+                                    </button>
+                                    
+                                    <button 
+                                        onClick={() => setShowShareMenu(false)} 
+                                        className="flex items-center justify-center gap-2 bg-slate-600 hover:bg-slate-500 text-white font-bold py-3 px-4 rounded-xl mt-2 active:scale-95"
+                                    >
+                                        ✕ Chiudi
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
