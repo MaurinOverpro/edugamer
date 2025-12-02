@@ -18,23 +18,25 @@
             height: 100dvh; 
             width: 100vw;
             overflow: hidden; 
-            touch-action: none; /* Fondamentale per il touch */
         }
 
-        /* --- CONTAINER SCROLLABILE --- */
+        /* --- CONTAINER SCROLLABILE (FIX TABLET) --- */
         .scroll-area {
             width: 100%; 
             height: 100%; 
-            overflow: auto; /* Permette di scorrere */
+            overflow: auto; 
             position: relative;
             background-image: radial-gradient(#1e293b 2px, transparent 2px);
-            background-size: 40px 40px; /* Griglia di sfondo */
+            background-size: 40px 40px;
+            /* Importante: permette lo scroll col dito */
+            touch-action: pan-x pan-y; 
+            -webkit-overflow-scrolling: touch;
         }
 
-        /* --- LA MAPPA GIGANTE --- */
+        /* Mappa Gigante */
         .map-canvas {
-            width: 2000px; /* Molto più grande dello schermo */
-            height: 2000px;
+            width: 3000px; 
+            height: 3000px;
             position: relative;
         }
 
@@ -44,41 +46,42 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             text-align: center; padding: 20px; border-radius: 25px;
             cursor: pointer; z-index: 20;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            transition: transform 0.2s, box-shadow 0.3s, border-color 0.3s;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
             user-select: none;
             background: rgba(15, 23, 42, 0.95);
         }
-        .node-base:active { transform: scale(0.9); }
+        .node-base:active { transform: scale(0.95); }
         
-        /* Nodo Centrale (Il Tema) */
+        /* Tema Centrale */
         .node-central { 
             background: linear-gradient(135deg, #2563eb, #1d4ed8); 
             border: 6px solid #60a5fa; 
-            width: 220px; height: 220px; 
-            border-radius: 50%; /* Cerchio perfetto */
-            font-size: 1.4rem; font-weight: bold;
-            box-shadow: 0 0 50px rgba(37, 99, 235, 0.5);
+            width: 240px; height: 240px; 
+            border-radius: 50%;
+            font-size: 1.5rem; font-weight: bold;
+            box-shadow: 0 0 60px rgba(37, 99, 235, 0.6);
         }
         
-        /* Nodi Satellite (I Concetti) */
+        /* Concetti */
         .node-satellite { 
             border: 3px solid #94a3b8; 
-            width: 200px; min-height: 120px; 
+            width: 220px; min-height: 140px; 
             font-size: 1.1rem;
         }
         
-        /* STATI INTERATTIVI */
+        /* STATI ATTIVI */
         .node-selected {
-            border-color: #facc15 !important; /* Giallo = Selezionato */
-            box-shadow: 0 0 40px rgba(250, 204, 21, 0.8) !important;
+            border-color: #facc15 !important;
+            box-shadow: 0 0 50px rgba(250, 204, 21, 0.8) !important;
             animation: pulse-yellow 1.5s infinite;
+            z-index: 50;
         }
 
         .node-connected {
-            border-color: #4ade80 !important; /* Verde = Collegato */
+            border-color: #4ade80 !important;
             background: #064e3b !important;
-            box-shadow: 0 0 30px rgba(74, 222, 128, 0.5) !important;
+            box-shadow: 0 0 40px rgba(74, 222, 128, 0.6) !important;
         }
 
         @keyframes pulse-yellow {
@@ -87,16 +90,15 @@
             100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
         }
 
-        /* --- LINEA NEON --- */
+        /* Linea Neon */
         .neon-line {
-            stroke-dasharray: 1000;
-            stroke-dashoffset: 1000;
-            animation: draw-line 1.5s forwards ease-out;
-            filter: drop-shadow(0 0 8px #4ade80);
+            stroke-dasharray: 1000; stroke-dashoffset: 1000;
+            animation: draw 1s forwards ease-out;
+            filter: drop-shadow(0 0 10px #4ade80);
         }
-        @keyframes draw-line { to { stroke-dashoffset: 0; } }
+        @keyframes draw { to { stroke-dashoffset: 0; } }
 
-        /* --- UI CARICAMENTO --- */
+        /* Pulsante Upload */
         .btn-upload-big {
             background: linear-gradient(45deg, #3b82f6, #2563eb);
             border: 2px solid #60a5fa;
@@ -105,23 +107,25 @@
         }
         .btn-upload-big:active { transform: scale(0.95); }
 
-        /* Fumetto AI che parla */
+        /* Fumetto AI */
         .ai-bubble {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
             background: #1e293b; border: 2px solid #a855f7;
-            padding: 15px 25px; border-radius: 50px; color: #e9d5ff;
-            font-size: 1.1rem; font-weight: bold;
+            padding: 15px 30px; border-radius: 50px; color: #e9d5ff;
+            font-size: 1.2rem; font-weight: bold;
             display: flex; align-items: center; gap: 15px; z-index: 100;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            width: 90%; max-width: 600px; justify-content: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            width: 90%; max-width: 700px; justify-content: center;
+            animation: slide-up 0.3s ease-out;
         }
+        @keyframes slide-up { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useRef, useEffect } = React;
-        const MODEL = "gemini-2.0-flash"; // Modello Stabile
+        const MODEL = "gemini-2.0-flash"; // Stabile e veloce
 
         const DB = {
             getKey: () => localStorage.getItem('gemini_api_key'),
@@ -131,42 +135,44 @@
                 window.dispatchEvent(new Event('xpChanged'));
                 return next;
             },
-            save: (data) => localStorage.setItem('lavagna_interactive_v1', JSON.stringify(data)),
-            load: () => JSON.parse(localStorage.getItem('lavagna_interactive_v1') || 'null'),
-            clear: () => localStorage.removeItem('lavagna_interactive_v1')
+            save: (data) => localStorage.setItem('lavagna_interactive_v2', JSON.stringify(data)),
+            load: () => JSON.parse(localStorage.getItem('lavagna_interactive_v2') || 'null'),
+            clear: () => localStorage.removeItem('lavagna_interactive_v2')
         };
 
-        // --- AI BRAIN ---
+        // --- LOGICA AI ---
         const AI = {
-            // 1. Crea la Mappa
             analyzeMap: async (images) => {
                 const key = DB.getKey();
                 if(!key) throw new Error("Manca API Key! Vai su Home.");
                 
                 const parts = images.map(img => ({ inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] } }));
-                const prompt = `Analizza queste pagine scolastiche per un bambino con DSA.
-                Crea una mappa mentale semplice e chiara.
-                1. TEMA PRINCIPALE (Centro).
-                2. 6-8 CONCETTI CHIAVE (Satelliti).
-                3. SPIEGAZIONE: max 15 parole per concetto, linguaggio semplice.
-                Rispondi SOLO JSON: { "theme": "Titolo", "nodes": [{ "id": 1, "label": "Nome", "content": "Spiegazione" }] }`;
+                
+                // Prompt semplificato per massima chiarezza
+                const prompt = `Analizza queste pagine per un bambino.
+                Crea una MAPPA MENTALE.
+                1. TEMA PRINCIPALE.
+                2. 6-8 CONCETTI CHIAVE.
+                3. SPIEGAZIONE BREVISSIMA (max 15 parole) per ogni concetto.
+                Rispondi SOLO JSON: 
+                { "theme": "Titolo", "nodes": [{ "id": 1, "label": "Nome", "content": "Spiegazione" }] }`;
 
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, ...parts] }] })
                 });
-                if(!res.ok) throw new Error("Errore AI. Riprova.");
+                
+                if(!res.ok) throw new Error("Errore AI");
                 const data = await res.json();
                 let text = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
                 return JSON.parse(text);
             },
 
-            // 2. Spiega il collegamento a voce
             explainConnection: async (label1, label2) => {
                 const key = DB.getKey();
                 if(!key) return `Hai collegato ${label1} con ${label2}!`;
 
-                const prompt = `Spiega in UNA frase semplice per un bambino qual è il legame tra "${label1}" e "${label2}".`;
+                const prompt = `Spiega in una frase semplice per un bambino di 9 anni qual è il legame tra "${label1}" e "${label2}". Usa tono allegro.`;
                 
                 try {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
@@ -175,7 +181,7 @@
                     });
                     const data = await res.json();
                     return data.candidates[0].content.parts[0].text;
-                } catch(e) { return `Ottimo! Hai unito ${label1} e ${label2}.`; }
+                } catch(e) { return `Ottimo! ${label1} e ${label2} sono collegati.`; }
             }
         };
 
@@ -184,14 +190,12 @@
             const [images, setImages] = useState([]);
             const [mapData, setMapData] = useState(null);
             const [nodes, setNodes] = useState([]);
-            const [lines, setLines] = useState([]); 
-            
+            const [lines, setLines] = useState([]);
             const [selectedNode, setSelectedNode] = useState(null);
-            const [aiMessage, setAiMessage] = useState(null); // Messaggio che l'AI sta leggendo
-            
+            const [aiMessage, setAiMessage] = useState(null);
             const scrollRef = useRef(null);
 
-            // Caricamento Iniziale
+            // Caricamento
             useEffect(() => {
                 try {
                     const saved = DB.load();
@@ -202,16 +206,24 @@
                 } catch(e) { DB.clear(); }
             }, []);
 
-            // Salvataggio Automatico
+            // Autosave
             useEffect(() => { if(nodes.length) DB.save({ mapData, nodes, lines }); }, [nodes, lines]);
 
-            // Centra la vista all'avvio
+            // CENTRATURA AUTOMATICA (FIX TABLET)
             useEffect(() => {
                 if(stage === 'view' && scrollRef.current) {
-                    const el = scrollRef.current;
-                    // Centro teorico (1000,1000) meno metà schermo
-                    el.scrollTop = 1000 - (window.innerHeight / 2);
-                    el.scrollLeft = 1000 - (window.innerWidth / 2);
+                    // Piccolo ritardo per dare tempo al browser di renderizzare il canvas gigante
+                    setTimeout(() => {
+                        const el = scrollRef.current;
+                        if(el) {
+                            // Centro del canvas (1500,1500) meno metà viewport
+                            el.scrollTo({
+                                top: 1500 - (el.clientHeight / 2),
+                                left: 1500 - (el.clientWidth / 2),
+                                behavior: 'smooth'
+                            });
+                        }
+                    }, 100);
                 }
             }, [stage]);
 
@@ -229,203 +241,18 @@
                     const data = await AI.analyzeMap(images);
                     setMapData(data);
 
-                    // Coordinate Spazio Gigante (Centro a 1000, 1000)
-                    const cx = 1000; 
-                    const cy = 1000;
-                    const radius = 380; // Cerchio largo
+                    // Coordinate Spazio Gigante (Centro 1500, 1500)
+                    const cx = 1500; 
+                    const cy = 1500;
+                    const radius = 420; 
 
-                    const central = { id: 0, label: data.theme, content: "Tema Principale", x: cx-110, y: cy-110, w: 220, h: 220, isCentral: true };
+                    const central = { id: 0, label: data.theme, content: "Argomento Principale", x: cx-110, y: cy-110, w: 220, h: 220, isCentral: true };
                     
                     const sats = data.nodes.map((n, i) => {
                         const angle = (i / data.nodes.length) * 2 * Math.PI - Math.PI/2;
                         return { 
                             ...n, id: i+1, 
-                            x: cx + radius * Math.cos(angle) - 90, 
-                            y: cy + radius * Math.sin(angle) - 60, 
-                            w: 180, h: 120, isCentral: false 
+                            x: cx + radius * Math.cos(angle) - 100, 
+                            y: cy + radius * Math.sin(angle) - 70, 
+                            w: 200, h: 140, isCentral: false 
                         };
-                    });
-
-                    setNodes([central, ...sats]);
-                    setLines([]); // Reset linee
-                    DB.addXP(50);
-                    setStage('view');
-                } catch(e) { alert("Errore: " + e.message); setStage('upload'); }
-            };
-
-            const speak = (text) => {
-                window.speechSynthesis.cancel();
-                setAiMessage(text); // Mostra a schermo
-                const u = new SpeechSynthesisUtterance(text);
-                u.lang = 'it-IT'; u.rate = 0.95;
-                u.onend = () => setAiMessage(null); // Nascondi quando finisce
-                window.speechSynthesis.speak(u);
-            };
-
-            // --- IL CUORE DEL GIOCO: COLLEGARE I PUNTINI ---
-            const handleNodeClick = async (node) => {
-                // 1. Se clicco il tema centrale -> Legge il titolo
-                if(node.isCentral) {
-                    speak(`Il tema è: ${node.label}. Tocca gli altri concetti per collegarli!`);
-                    return;
-                }
-
-                // 2. Se non ho selezionato nulla -> Seleziono (Giallo) e Leggo
-                if (!selectedNode) {
-                    setSelectedNode(node);
-                    speak(node.label + ". " + node.content);
-                    return;
-                }
-
-                // 3. Se clicco lo stesso -> Deseleziono
-                if (selectedNode.id === node.id) {
-                    setSelectedNode(null);
-                    return;
-                }
-
-                // 4. Se clicco un altro -> COLLEGO!
-                const exists = lines.some(l => (l.from === selectedNode.id && l.to === node.id) || (l.from === node.id && l.to === selectedNode.id));
-                
-                if (!exists) {
-                    setLines(prev => [...prev, { from: selectedNode.id, to: node.id }]);
-                    DB.addXP(20);
-                    
-                    // Chiedi all'IA di spiegare il nesso
-                    setAiMessage("🤔 Analizzo il collegamento...");
-                    const explanation = await AI.explainConnection(selectedNode.label, node.label);
-                    speak(explanation);
-                } else {
-                    speak("Sono già amici! Sono già collegati.");
-                }
-                
-                setSelectedNode(null);
-            };
-
-            const reset = () => {
-                if(confirm("Vuoi iniziare una nuova lezione?")) {
-                    DB.clear(); setImages([]); setMapData(null); setStage('upload');
-                }
-            };
-
-            const renderCanvas = () => {
-                return (
-                    <div className="scroll-area" ref={scrollRef}>
-                        <div className="map-canvas">
-                            
-                            {/* Linee Neon SVG */}
-                            <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
-                                {lines.map((line, i) => {
-                                    const n1 = nodes.find(n => n.id === line.from);
-                                    const n2 = nodes.find(n => n.id === line.to);
-                                    if(!n1 || !n2) return null;
-                                    return (
-                                        <line key={i} 
-                                            x1={n1.x + n1.w/2} y1={n1.y + n1.h/2} 
-                                            x2={n2.x + n2.w/2} y2={n2.y + n2.h/2} 
-                                            stroke="#4ade80" strokeWidth="6" strokeLinecap="round"
-                                            className="neon-line"
-                                        />
-                                    );
-                                })}
-                            </svg>
-
-                            {/* Nodi */}
-                            {nodes.map(node => {
-                                const isSel = selectedNode?.id === node.id;
-                                // Un nodo è "connected" se ha almeno una linea
-                                const isConn = lines.some(l => l.from === node.id || l.to === node.id);
-
-                                return (
-                                    <div key={node.id} 
-                                        className={`node-base 
-                                            ${node.isCentral ? 'node-central' : 'node-satellite'}
-                                            ${isSel ? 'node-selected' : ''}
-                                            ${isConn && !node.isCentral ? 'node-connected' : ''}
-                                        `}
-                                        style={{ left: node.x, top: node.y, width: node.w, height: node.h }}
-                                        onClick={(e) => { e.stopPropagation(); handleNodeClick(node); }}
-                                    >
-                                        <div className="font-bold text-yellow-300 mb-1 leading-tight text-shadow">
-                                            {node.label}
-                                        </div>
-                                        {!node.isCentral && (
-                                            <div className="text-xs text-gray-200 line-clamp-3 leading-snug font-medium">
-                                                {node.content}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                );
-            };
-
-            if(stage === 'upload') return (
-                <div className="h-full flex flex-col items-center justify-center p-6 gap-6">
-                    <h1 className="text-4xl font-black text-green-400 tracking-tighter">LAVAGNA MAGICA ✨</h1>
-                    <div className="border-2 border-dashed border-slate-600 p-8 rounded-3xl flex flex-col items-center gap-6 bg-slate-800/50 w-full max-w-2xl shadow-2xl">
-                        <div className="flex gap-2 overflow-auto max-w-full p-2 min-h-[90px]">
-                            {images.length === 0 ? <span className="text-slate-500 m-auto">Nessuna foto ancora...</span> : 
-                            images.map((src,i)=><img key={i} src={src} className="h-24 rounded-xl border-2 border-slate-500 shadow-lg"/>)}
-                        </div>
-                        
-                        <label className="btn-upload-big w-full py-6 rounded-2xl font-bold text-2xl cursor-pointer text-white flex items-center justify-center gap-3 shadow-xl">
-                            <input type="file" onChange={addImage} className="hidden" accept="image/*" /> 
-                            📷 SCATTA FOTO
-                        </label>
-                        
-                        {images.length > 0 && (
-                            <button onClick={start} className="w-full bg-green-600 hover:bg-green-500 py-5 rounded-2xl font-bold text-white text-xl animate-pulse shadow-xl transition-transform transform active:scale-95">
-                                🚀 CREA LA MAPPA!
-                            </button>
-                        )}
-                    </div>
-                    <a href="index.html" className="text-slate-400 bg-slate-800 px-6 py-3 rounded-xl font-bold">🏠 MENU</a>
-                </div>
-            );
-
-            if(stage === 'scanning') return (
-                <div className="h-full flex flex-col items-center justify-center gap-6">
-                    <div className="w-24 h-24 border-8 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-                    <h2 className="text-green-400 font-bold text-3xl animate-pulse">STO LEGGENDO... 🧠</h2>
-                </div>
-            );
-
-            return (
-                <div className="h-full flex flex-col bg-slate-900 overflow-hidden">
-                    {/* Top Bar Semplificata */}
-                    <div className="p-3 flex gap-3 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg">
-                        <a href="index.html" className="bg-slate-700 px-4 py-2 rounded-xl text-white font-bold text-xl">🏠</a>
-                        
-                        <div className="flex-1 text-center">
-                            <span className="text-yellow-400 font-bold text-lg hidden sm:block">
-                                {selectedNode ? "👇 Tocca un altro per collegarli!" : "👆 Tocca i concetti per unirli"}
-                            </span>
-                        </div>
-                        
-                        <button onClick={reset} className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-red-400">
-                            🔄 NUOVA
-                        </button>
-                    </div>
-
-                    {/* Area di Gioco */}
-                    <div className="flex-1 relative bg-slate-900 overflow-hidden">
-                        {renderCanvas()}
-                        
-                        {/* Fumetto AI Parlante */}
-                        {aiMessage && (
-                            <div className="ai-bubble animate-fade-in">
-                                <span className="text-2xl">🤖</span>
-                                <span>{aiMessage}</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-        };
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
