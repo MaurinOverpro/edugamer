@@ -18,12 +18,17 @@
             word-spacing: 0.08em;
         }
 
+        html, body, #root {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
         body { 
             background-color: #0a0e17; 
             color: white; 
             font-family: 'OpenDyslexic', Verdana, sans-serif; 
-            height: 100dvh; 
-            overflow: hidden;
             line-height: 1.6;
         }
         
@@ -125,6 +130,22 @@
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-8px); }
         }
+
+        /* AREA CHAT SCROLLABILE - FIX */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            padding: 16px;
+        }
     </style>
 </head>
 <body>
@@ -143,23 +164,36 @@
             }
         };
 
-        // PROMPT POTENZIATO PER DSA
-        const SYSTEM_PROMPT = `Sei un Tutor gentile per un bambino di 9 anni con difficoltà di apprendimento (DSA).
+        // PROMPT AGGIORNATO PER RAGAZZO (non bambino)
+        const SYSTEM_PROMPT = `Sei un Tutor per un ragazzo di 9-10 anni delle scuole primarie con DSA (disturbi specifici dell'apprendimento).
 
 REGOLE IMPORTANTI:
-1. Usa frasi MOLTO CORTE (massimo 10 parole per frase)
-2. Usa parole SEMPLICI (niente termini difficili)
-3. Fai UN esempio concreto dalla vita quotidiana
+1. Usa frasi CORTE e CHIARE (massimo 12-15 parole per frase)
+2. Usa un linguaggio SEMPLICE ma NON infantile
+3. Fai esempi CONCRETI dalla vita di un ragazzo: scuola, sport, videogiochi, amici, YouTube, tecnologia
 4. Metti le emoji all'inizio o alla fine, mai in mezzo alle frasi
 5. Dividi sempre in paragrafi brevi (2-3 frasi max)
-6. Dai sempre feedback positivo ("Bravo!", "Ottima domanda!")
-7. Se il bambino non capisce, riprova con parole ancora più semplici
-8. Usa elenchi puntati quando possibile
+6. Dai feedback positivo ma senza esagerare ("Giusto!", "Esatto!", "Ci sei!")
+7. Se non capisce, riprova con un esempio diverso
+8. Usa elenchi puntati quando serve
+
+ESEMPI DA USARE (adatti a un ragazzo):
+- Videogiochi (Minecraft, Fortnite, FIFA)
+- Sport (calcio, basket, nuoto)
+- Scuola e compagni
+- YouTube e social
+- Tecnologia e smartphone
+- Film e serie TV
 
 STRUTTURA RISPOSTA:
-- Prima: feedback positivo
-- Poi: spiegazione semplice
-- Infine: esempio pratico
+- Prima: feedback breve
+- Poi: spiegazione chiara
+- Infine: esempio pratico dalla vita reale
+
+NON usare:
+- Tono troppo infantile ("piccolo", "bimbo")
+- Esempi da bambini piccoli (orsacchiotti, fatine)
+- Frasi troppo lunghe o complicate
 
 Rispondi sempre in italiano.`;
 
@@ -169,9 +203,9 @@ Rispondi sempre in italiano.`;
             
             let finalMsg = msg;
             if(isQuizRequest) {
-                finalMsg = `Basandoti su quello che abbiamo discusso, fammi UNA domanda semplice per verificare se ho capito. 
-                La domanda deve essere facile, con risposta breve.
-                Dopo che rispondo, dimmi se è giusto o sbagliato in modo gentile.`;
+                finalMsg = `Basandoti su quello che abbiamo discusso, fammi UNA domanda per verificare se ho capito. 
+                La domanda deve essere chiara, con risposta breve.
+                Dopo che rispondo, dimmi se è giusto o sbagliato.`;
             }
 
             const systemContents = {
@@ -181,7 +215,7 @@ Rispondi sempre in italiano.`;
 
             const modelAck = {
                 role: "model", 
-                parts: [{ text: "Ho capito! Sarò un tutor gentile e userò parole semplici. 😊" }]
+                parts: [{ text: "Capito! Sarò un tutor chiaro e userò esempi adatti a un ragazzo. 👍" }]
             };
 
             const userContents = history.map(m => ({
@@ -204,7 +238,7 @@ Rispondi sempre in italiano.`;
         const App = () => {
             const [messages, setMessages] = useState([{ 
                 role: 'model', 
-                text: "Ciao! 👋\n\nSono il tuo Tutor!\n\nCosa vuoi studiare oggi?\n\nPuoi scrivere o usare i pulsanti qui sotto! 😊" 
+                text: "Ciao! 👋\n\nSono il tuo Tutor.\n\nCosa devi studiare oggi?\n\nScrivi o usa i pulsanti qui sotto! 💪" 
             }]);
             const [input, setInput] = useState('');
             const [loading, setLoading] = useState(false);
@@ -212,10 +246,15 @@ Rispondi sempre in italiano.`;
             const [isSpeaking, setIsSpeaking] = useState(false);
             const [speechRate, setSpeechRate] = useState(0.85);
             const [currentTopic, setCurrentTopic] = useState(null);
+            const chatRef = useRef(null);
             const endRef = useRef(null);
             const recognitionRef = useRef(null);
 
-            useEffect(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), [messages]);
+            useEffect(() => {
+                if(endRef.current) {
+                    endRef.current.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, [messages]);
 
             // Pulizia testo per sintesi vocale
             const cleanTextForSpeech = (text) => {
@@ -238,7 +277,7 @@ Rispondi sempre in italiano.`;
                 const u = new SpeechSynthesisUtterance(cleanText);
                 u.lang = 'it-IT'; 
                 u.rate = speechRate;
-                u.pitch = 1.1;
+                u.pitch = 1.0;
                 
                 u.onstart = () => setIsSpeaking(true);
                 u.onend = () => setIsSpeaking(false);
@@ -306,8 +345,8 @@ Rispondi sempre in italiano.`;
             };
 
             const quickActions = [
-                { label: "🤔 Spiegami meglio", msg: "Non ho capito bene, puoi spiegarmelo in modo più semplice?" },
-                { label: "📝 Fammi un esempio", msg: "Puoi farmi un esempio pratico?" },
+                { label: "🤔 Spiegami meglio", msg: "Non ho capito bene, puoi spiegarmelo in modo più semplice con un esempio?" },
+                { label: "📝 Esempio", msg: "Puoi farmi un esempio pratico dalla vita reale?" },
                 { label: "✅ È giusto?", msg: "Ho capito bene? Dimmi se è corretto." },
                 { label: "🎯 Quiz!", msg: null, isQuiz: true },
             ];
@@ -325,29 +364,38 @@ Rispondi sempre in italiano.`;
                     stopSpeaking();
                     setMessages([{ 
                         role: 'model', 
-                        text: "Ciao! 👋\n\nSono pronto per una nuova lezione!\n\nCosa vuoi studiare? 😊" 
+                        text: "Ok, ricominciamo! 🔄\n\nCosa vuoi studiare adesso?" 
                     }]);
                     setCurrentTopic(null);
                 }
             };
 
+            // Scroll to top della chat
+            const scrollToTop = () => {
+                if(chatRef.current) {
+                    chatRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            };
+
             return (
-                <div className="h-full flex flex-col bg-slate-900">
-                    {/* HEADER */}
-                    <div className="p-3 bg-slate-800 border-b border-slate-700 flex items-center gap-3 shadow-lg z-10">
-                        <a href="index.html" className="bg-slate-700 px-3 py-2 rounded-xl text-white font-bold text-lg">🏠</a>
+                <div className="chat-container bg-slate-900">
+                    {/* HEADER FISSO */}
+                    <div className="flex-shrink-0 p-3 bg-slate-800 border-b border-slate-700 flex items-center gap-3 shadow-lg z-10">
+                        <a href="index.html" className="bg-slate-700 hover:bg-slate-600 px-4 py-3 rounded-xl text-white font-bold text-lg active:scale-95 transition-transform">
+                            🏠 Menu
+                        </a>
                         
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                             <div className="font-bold text-purple-400 text-lg">TUTOR AI 🎓</div>
                             {currentTopic && (
-                                <div className="topic-badge inline-block mt-1">
+                                <div className="topic-badge inline-block mt-1 truncate max-w-[150px]">
                                     📚 {currentTopic}
                                 </div>
                             )}
                         </div>
 
                         {/* Controllo velocità */}
-                        <div className="flex items-center gap-2 bg-slate-700 px-3 py-2 rounded-xl">
+                        <div className="hidden sm:flex items-center gap-2 bg-slate-700 px-3 py-2 rounded-xl">
                             <span className="text-xs text-slate-400">🐢</span>
                             <input 
                                 type="range" 
@@ -363,14 +411,14 @@ Rispondi sempre in italiano.`;
 
                         <button 
                             onClick={resetChat}
-                            className="bg-red-600 hover:bg-red-500 px-3 py-2 rounded-xl text-white font-bold"
+                            className="bg-red-600 hover:bg-red-500 px-3 py-3 rounded-xl text-white font-bold active:scale-95 transition-transform"
                         >
                             🔄
                         </button>
                     </div>
 
-                    {/* CHAT AREA */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {/* CHAT AREA SCROLLABILE */}
+                    <div className="chat-messages space-y-4" ref={chatRef}>
                         {messages.map((m, i) => (
                             <div key={i} className={`flex flex-col ${m.role==='user'?'items-end':'items-start'}`}>
                                 <div className={`msg-bubble ${m.role==='user'?'msg-user':'msg-ai'}`}>
@@ -381,7 +429,7 @@ Rispondi sempre in italiano.`;
                                 {m.role==='model' && (
                                     <button 
                                         onClick={() => speak(m.text)} 
-                                        className="text-xs text-slate-500 mt-1 ml-2 hover:text-purple-400"
+                                        className="text-xs text-slate-500 mt-1 ml-2 hover:text-purple-400 active:scale-95"
                                     >
                                         🔊 Rileggi
                                     </button>
@@ -402,8 +450,18 @@ Rispondi sempre in italiano.`;
                         <div ref={endRef}></div>
                     </div>
 
+                    {/* PULSANTE TORNA SU (appare se ci sono molti messaggi) */}
+                    {messages.length > 3 && (
+                        <button 
+                            onClick={scrollToTop}
+                            className="absolute right-4 bottom-48 bg-slate-700 hover:bg-slate-600 p-3 rounded-full shadow-lg z-20 active:scale-95"
+                        >
+                            ⬆️
+                        </button>
+                    )}
+
                     {/* PULSANTI RAPIDI */}
-                    <div className="px-4 py-2 bg-slate-800/50 border-t border-slate-700 flex gap-2 overflow-x-auto">
+                    <div className="flex-shrink-0 px-4 py-2 bg-slate-800/80 border-t border-slate-700 flex gap-2 overflow-x-auto">
                         {quickActions.map((action, i) => (
                             <button
                                 key={i}
@@ -417,11 +475,11 @@ Rispondi sempre in italiano.`;
                     </div>
 
                     {/* INPUT AREA */}
-                    <div className="p-3 bg-slate-800 border-t border-slate-700 flex gap-2 items-center">
+                    <div className="flex-shrink-0 p-3 bg-slate-800 border-t border-slate-700 flex gap-2 items-center">
                         {/* Microfono */}
                         <button 
                             onClick={toggleMic} 
-                            className={`p-4 rounded-xl text-xl ${isListening ? 'mic-active text-white' : 'bg-slate-700 text-slate-300'}`}
+                            className={`p-4 rounded-xl text-xl ${isListening ? 'mic-active text-white' : 'bg-slate-700 text-slate-300'} active:scale-95 transition-transform`}
                         >
                             🎤
                         </button>
@@ -430,7 +488,7 @@ Rispondi sempre in italiano.`;
                         {isSpeaking && (
                             <button 
                                 onClick={stopSpeaking}
-                                className="p-4 rounded-xl bg-red-600 text-white text-xl animate-pulse"
+                                className="p-4 rounded-xl bg-red-600 text-white text-xl animate-pulse active:scale-95"
                             >
                                 ⏹️
                             </button>
@@ -441,7 +499,7 @@ Rispondi sempre in italiano.`;
                             value={input} 
                             onChange={e => setInput(e.target.value)} 
                             onKeyDown={e => e.key === 'Enter' && send()} 
-                            className="flex-1 bg-slate-900 border-2 border-slate-600 rounded-xl p-4 text-white outline-none text-lg focus:border-purple-500"
+                            className="flex-1 bg-slate-900 border-2 border-slate-600 rounded-xl p-4 text-white outline-none text-lg focus:border-purple-500 min-w-0"
                             placeholder="Scrivi o parla..." 
                         />
 
@@ -449,7 +507,7 @@ Rispondi sempre in italiano.`;
                         <button 
                             onClick={() => send()} 
                             disabled={loading || !input.trim()} 
-                            className="bg-purple-600 hover:bg-purple-500 disabled:bg-slate-600 text-white p-4 rounded-xl font-bold text-xl"
+                            className="bg-purple-600 hover:bg-purple-500 disabled:bg-slate-600 text-white p-4 rounded-xl font-bold text-xl active:scale-95 transition-transform"
                         >
                             ➤
                         </button>
