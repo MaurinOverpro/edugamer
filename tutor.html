@@ -9,15 +9,25 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+    <!-- FONT OPENDYSLEXIC -->
+    <link href="https://fonts.cdnfonts.com/css/opendyslexic" rel="stylesheet">
+
     <style>
+        * {
+            /* SPAZIATURA DSA-FRIENDLY */
+            letter-spacing: 0.03em;
+            word-spacing: 0.08em;
+        }
+
         body { 
             background-color: #0a0e17; 
             color: white; 
-            font-family: 'Verdana', sans-serif; 
+            font-family: 'OpenDyslexic', Verdana, sans-serif;
             margin: 0; 
             height: 100dvh; 
             width: 100vw;
-            overflow: hidden; 
+            overflow: hidden;
+            line-height: 1.6;
         }
 
         /* --- CONTAINER SCROLLABILE --- */
@@ -34,7 +44,6 @@
         }
         .scroll-area:active { cursor: grabbing; }
 
-        /* Mappa Gigante */
         .map-canvas {
             width: 3000px; 
             height: 3000px;
@@ -54,24 +63,21 @@
         }
         .node-base:active { transform: scale(0.95); }
         
-        /* Tema Centrale */
         .node-central { 
             background: linear-gradient(135deg, #2563eb, #1d4ed8); 
             border: 6px solid #60a5fa; 
-            width: 240px; height: 240px; 
+            width: 260px; height: 260px; 
             border-radius: 50%;
-            font-size: 1.5rem; font-weight: bold;
+            font-size: 1.4rem; font-weight: bold;
             box-shadow: 0 0 60px rgba(37, 99, 235, 0.6);
         }
         
-        /* Concetti */
         .node-satellite { 
             border: 3px solid #94a3b8; 
-            width: 220px; min-height: 140px; 
+            width: 240px; min-height: 160px; 
             font-size: 1.1rem;
         }
         
-        /* STATI ATTIVI */
         .node-selected {
             border-color: #facc15 !important;
             box-shadow: 0 0 50px rgba(250, 204, 21, 0.8) !important;
@@ -91,7 +97,6 @@
             100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
         }
 
-        /* Linea Neon */
         .neon-line {
             stroke-dasharray: 1000; stroke-dashoffset: 1000;
             animation: draw 1s forwards ease-out;
@@ -99,7 +104,6 @@
         }
         @keyframes draw { to { stroke-dashoffset: 0; } }
 
-        /* Pulsante Upload */
         .btn-upload-big {
             background: linear-gradient(45deg, #3b82f6, #2563eb);
             border: 2px solid #60a5fa;
@@ -108,18 +112,61 @@
         }
         .btn-upload-big:active { transform: scale(0.95); }
 
-        /* Fumetto AI */
         .ai-bubble {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
             background: #1e293b; border: 2px solid #a855f7;
-            padding: 15px 30px; border-radius: 50px; color: #e9d5ff;
-            font-size: 1.2rem; font-weight: bold;
+            padding: 15px 30px; border-radius: 30px; color: #e9d5ff;
+            font-size: 1.15rem; font-weight: bold;
             display: flex; align-items: center; gap: 15px; z-index: 100;
             box-shadow: 0 10px 40px rgba(0,0,0,0.8);
             width: 90%; max-width: 700px; justify-content: center;
             animation: slide-up 0.3s ease-out;
+            line-height: 1.5;
         }
         @keyframes slide-up { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+
+        /* PULSANTE SPIEGAMI MEGLIO */
+        .btn-explain {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border: 2px solid #fbbf24;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+        }
+        .btn-explain:active { transform: scale(0.9); }
+
+        /* PULSANTE AUDIO GLOBALE */
+        .btn-audio-all {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            border: 2px solid #a78bfa;
+            animation: glow-purple 2s infinite;
+        }
+        @keyframes glow-purple {
+            0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.5); }
+            50% { box-shadow: 0 0 35px rgba(139, 92, 246, 0.8); }
+        }
+
+        /* MODAL SPIEGAZIONE */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 200; padding: 20px;
+        }
+        .modal-content {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 3px solid #f59e0b;
+            border-radius: 30px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 0 60px rgba(245, 158, 11, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -148,11 +195,12 @@
                 
                 const parts = images.map(img => ({ inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] } }));
                 
-                const prompt = `Analizza queste pagine per un bambino.
-                Crea una MAPPA MENTALE.
-                1. TEMA PRINCIPALE.
+                const prompt = `Analizza queste pagine per un bambino di 9 anni con difficoltà di apprendimento.
+                Crea una MAPPA MENTALE con linguaggio MOLTO SEMPLICE.
+                1. TEMA PRINCIPALE (max 4 parole).
                 2. 6-8 CONCETTI CHIAVE.
-                3. SPIEGAZIONE BREVISSIMA (max 15 parole) per ogni concetto.
+                3. SPIEGAZIONE BREVISSIMA (max 12 parole) per ogni concetto.
+                USA parole semplici, frasi corte, niente termini difficili.
                 Rispondi SOLO JSON: 
                 { "theme": "Titolo", "nodes": [{ "id": 1, "label": "Nome", "content": "Spiegazione" }] }`;
 
@@ -171,7 +219,8 @@
                 const key = DB.getKey();
                 if(!key) return `Hai collegato ${label1} con ${label2}!`;
 
-                const prompt = `Spiega in una frase semplice per un bambino di 9 anni qual è il legame tra "${label1}" e "${label2}". Usa tono allegro.`;
+                const prompt = `Spiega in UNA frase semplice per un bambino di 9 anni il legame tra "${label1}" e "${label2}". 
+                Usa tono allegro e parole facili. Massimo 20 parole.`;
                 
                 try {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
@@ -181,6 +230,35 @@
                     const data = await res.json();
                     return data.candidates[0].content.parts[0].text;
                 } catch(e) { return `Ottimo! ${label1} e ${label2} sono collegati.`; }
+            },
+
+            // 🆕 NUOVA FUNZIONE: SPIEGAMI MEGLIO
+            explainBetter: async (label, content, theme) => {
+                const key = DB.getKey();
+                if(!key) return "Non posso spiegare senza la chiave API!";
+
+                const prompt = `Sei un maestro gentile che spiega a un bambino di 9 anni con difficoltà di apprendimento.
+                
+                ARGOMENTO GENERALE: ${theme}
+                CONCETTO: ${label}
+                BREVE DESCRIZIONE: ${content}
+                
+                Spiega questo concetto in modo MOLTO SEMPLICE:
+                1. Usa parole facili (niente termini difficili)
+                2. Fai UN esempio concreto dalla vita quotidiana
+                3. Usa frasi corte (max 10 parole per frase)
+                4. Sii allegro e incoraggiante
+                
+                Rispondi in massimo 4 frasi.`;
+                
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    const data = await res.json();
+                    return data.candidates[0].content.parts[0].text;
+                } catch(e) { return `${label} è importante per capire ${theme}!`; }
             }
         };
 
@@ -192,6 +270,10 @@
             const [lines, setLines] = useState([]);
             const [selectedNode, setSelectedNode] = useState(null);
             const [aiMessage, setAiMessage] = useState(null);
+            const [showExplainModal, setShowExplainModal] = useState(null);
+            const [explainText, setExplainText] = useState('');
+            const [isLoadingExplain, setIsLoadingExplain] = useState(false);
+            const [isPlayingAll, setIsPlayingAll] = useState(false);
             const scrollRef = useRef(null);
 
             useEffect(() => {
@@ -237,17 +319,17 @@
 
                     const cx = 1500; 
                     const cy = 1500;
-                    const radius = 420; 
+                    const radius = 450; 
 
-                    const central = { id: 0, label: data.theme, content: "Argomento Principale", x: cx-110, y: cy-110, w: 220, h: 220, isCentral: true };
+                    const central = { id: 0, label: data.theme, content: "Argomento Principale", x: cx-130, y: cy-130, w: 260, h: 260, isCentral: true };
                     
                     const sats = data.nodes.map((n, i) => {
                         const angle = (i / data.nodes.length) * 2 * Math.PI - Math.PI/2;
                         return { 
                             ...n, id: i+1, 
-                            x: cx + radius * Math.cos(angle) - 100, 
-                            y: cy + radius * Math.sin(angle) - 70, 
-                            w: 200, h: 140, isCentral: false 
+                            x: cx + radius * Math.cos(angle) - 120, 
+                            y: cy + radius * Math.sin(angle) - 80, 
+                            w: 240, h: 160, isCentral: false 
                         };
                     });
 
@@ -258,24 +340,90 @@
                 } catch(e) { alert("Errore: " + e.message); setStage('upload'); }
             };
 
-            // --- SINTESI VOCALE "PULITA" (NO EMOJI) ---
-            const speak = (text) => {
+            // --- SINTESI VOCALE PULITA ---
+            const cleanText = (text) => {
+                return text
+                    .replace(/[*#_`~-]/g, '')
+                    .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+                    .replace(/[\u{2600}-\u{26FF}]/gu, '')
+                    .replace(/[\u{2700}-\u{27BF}]/gu, '')
+                    .replace(/\n+/g, '. ')
+                    .trim();
+            };
+
+            const speak = (text, onEnd = null) => {
                 window.speechSynthesis.cancel();
                 setAiMessage(text);
                 
-                // FILTRO DI PULIZIA
-                let cleanText = text
-                    .replace(/[*#_`~-]/g, '') // Simboli
-                    .replace(/[\u{1F300}-\u{1F9FF}]/gu, '') // Emoji range 1
-                    .replace(/[\u{2600}-\u{26FF}]/gu, '')   // Emoji range 2
-                    .replace(/[\u{2700}-\u{27BF}]/gu, '')   // Emoji range 3
-                    .replace(/\n+/g, '. ');                 // A capo
-
-                const u = new SpeechSynthesisUtterance(cleanText);
-                u.lang = 'it-IT'; u.rate = 0.95;
+                const u = new SpeechSynthesisUtterance(cleanText(text));
+                u.lang = 'it-IT'; 
+                u.rate = 0.85; // Più lento per DSA
+                u.pitch = 1.1; // Leggermente più alto, più amichevole
                 
-                u.onend = () => setTimeout(() => setAiMessage(null), 3000);
+                u.onend = () => {
+                    if(onEnd) onEnd();
+                    else setTimeout(() => setAiMessage(null), 3000);
+                };
                 window.speechSynthesis.speak(u);
+            };
+
+            // 🆕 RIASSUNTO AUDIO COMPLETO
+            const playAllSummary = async () => {
+                if(isPlayingAll) {
+                    window.speechSynthesis.cancel();
+                    setIsPlayingAll(false);
+                    setAiMessage(null);
+                    return;
+                }
+
+                setIsPlayingAll(true);
+                const central = nodes.find(n => n.isCentral);
+                const satellites = nodes.filter(n => !n.isCentral);
+                
+                // Costruisci il testo completo
+                let fullText = `Oggi parliamo di: ${central.label}. `;
+                fullText += `Ci sono ${satellites.length} cose importanti da sapere. `;
+                
+                satellites.forEach((node, i) => {
+                    fullText += `Numero ${i+1}: ${node.label}. ${node.content}. `;
+                });
+                
+                fullText += `Ottimo! Hai ascoltato tutto. Tocca i concetti per collegarli!`;
+
+                const u = new SpeechSynthesisUtterance(cleanText(fullText));
+                u.lang = 'it-IT';
+                u.rate = 0.8;
+                u.pitch = 1.1;
+                
+                u.onend = () => {
+                    setIsPlayingAll(false);
+                    setAiMessage(null);
+                    DB.addXP(30);
+                };
+                
+                setAiMessage("🔊 Sto leggendo tutta la mappa...");
+                window.speechSynthesis.speak(u);
+            };
+
+            // 🆕 SPIEGAMI MEGLIO
+            const handleExplainBetter = async (node) => {
+                setShowExplainModal(node);
+                setIsLoadingExplain(true);
+                setExplainText('');
+                
+                const central = nodes.find(n => n.isCentral);
+                const explanation = await AI.explainBetter(node.label, node.content, central.label);
+                
+                setExplainText(explanation);
+                setIsLoadingExplain(false);
+                speak(explanation);
+                DB.addXP(10);
+            };
+
+            const closeModal = () => {
+                window.speechSynthesis.cancel();
+                setShowExplainModal(null);
+                setExplainText('');
             };
 
             const handleNodeClick = async (node) => {
@@ -313,7 +461,8 @@
 
             const reset = () => {
                 if(confirm("Vuoi creare una nuova mappa?")) {
-                    DB.clear(); setImages([]); setMapData(null); setStage('upload');
+                    window.speechSynthesis.cancel();
+                    DB.clear(); setImages([]); setMapData(null); setNodes([]); setLines([]); setStage('upload');
                 }
             };
 
@@ -351,11 +500,64 @@
                                         style={{ left: node.x, top: node.y, width: node.w, height: node.h }}
                                         onClick={(e) => { e.stopPropagation(); handleNodeClick(node); }}
                                     >
-                                        <div className="font-bold text-yellow-300 mb-2 leading-tight text-shadow">{node.label}</div>
-                                        {!node.isCentral && <div className="text-sm text-gray-200 line-clamp-3 leading-snug font-medium">{node.content}</div>}
+                                        <div className="font-bold text-yellow-300 mb-2 leading-tight">{node.label}</div>
+                                        {!node.isCentral && (
+                                            <>
+                                                <div className="text-sm text-gray-200 leading-relaxed font-medium mb-2">{node.content}</div>
+                                                {/* 🆕 PULSANTE SPIEGAMI MEGLIO */}
+                                                <button 
+                                                    className="btn-explain"
+                                                    onClick={(e) => { e.stopPropagation(); handleExplainBetter(node); }}
+                                                >
+                                                    💡 Spiegami meglio
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 );
                             })}
+                        </div>
+                    </div>
+                );
+            };
+
+            // 🆕 MODAL SPIEGAZIONE
+            const renderExplainModal = () => {
+                if(!showExplainModal) return null;
+                
+                return (
+                    <div className="modal-overlay" onClick={closeModal}>
+                        <div className="modal-content" onClick={e => e.stopPropagation()}>
+                            <h2 className="text-2xl font-bold text-yellow-400 mb-4 text-center">
+                                💡 {showExplainModal.label}
+                            </h2>
+                            
+                            {isLoadingExplain ? (
+                                <div className="flex flex-col items-center gap-4 py-8">
+                                    <div className="w-16 h-16 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+                                    <p className="text-yellow-300 animate-pulse">Sto pensando...</p>
+                                </div>
+                            ) : (
+                                <div className="text-white text-lg leading-relaxed mb-6">
+                                    {explainText}
+                                </div>
+                            )}
+                            
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={() => speak(explainText)}
+                                    className="flex-1 bg-purple-600 hover:bg-purple-500 py-3 rounded-xl font-bold text-white"
+                                    disabled={isLoadingExplain}
+                                >
+                                    🔊 Riascolta
+                                </button>
+                                <button 
+                                    onClick={closeModal}
+                                    className="flex-1 bg-slate-600 hover:bg-slate-500 py-3 rounded-xl font-bold text-white"
+                                >
+                                    ✓ Ho capito!
+                                </button>
+                            </div>
                         </div>
                     </div>
                 );
@@ -396,23 +598,36 @@
                 <div className="h-full flex flex-col bg-slate-900 overflow-hidden">
                     <div className="p-3 flex gap-3 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg">
                         <a href="index.html" className="bg-slate-700 px-4 py-2 rounded-xl text-white font-bold text-xl">🏠</a>
-                        <div className="flex-1 text-center text-yellow-400 font-bold hidden sm:block animate-pulse text-lg">
-                            {selectedNode ? "👇 TOCCA UN ALTRO PER COLLEGARLI!" : "👆 TOCCA I CONCETTI PER UNIRLI"}
+                        
+                        {/* 🆕 PULSANTE ASCOLTA TUTTO */}
+                        <button 
+                            onClick={playAllSummary}
+                            className={`btn-audio-all px-4 py-2 rounded-xl text-white font-bold text-lg ${isPlayingAll ? 'bg-red-600' : ''}`}
+                        >
+                            {isPlayingAll ? '⏹️ STOP' : '🔊 ASCOLTA TUTTO'}
+                        </button>
+                        
+                        <div className="flex-1 text-center text-yellow-400 font-bold hidden md:block animate-pulse">
+                            {selectedNode ? "👇 TOCCA UN ALTRO!" : "👆 TOCCA I CONCETTI"}
                         </div>
+                        
                         <button onClick={reset} className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-red-400">
-                            🔄 NUOVA
+                            🔄
                         </button>
                     </div>
 
                     <div className="flex-1 relative bg-slate-900 overflow-hidden">
                         {renderCanvas()}
                         {aiMessage && (
-                            <div className="ai-bubble animate-fade-in">
+                            <div className="ai-bubble">
                                 <span className="text-3xl">🤖</span>
                                 <span>{aiMessage}</span>
                             </div>
                         )}
                     </div>
+                    
+                    {/* 🆕 MODAL */}
+                    {renderExplainModal()}
                 </div>
             );
         };
