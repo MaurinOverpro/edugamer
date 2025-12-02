@@ -315,39 +315,66 @@
                     const res = Math.round(resVal * 100) / 100;
 
                     if (op === '/') {
+                        const divisor = Math.floor(b);
                         const floorQuotient = Math.floor(a / b);
                         const rem = Math.round((a % b) * 100) / 100;
+                        
+                        // Mostra blocchi esatti fino a 15, poi simbolico
+                        const showExactBlocks = divisor <= 15;
                         
                         return (
                             <div className="flex flex-col gap-3 w-full pb-8">
                                 <Base10Renderer num={a} label="Totale" />
                                 <div className="text-center text-yellow-400 font-bold py-2 bg-slate-800/50 rounded-xl">
-                                    ⬇️ DIVIDO PER {b} ⬇️
+                                    ⬇️ DIVIDO IN GRUPPI DA {divisor} ⬇️
                                 </div>
                                 <div className="flex flex-wrap gap-2 justify-center p-3 bg-slate-800/30 rounded-xl">
                                     {[...Array(Math.min(floorQuotient, 12))].map((_, i) => (
                                         <div key={i} className="bg-slate-800 p-2 rounded-lg border-2 border-blue-500 flex flex-col items-center">
                                             <span className="text-[10px] text-slate-400 mb-1">Gr.{i+1}</span>
-                                            <div className="flex flex-wrap gap-1 justify-center" style={{maxWidth:'50px'}}>
-                                                {[...Array(Math.min(Math.floor(b), 10))].map((_,j)=><div key={j} className="w-2 h-2 bg-blue-500 rounded-sm"></div>)}
+                                            <div className="flex flex-wrap gap-1 justify-center" style={{maxWidth:'80px'}}>
+                                                {showExactBlocks ? (
+                                                    // Mostra esattamente `divisor` blocchi
+                                                    [...Array(divisor)].map((_,j) => (
+                                                        <div key={j} className="w-3 h-3 bg-blue-500 rounded-sm"></div>
+                                                    ))
+                                                ) : (
+                                                    // Troppi blocchi: mostra 6 + "..."
+                                                    <>
+                                                        {[...Array(6)].map((_,j) => (
+                                                            <div key={j} className="w-3 h-3 bg-blue-500 rounded-sm"></div>
+                                                        ))}
+                                                        <span className="text-slate-400 text-xs">...</span>
+                                                    </>
+                                                )}
                                             </div>
+                                            <span className="text-xs text-blue-300 mt-1 font-bold">= {divisor}</span>
                                         </div>
                                     ))}
+                                    {floorQuotient > 12 && (
+                                        <div className="bg-slate-800 p-2 rounded-lg border-2 border-dashed border-slate-500 flex flex-col items-center justify-center">
+                                            <span className="text-slate-400 text-lg">...</span>
+                                            <span className="text-xs text-slate-400">+{floorQuotient - 12} altri</span>
+                                        </div>
+                                    )}
                                 </div>
                                 {rem > 0 && (
                                     <div className="bg-slate-800 p-3 rounded-xl border-2 border-yellow-500 self-center">
-                                        <div className="text-sm text-yellow-500 font-bold text-center mb-1">RESTO ({rem})</div>
-                                        <div className="flex gap-1 justify-center">
-                                            {[...Array(Math.floor(rem))].map((_,i)=><div key={i} className="w-3 h-3 bg-yellow-500 rounded-sm"></div>)}
+                                        <div className="text-sm text-yellow-500 font-bold text-center mb-1">⚠️ RESTO</div>
+                                        <div className="flex gap-1 justify-center flex-wrap" style={{maxWidth:'100px'}}>
+                                            {[...Array(Math.min(Math.floor(rem), 15))].map((_,i)=><div key={i} className="w-3 h-3 bg-yellow-500 rounded-sm"></div>)}
                                         </div>
+                                        <div className="text-center text-yellow-400 font-bold mt-1">= {rem}</div>
                                     </div>
                                 )}
                                 <div className="bg-slate-800 p-3 rounded-xl border-2 border-green-500 text-center">
-                                    <div className="text-lg font-bold text-white">
-                                        Risultato: {floorQuotient} <span className="text-sm font-normal text-slate-400">resto {rem}</span>
+                                    <div className="text-sm text-slate-400 mb-1">Ho fatto</div>
+                                    <div className="text-xl font-bold text-green-400">
+                                        {floorQuotient} gruppi
+                                        {rem > 0 && <span className="text-yellow-400 text-base ml-2">+ resto {rem}</span>}
                                     </div>
                                     <div className="text-base text-cyan-400 font-mono border-t border-slate-700 pt-1 mt-1">
-                                        Esatto: {res}
+                                        {a} ÷ {divisor} = {res}
                                     </div>
                                 </div>
                             </div>
