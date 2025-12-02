@@ -256,3 +256,177 @@
                             y: cy + radius * Math.sin(angle) - 70, 
                             w: 200, h: 140, isCentral: false 
                         };
+                    });
+
+                    setNodes([central, ...sats]);
+                    setLines([]); 
+                    DB.addXP(50);
+                    setStage('view');
+                } catch(e) { alert("Errore: " + e.message); setStage('upload'); }
+            };
+
+            const speak = (text) => {
+                window.speechSynthesis.cancel();
+                setAiMessage(text);
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'it-IT'; u.rate = 0.95;
+                u.onend = () => setTimeout(() => setAiMessage(null), 2000);
+                window.speechSynthesis.speak(u);
+            };
+
+            // LOGICA COLLEGAMENTO
+            const handleNodeClick = async (node) => {
+                // 1. Clicco tema centrale -> Legge titolo
+                if(node.isCentral) {
+                    speak(`Tema: ${node.label}. Tocca gli altri concetti per collegarli!`);
+                    return;
+                }
+
+                // 2. Seleziono primo nodo
+                if (!selectedNode) {
+                    setSelectedNode(node);
+                    speak(node.label + ". " + node.content);
+                    return;
+                }
+
+                // 3. Deseleziono
+                if (selectedNode.id === node.id) {
+                    setSelectedNode(null);
+                    return;
+                }
+
+                // 4. Collego
+                const exists = lines.some(l => (l.from === selectedNode.id && l.to === node.id) || (l.from === node.id && l.to === selectedNode.id));
+                
+                if (!exists) {
+                    setLines(prev => [...prev, { from: selectedNode.id, to: node.id }]);
+                    DB.addXP(20);
+                    
+                    setAiMessage("🤔 Analizzo il collegamento...");
+                    const explanation = await AI.explainConnection(selectedNode.label, node.label);
+                    speak(explanation);
+                } else {
+                    speak("Sono già collegati!");
+                }
+                
+                setSelectedNode(null);
+            };
+
+            const reset = () => {
+                if(confirm("Creare nuova mappa?")) {
+                    DB.clear(); setImages([]); setMapData(null); setStage('upload');
+                }
+            };
+
+            // Render Grafico
+            const renderCanvas = () => {
+                return (
+                    <div className="scroll-area" ref={scrollRef}>
+                        <div className="map-canvas">
+                            
+                            {/* Linee */}
+                            <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
+                                {lines.map((line, i) => {
+                                    const n1 = nodes.find(n => n.id === line.from);
+                                    const n2 = nodes.find(n => n.id === line.to);
+                                    if(!n1 || !n2) return null;
+                                    return (
+                                        <line key={i} 
+                                            x1={n1.x + n1.w/2} y1={n1.y + n1.h/2} 
+                                            x2={n2.x + n2.w/2} y2={n2.y + n2.h/2} 
+                                            stroke="#4ade80" strokeWidth="8" strokeLinecap="round"
+                                            className="neon-line"
+                                        />
+                                    );
+                                })}
+                            </svg>
+
+                            {/* Nodi */}
+                            {nodes.map(node => {
+                                const isSel = selectedNode?.id === node.id;
+                                const isConnected = lines.some(l => l.from === node.id || l.to === node.id);
+
+                                return (
+                                    <div key={node.id} 
+                                        className={`node-base 
+                                            ${node.isCentral ? 'node-central' : 'node-satellite'}
+                                            ${isSel ? 'node-selected' : ''}
+                                            ${isConnected && !node.isCentral ? 'node-connected' : ''}
+                                        `}
+                                        style={{ left: node.x, top: node.y, width: node.w, height: node.h }}
+                                        onClick={(e) => { e.stopPropagation(); handleNodeClick(node); }}
+                                    >
+                                        <div className="font-bold text-yellow-300 mb-2 leading-tight text-shadow">{node.label}</div>
+                                        {!node.isCentral && <div className="text-sm text-gray-200 line-clamp-3 leading-snug font-medium">{node.content}</div>}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            };
+
+            if(stage === 'upload') return (
+                <div className="h-full flex flex-col items-center justify-center p-6 gap-6">
+                    <h1 className="text-4xl font-black text-green-400 tracking-tighter">LAVAGNA MAGICA ✨</h1>
+                    <div className="border-2 border-dashed border-slate-600 p-8 rounded-3xl flex flex-col items-center gap-6 bg-slate-800/50 w-full max-w-2xl shadow-2xl">
+                        <div className="flex gap-2 overflow-auto max-w-full p-2 min-h-[90px]">
+                            {images.length === 0 ? <span className="text-slate-500 m-auto">Nessuna foto ancora...</span> : 
+                            images.map((src,i)=><img key={i} src={src} className="h-24 rounded-xl border-2 border-slate-500 shadow-lg"/>)}
+                        </div>
+                        
+                        <label className="btn-upload-big w-full py-6 rounded-2xl font-bold text-2xl cursor-pointer text-white flex items-center justify-center gap-3 shadow-xl">
+                            <input type="file" onChange={addImage} className="hidden" accept="image/*" /> 
+                            📷 SCATTA FOTO
+                        </label>
+                        
+                        {images.length > 0 && (
+                            <button onClick={start} className="w-full bg-green-600 hover:bg-green-500 py-5 rounded-2xl font-bold text-white text-xl animate-pulse shadow-xl transform active:scale-95">
+                                🚀 CREA LA MAPPA!
+                            </button>
+                        )}
+                    </div>
+                    <a href="index.html" className="text-slate-400 bg-slate-800 px-6 py-3 rounded-xl font-bold">🏠 MENU</a>
+                </div>
+            );
+
+            if(stage === 'scanning') return (
+                <div className="h-full flex flex-col items-center justify-center gap-6">
+                    <div className="w-24 h-24 border-8 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                    <h2 className="text-green-400 font-bold text-3xl animate-pulse">STO LEGGENDO... 🧠</h2>
+                </div>
+            );
+
+            return (
+                <div className="h-full flex flex-col bg-slate-900 overflow-hidden">
+                    {/* Toolbar */}
+                    <div className="p-3 flex gap-3 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg">
+                        <a href="index.html" className="bg-slate-700 px-4 py-2 rounded-xl text-white font-bold text-xl">🏠</a>
+                        <div className="flex-1 text-center text-yellow-400 font-bold hidden sm:block animate-pulse text-lg">
+                            {selectedNode ? "👇 TOCCA UN ALTRO PER COLLEGARLI!" : "👆 TOCCA I CONCETTI PER UNIRLI"}
+                        </div>
+                        <button onClick={reset} className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-red-400">
+                            🔄 NUOVA
+                        </button>
+                    </div>
+
+                    {/* Area di Gioco Scrollabile */}
+                    <div className="flex-1 relative bg-slate-900 overflow-hidden">
+                        {renderCanvas()}
+                        
+                        {/* Fumetto AI */}
+                        {aiMessage && (
+                            <div className="ai-bubble animate-fade-in">
+                                <span className="text-3xl">🤖</span>
+                                <span>{aiMessage}</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
