@@ -140,6 +140,20 @@
             bottom: 0;
             overflow: hidden;
         }
+
+        /* SHARE BUTTONS - identici a matematica.html */
+        .share-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .share-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -214,17 +228,26 @@
             const [aiMessage, setAiMessage] = useState(null);
             const scrollRef = useRef(null);
 
+            // NUOVO: Per salvare il percorso di esplorazione
+            const [connectionExplanations, setConnectionExplanations] = useState([]);
+            const [exploredNodes, setExploredNodes] = useState([]);
+            
+            // NUOVO: Menu condivisione
+            const [showShareMenu, setShowShareMenu] = useState(false);
+
             useEffect(() => {
                 try {
                     const saved = DB.load();
                     if(saved && saved.nodes) { 
                         setMapData(saved.mapData); setNodes(saved.nodes); setLines(saved.lines || []);
+                        setConnectionExplanations(saved.connectionExplanations || []);
+                        setExploredNodes(saved.exploredNodes || []);
                         setStage('view'); 
                     }
                 } catch(e) { DB.clear(); }
             }, []);
 
-            useEffect(() => { if(nodes.length) DB.save({ mapData, nodes, lines }); }, [nodes, lines]);
+            useEffect(() => { if(nodes.length) DB.save({ mapData, nodes, lines, connectionExplanations, exploredNodes }); }, [nodes, lines, connectionExplanations, exploredNodes]);
 
             // CENTRATURA MIGLIORATA PER TABLET
             const centerMap = useCallback(() => {
@@ -281,7 +304,9 @@
                     });
 
                     setNodes([central, ...sats]);
-                    setLines([]); 
+                    setLines([]);
+                    setConnectionExplanations([]);
+                    setExploredNodes([]);
                     DB.addXP(50);
                     setStage('view');
                 } catch(e) { alert("Errore: " + e.message); setStage('upload'); }
@@ -300,6 +325,11 @@
                 if(node.isCentral) {
                     speak(`Tema: ${node.label}. Tocca gli altri concetti per collegarli!`);
                     return;
+                }
+
+                // NUOVO: Salva nodo esplorato (se non già presente)
+                if (!exploredNodes.find(n => n.id === node.id)) {
+                    setExploredNodes(prev => [...prev, { id: node.id, label: node.label, content: node.content }]);
                 }
 
                 if (!selectedNode) {
@@ -321,6 +351,14 @@
                     
                     setAiMessage("🤔 Analizzo il collegamento...");
                     const explanation = await AI.explainConnection(selectedNode.label, node.label);
+                    
+                    // NUOVO: Salva la spiegazione del collegamento
+                    setConnectionExplanations(prev => [...prev, {
+                        from: selectedNode.label,
+                        to: node.label,
+                        explanation: explanation
+                    }]);
+                    
                     speak(explanation);
                 } else {
                     speak("Sono già collegati!");
@@ -331,8 +369,118 @@
 
             const reset = () => {
                 if(confirm("Creare nuova mappa?")) {
-                    DB.clear(); setImages([]); setMapData(null); setNodes([]); setLines([]); setStage('upload');
+                    DB.clear(); setImages([]); setMapData(null); setNodes([]); setLines([]); 
+                    setConnectionExplanations([]); setExploredNodes([]);
+                    setStage('upload');
                 }
+            };
+
+            // NUOVO: Genera testo riepilogo
+            const getSummaryText = () => {
+                if (!mapData) return '';
+                
+                const today = new Date().toLocaleDateString('it-IT', { 
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                });
+                
+                let text = `MAPPA MENTALE: ${mapData.theme}\n`;
+                text += `Data: ${today}\n\n`;
+                text += `${'='.repeat(40)}\n\n`;
+                
+                text += `🎯 TEMA CENTRALE\n${mapData.theme}\n\n`;
+                text += `${'─'.repeat(40)}\n\n`;
+                
+                text += `📌 CONCETTI ESPLORATI (${exploredNodes.length}/${nodes.length - 1})\n\n`;
+                if (exploredNodes.length === 0) {
+                    text += `Nessun concetto ancora esplorato.\n\n`;
+                } else {
+                    exploredNodes.forEach((node, i) => {
+                        text += `${i + 1}. ${node.label}\n   💡 ${node.content}\n\n`;
+                    });
+                }
+                text += `${'─'.repeat(40)}\n\n`;
+                
+                text += `🔗 COLLEGAMENTI SCOPERTI (${connectionExplanations.length})\n\n`;
+                if (connectionExplanations.length === 0) {
+                    text += `Nessun collegamento ancora creato.\n\n`;
+                } else {
+                    connectionExplanations.forEach((conn, i) => {
+                        text += `${i + 1}. ${conn.from} ↔ ${conn.to}\n   🤖 "${conn.explanation}"\n\n`;
+                    });
+                }
+                text += `${'─'.repeat(40)}\n\n`;
+                
+                const totalNodes = nodes.length - 1;
+                text += `⭐ STATISTICHE\n`;
+                text += `• Concetti esplorati: ${exploredNodes.length}/${totalNodes}\n`;
+                text += `• Collegamenti trovati: ${connectionExplanations.length}\n`;
+                text += `• XP guadagnati: ${50 + (connectionExplanations.length * 20)}\n\n`;
+                text += `${'='.repeat(40)}\nCreato con EduGamer 🎮\n`;
+                
+                return text;
+            };
+
+            // NUOVO: Condivisione WhatsApp
+            const shareViaWhatsApp = () => {
+                const text = getSummaryText();
+                const msg = encodeURIComponent(text);
+                window.open(`https://wa.me/?text=${msg}`, '_blank');
+                setShowShareMenu(false);
+            };
+
+            // NUOVO: Condivisione Email
+            const shareViaEmail = () => {
+                const text = getSummaryText();
+                const subject = encodeURIComponent(`Mappa Mentale: ${mapData?.theme || 'EduGamer'}`);
+                const body = encodeURIComponent(text);
+                window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+                setShowShareMenu(false);
+            };
+
+            // NUOVO: Salva come file
+            const saveAsFile = () => {
+                const text = getSummaryText();
+                const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `mappa_${mapData?.theme?.replace(/\s+/g, '_') || 'mentale'}_${new Date().toISOString().slice(0,10)}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                setShowShareMenu(false);
+            };
+
+            // NUOVO: Menu condivisione (identico a matematica.html)
+            const renderShareMenu = () => {
+                if(!showShareMenu) return null;
+                
+                return (
+                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setShowShareMenu(false)}>
+                        <div className="bg-slate-800 rounded-2xl p-4 w-full max-w-sm border-2 border-slate-600" onClick={e => e.stopPropagation()}>
+                            <h3 className="text-xl font-bold text-center text-white mb-4">📤 Invia Riepilogo</h3>
+                            
+                            <div className="flex flex-col gap-3">
+                                <button onClick={shareViaWhatsApp} className="share-btn bg-green-600 text-white">
+                                    <span className="text-xl">💬</span> WhatsApp
+                                </button>
+                                
+                                <button onClick={shareViaEmail} className="share-btn bg-blue-600 text-white">
+                                    <span className="text-xl">📧</span> Email
+                                </button>
+                                
+                                <button onClick={saveAsFile} className="share-btn bg-purple-600 text-white">
+                                    <span className="text-xl">💾</span> Salva File
+                                </button>
+                                
+                                <button onClick={() => setShowShareMenu(false)} className="share-btn bg-slate-600 text-white mt-2">
+                                    ✕ Chiudi
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
             };
 
             const renderCanvas = () => {
@@ -422,6 +570,9 @@
                         <button onClick={centerMap} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-blue-400">
                             🎯
                         </button>
+                        <button onClick={() => setShowShareMenu(true)} className="bg-green-600 hover:bg-green-500 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-green-400">
+                            📤
+                        </button>
                         <button onClick={reset} className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-red-400">
                             🔄
                         </button>
@@ -438,11 +589,15 @@
                             </div>
                         )}
                     </div>
+
+                    {/* Menu Condivisione */}
+                    {renderShareMenu()}
                 </div>
             );
         };
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
+    <script src="game-system.js"></script>
 </body>
 </html>
