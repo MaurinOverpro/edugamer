@@ -251,7 +251,7 @@
                 try {
                     const text = await solveProblem(solverImg);
                     setSolution(text);
-                    DB.addXP(50);
+                    if(window.EduGamer) EduGamer.addXP(50, 'matematica', 'problem'); else DB.addXP(50);
                     speak("Ho trovato la soluzione.");
                 } catch(e) { alert("Errore: " + e.message); }
                 setLoading(false);
@@ -587,5 +587,6 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
+	<script src="game-system.js"></script>
 </body>
 </html>

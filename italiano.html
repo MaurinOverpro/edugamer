@@ -1,4 +1,4 @@
-html<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -88,13 +88,7 @@ html<!DOCTYPE html>
         const MODEL = "gemini-2.0-flash";
 
         const DB = {
-            getKey: () => localStorage.getItem('gemini_api_key'),
-            addXP: (amount) => {
-                const next = parseInt(localStorage.getItem('edu_xp') || '0') + amount;
-                localStorage.setItem('edu_xp', next.toString());
-                window.dispatchEvent(new Event('xpChanged'));
-                return next;
-            }
+            getKey: () => localStorage.getItem('gemini_api_key')
         };
 
         // PULIZIA TESTO PER SINTESI VOCALE
@@ -153,6 +147,18 @@ html<!DOCTYPE html>
             const [showShareMenu, setShowShareMenu] = useState(false);
             const textareaRef = useRef(null);
 
+            // Funzione XP con fallback
+            const addXP = (amount, action) => {
+                if (window.EduGamer) {
+                    window.EduGamer.addXP(amount, 'italiano', action);
+                } else {
+                    // Fallback al vecchio sistema
+                    const next = parseInt(localStorage.getItem('edu_xp') || '0') + amount;
+                    localStorage.setItem('edu_xp', next.toString());
+                    window.dispatchEvent(new Event('xpChanged'));
+                }
+            };
+
             const speak = (text) => {
                 window.speechSynthesis.cancel();
                 const cleanText = cleanTextForSpeech(text);
@@ -174,10 +180,10 @@ html<!DOCTYPE html>
                     
                     if(res.length === 0) {
                         speak("Ottimo! Nessun errore trovato!");
-                        DB.addXP(30);
+                        addXP(30, 'perfect'); // Testo perfetto
                     } else {
                         speak(`Ho trovato ${res.length} errori. Tocca le correzioni per applicarle.`);
-                        DB.addXP(10);
+                        addXP(10, 'check'); // Controllo eseguito
                     }
                 } catch(e) { 
                     alert("Errore: " + e.message); 
@@ -195,11 +201,11 @@ html<!DOCTYPE html>
                 setErrors(newErrors);
                 
                 speak(`Corretto! ${err.original} diventa ${err.correction}`);
-                DB.addXP(5);
+                addXP(5, 'fix'); // Singola correzione
                 
                 if(newErrors.length === 0) {
                     speak("Perfetto! Hai corretto tutti gli errori!");
-                    DB.addXP(20);
+                    addXP(20, 'perfect'); // Tutti corretti
                 }
             };
 
@@ -212,7 +218,7 @@ html<!DOCTYPE html>
                 setText(newText);
                 setErrors([]);
                 speak("Ho corretto tutti gli errori!");
-                DB.addXP(30);
+                addXP(30, 'perfect'); // Tutti corretti in blocco
             };
 
             const reset = () => {
@@ -458,5 +464,8 @@ Esempio: Ogi sono andato a scuola e ho imparato tante cose belle la maestra era 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
+    
+    <!-- GAME SYSTEM -->
+    <script src="game-system.js"></script>
 </body>
 </html>
