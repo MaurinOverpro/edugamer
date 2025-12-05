@@ -116,6 +116,8 @@
             const [progress, setProgress] = useState(null);
             const [achievements, setAchievements] = useState([]);
             const [activeTab, setActiveTab] = useState('overview');
+            const [showResetModal, setShowResetModal] = useState(false);
+            const [tapCount, setTapCount] = useState(0);
 
             // Carica dati
             const loadData = () => {
@@ -141,6 +143,33 @@
                 };
             }, []);
 
+            // Reset nascosto: tocca 5 volte velocemente il titolo
+            const handleTitleTap = () => {
+                const newCount = tapCount + 1;
+                setTapCount(newCount);
+                
+                if (newCount >= 5) {
+                    setShowResetModal(true);
+                    setTapCount(0);
+                }
+                
+                // Reset contatore dopo 2 secondi
+                setTimeout(() => setTapCount(0), 2000);
+            };
+
+            // Funzione di reset
+            const performReset = () => {
+                localStorage.removeItem('edu_xp');
+                localStorage.removeItem('edu_level');
+                localStorage.removeItem('edu_achievements');
+                localStorage.removeItem('edu_streak');
+                localStorage.removeItem('edu_stats');
+                localStorage.removeItem('edu_last_activity');
+                localStorage.removeItem('lavagna_interactive_v2');
+                setShowResetModal(false);
+                window.location.reload();
+            };
+
             if (!stats || !level) {
                 return (
                     <div className="h-full flex items-center justify-center">
@@ -150,12 +179,6 @@
             }
 
             const unlockedCount = achievements.filter(a => a.unlocked).length;
-            const rarityColors = {
-                comune: 'from-slate-500 to-slate-600',
-                raro: 'from-blue-500 to-blue-600',
-                epico: 'from-purple-500 to-purple-600',
-                leggendario: 'from-yellow-500 to-yellow-600'
-            };
 
             return (
                 <div className="h-full flex flex-col p-3 gap-3">
@@ -168,7 +191,11 @@
                             <div className="text-4xl">{level.icon}</div>
                             <div className="flex-1">
                                 <div className="flex justify-between items-center mb-1">
-                                    <span className="font-bold text-lg" style={{color: level.color}}>
+                                    <span 
+                                        className="font-bold text-lg select-none" 
+                                        style={{color: level.color}}
+                                        onClick={handleTitleTap}
+                                    >
                                         Lv.{level.level} {level.name}
                                     </span>
                                     <span className="text-yellow-400 font-bold">{stats.totalXP} XP</span>
@@ -449,6 +476,37 @@
                             </div>
                         )}
                     </div>
+
+                    {/* MODAL RESET */}
+                    {showResetModal && (
+                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                            <div className="bg-slate-800 rounded-2xl p-6 w-full max-w-sm border-2 border-red-500">
+                                <div className="text-center mb-4">
+                                    <div className="text-5xl mb-3">⚠️</div>
+                                    <h3 className="text-xl font-bold text-red-400">Reset Progressi</h3>
+                                </div>
+                                
+                                <p className="text-center text-slate-300 mb-6">
+                                    Vuoi azzerare tutti i progressi?
+                                </p>
+                                
+                                <div className="flex gap-3">
+                                    <button 
+                                        onClick={() => setShowResetModal(false)}
+                                        className="flex-1 bg-slate-600 text-white py-3 rounded-xl font-bold active:scale-95"
+                                    >
+                                        Annulla
+                                    </button>
+                                    <button 
+                                        onClick={performReset}
+                                        className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold active:scale-95"
+                                    >
+                                        Azzera
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -458,3 +516,29 @@
     </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
