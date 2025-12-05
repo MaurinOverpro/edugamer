@@ -103,21 +103,12 @@
         .tab-btn.active {
             transform: scale(1.05);
         }
-
-        /* RESET BUTTON HINT */
-        .reset-hint {
-            animation: pulse-red 1s infinite;
-        }
-        @keyframes pulse-red {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect } = React;
 
         const App = () => {
             const [stats, setStats] = useState(null);
@@ -125,12 +116,8 @@
             const [progress, setProgress] = useState(null);
             const [achievements, setAchievements] = useState([]);
             const [activeTab, setActiveTab] = useState('overview');
-            
-            // NUOVO: Stati per reset nascosto
             const [showResetModal, setShowResetModal] = useState(false);
-            const [holdProgress, setHoldProgress] = useState(0);
-            const holdTimerRef = useRef(null);
-            const holdStartRef = useRef(null);
+            const [tapCount, setTapCount] = useState(0);
 
             // Carica dati
             const loadData = () => {
@@ -156,35 +143,22 @@
                 };
             }, []);
 
-            // NUOVO: Gestione pressione prolungata per reset
-            const handleHoldStart = () => {
-                holdStartRef.current = Date.now();
-                setHoldProgress(0);
+            // Reset nascosto: tocca 5 volte velocemente il titolo
+            const handleTitleTap = () => {
+                const newCount = tapCount + 1;
+                setTapCount(newCount);
                 
-                holdTimerRef.current = setInterval(() => {
-                    const elapsed = Date.now() - holdStartRef.current;
-                    const progress = Math.min((elapsed / 3000) * 100, 100);
-                    setHoldProgress(progress);
-                    
-                    if (elapsed >= 3000) {
-                        clearInterval(holdTimerRef.current);
-                        setHoldProgress(0);
-                        setShowResetModal(true);
-                    }
-                }, 50);
-            };
-
-            const handleHoldEnd = () => {
-                if (holdTimerRef.current) {
-                    clearInterval(holdTimerRef.current);
-                    holdTimerRef.current = null;
+                if (newCount >= 5) {
+                    setShowResetModal(true);
+                    setTapCount(0);
                 }
-                setHoldProgress(0);
+                
+                // Reset contatore dopo 2 secondi
+                setTimeout(() => setTapCount(0), 2000);
             };
 
-            // NUOVO: Funzione di reset completo
+            // Funzione di reset
             const performReset = () => {
-                // Rimuove tutti i dati EduGamer
                 localStorage.removeItem('edu_xp');
                 localStorage.removeItem('edu_level');
                 localStorage.removeItem('edu_achievements');
@@ -192,8 +166,6 @@
                 localStorage.removeItem('edu_stats');
                 localStorage.removeItem('edu_last_activity');
                 localStorage.removeItem('lavagna_interactive_v2');
-                
-                // Ricarica la pagina
                 setShowResetModal(false);
                 window.location.reload();
             };
@@ -207,12 +179,6 @@
             }
 
             const unlockedCount = achievements.filter(a => a.unlocked).length;
-            const rarityColors = {
-                comune: 'from-slate-500 to-slate-600',
-                raro: 'from-blue-500 to-blue-600',
-                epico: 'from-purple-500 to-purple-600',
-                leggendario: 'from-yellow-500 to-yellow-600'
-            };
 
             return (
                 <div className="h-full flex flex-col p-3 gap-3">
@@ -225,26 +191,12 @@
                             <div className="text-4xl">{level.icon}</div>
                             <div className="flex-1">
                                 <div className="flex justify-between items-center mb-1">
-                                    {/* NUOVO: Titolo con pressione prolungata per reset */}
                                     <span 
-                                        className="font-bold text-lg select-none cursor-default"
+                                        className="font-bold text-lg select-none" 
                                         style={{color: level.color}}
-                                        onMouseDown={handleHoldStart}
-                                        onMouseUp={handleHoldEnd}
-                                        onMouseLeave={handleHoldEnd}
-                                        onTouchStart={handleHoldStart}
-                                        onTouchEnd={handleHoldEnd}
+                                        onClick={handleTitleTap}
                                     >
                                         Lv.{level.level} {level.name}
-                                        {/* Barra di progresso pressione */}
-                                        {holdProgress > 0 && (
-                                            <div className="h-1 bg-slate-600 rounded mt-1 overflow-hidden">
-                                                <div 
-                                                    className="h-full bg-red-500 transition-all"
-                                                    style={{width: `${holdProgress}%`}}
-                                                ></div>
-                                            </div>
-                                        )}
                                     </span>
                                     <span className="text-yellow-400 font-bold">{stats.totalXP} XP</span>
                                 </div>
@@ -535,32 +487,21 @@
                                 </div>
                                 
                                 <p className="text-center text-slate-300 mb-6">
-                                    Vuoi davvero <strong className="text-red-400">azzerare tutti i progressi</strong>?
-                                    <br/><br/>
-                                    Questa azione cancellerà:
+                                    Vuoi azzerare tutti i progressi?
                                 </p>
-                                
-                                <ul className="text-sm text-slate-400 mb-6 space-y-1">
-                                    <li>• Tutti gli XP accumulati</li>
-                                    <li>• Il livello raggiunto</li>
-                                    <li>• I trofei sbloccati</li>
-                                    <li>• Le statistiche</li>
-                                    <li>• Lo streak</li>
-                                    <li>• Le mappe salvate</li>
-                                </ul>
                                 
                                 <div className="flex gap-3">
                                     <button 
                                         onClick={() => setShowResetModal(false)}
                                         className="flex-1 bg-slate-600 text-white py-3 rounded-xl font-bold active:scale-95"
                                     >
-                                        ✕ Annulla
+                                        Annulla
                                     </button>
                                     <button 
                                         onClick={performReset}
                                         className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold active:scale-95"
                                     >
-                                        🗑️ Azzera Tutto
+                                        Azzera
                                     </button>
                                 </div>
                             </div>
@@ -575,29 +516,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
