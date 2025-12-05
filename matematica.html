@@ -175,6 +175,23 @@
                 .trim();
         };
 
+        // NUOVO: Genera versione ESERCIZIO (senza risultati dei calcoli)
+        const generateExerciseVersion = (text) => {
+            let exercise = cleanTextForShare(text);
+            
+            // Sostituisce i numeri dopo "=" con spazi da compilare
+            // Pattern: numero = numero (es: "12 + 5 = 17" diventa "12 + 5 = ____")
+            exercise = exercise.replace(/(\d+\s*[\+\-\×\*x÷\/]\s*\d+)\s*=\s*(\d+)/gi, '$1 = ______');
+            
+            // Pattern: "= numero" alla fine di una riga o frase
+            exercise = exercise.replace(/=\s*(\d+)(\s|\.|\,|$)/g, '= ______$2');
+            
+            // Nasconde la RISPOSTA FINALE (sostituisce il contenuto dopo "RISPOSTA FINALE")
+            exercise = exercise.replace(/(RISPOSTA FINALE[:\s]*)([\s\S]*?)(?=\n\n|$)/gi, '$1\n\n______________________________\n\n(Scrivi qui la tua risposta)');
+            
+            return exercise;
+        };
+
         const Base10Renderer = ({ num, label }) => {
             if (!num || isNaN(num)) return null;
             const n = Math.min(Math.floor(Math.abs(Number(num))), 999);
@@ -292,6 +309,24 @@
                 setShowShareMenu(false);
             };
 
+            // NUOVO: Salva versione ESERCIZIO (da stampare e compilare)
+            const saveAsExercise = () => {
+                if(!solution) return;
+                const exercise = generateExerciseVersion(solution);
+                const content = `ESERCIZIO DA COMPLETARE - EduGamer\n${'='.repeat(40)}\n\nIstruzioni: Leggi il problema e completa i calcoli!\nPoi confronta con la soluzione completa.\n\n${'='.repeat(40)}\n\n${exercise}\n\n${'='.repeat(40)}\nData: ${new Date().toLocaleDateString('it-IT')}\n\nBuon lavoro! 💪`;
+                
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `esercizio_${new Date().toISOString().slice(0,10)}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                setShowShareMenu(false);
+            };
+
             const renderCalcVisuals = () => {
                 if (!display) return (
                     <div className="flex flex-col items-center justify-center h-full opacity-40 py-8">
@@ -326,7 +361,7 @@
                             <div className="flex flex-col gap-3 w-full pb-8">
                                 <Base10Renderer num={a} label="Totale" />
                                 <div className="text-center text-yellow-400 font-bold py-2 bg-slate-800/50 rounded-xl">
-                                    ⬇️ DIVIDO IN GRUPPI DA {divisor} ⬇️
+                                   ⬇️ DIVIDO IN GRUPPI DA {divisor} ⬇️
                                 </div>
                                 <div className="flex flex-wrap gap-2 justify-center p-3 bg-slate-800/30 rounded-xl">
                                     {[...Array(Math.min(floorQuotient, 12))].map((_, i) => (
@@ -438,7 +473,7 @@
                 );
             };
 
-            // MENU CONDIVISIONE
+            // MENU CONDIVISIONE (aggiornato con opzione Esercizio)
             const renderShareMenu = () => {
                 if(!showShareMenu) return null;
                 
@@ -457,12 +492,22 @@
                                 </button>
                                 
                                 <button onClick={saveAsFile} className="share-btn bg-purple-600 text-white">
-                                    <span className="text-xl">💾</span> Salva File
+                                    <span className="text-xl">💾</span> Salva Soluzione
+                                </button>
+
+                                {/* NUOVO: Pulsante per salvare versione esercizio */}
+                                <button onClick={saveAsExercise} className="share-btn bg-yellow-600 text-white">
+                                    <span className="text-xl">📝</span> Salva Esercizio
                                 </button>
                                 
                                 <button onClick={() => setShowShareMenu(false)} className="share-btn bg-slate-600 text-white mt-2">
                                     ✕ Chiudi
                                 </button>
+                            </div>
+
+                            {/* Spiegazione */}
+                            <div className="mt-4 p-3 bg-slate-700/50 rounded-xl text-xs text-slate-400">
+                                <p><strong className="text-yellow-400">📝 Esercizio:</strong> Versione da stampare con spazi bianchi per i calcoli. Il ragazzo può esercitarsi e poi confrontare con la soluzione!</p>
                             </div>
                         </div>
                     </div>
@@ -587,6 +632,6 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
-	<script src="game-system.js"></script>
+    <script src="game-system.js"></script>
 </body>
 </html>
