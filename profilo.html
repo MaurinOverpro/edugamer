@@ -1,3 +1,6 @@
+Profilo · HTML
+Copia
+
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -170,6 +173,89 @@
                 window.location.reload();
             };
 
+            // Stato per menu report
+            const [showReportMenu, setShowReportMenu] = React.useState(false);
+
+            // Genera testo report
+            const generateReport = () => {
+                const oggi = new Date();
+                const dataReport = oggi.toLocaleDateString('it-IT', { 
+                    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
+                });
+                
+                // Calcola valutazione automatica
+                let valutazione = '';
+                if (stats.currentStreak >= 5) {
+                    valutazione = 'Ottimo! Sta usando l\'app con costanza!';
+                } else if (stats.currentStreak >= 3) {
+                    valutazione = 'Buon utilizzo, continua cosi!';
+                } else if (stats.totalActivities > 0) {
+                    valutazione = 'Ha iniziato a usare l\'app. Incoraggialo a continuare!';
+                } else {
+                    valutazione = 'Non ha ancora usato l\'app questa settimana.';
+                }
+
+                const report = `REPORT EDUGAMER
+${dataReport}
+
+LIVELLO E PROGRESSI
+Livello: ${level.level} - ${level.name}
+XP Totali: ${stats.totalXP}
+Trofei sbloccati: ${achievements.filter(a => a.unlocked).length}/${achievements.length}
+
+COSTANZA
+Streak attuale: ${stats.currentStreak} giorni consecutivi
+Record streak: ${stats.maxStreak} giorni
+
+ATTIVITA COMPLETATE
+Problemi matematica risolti: ${stats.problemsSolved}
+Testi controllati: ${stats.textsChecked}
+Testi perfetti (zero errori): ${stats.perfectTexts}
+Mappe mentali create: ${stats.mapsCreated}
+Domande al tutor: ${stats.tutorQuestions}
+Quiz completati: ${stats.quizCompleted}
+
+VALUTAZIONE
+${valutazione}
+
+---
+Report generato da EduGamer`;
+
+                return report;
+            };
+
+            // Condividi via WhatsApp
+            const shareReportWhatsApp = () => {
+                const report = generateReport();
+                const msg = encodeURIComponent(report);
+                window.open(`https://wa.me/?text=${msg}`, '_blank');
+                setShowReportMenu(false);
+            };
+
+            // Condividi via Email
+            const shareReportEmail = () => {
+                const report = generateReport();
+                const subject = encodeURIComponent(`Report EduGamer - ${new Date().toLocaleDateString('it-IT')}`);
+                const body = encodeURIComponent(report);
+                window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+                setShowReportMenu(false);
+            };
+
+            // Salva come file
+            const saveReportFile = () => {
+                const report = generateReport();
+                const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `report_edugamer_${new Date().toISOString().slice(0,10)}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                setShowReportMenu(false);
+            };
+
             if (!stats || !level) {
                 return (
                     <div className="h-full flex items-center justify-center">
@@ -249,6 +335,14 @@
                             📈 Statistiche
                         </button>
                     </div>
+
+                    {/* PULSANTE INVIA REPORT */}
+                    <button 
+                        onClick={() => setShowReportMenu(true)}
+                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-bold active:scale-95 flex items-center justify-center gap-2 shrink-0"
+                    >
+                        📧 Invia Report ai Genitori
+                    </button>
 
                     {/* CONTENT */}
                     <div className="scroll-area bg-slate-900 rounded-2xl p-4">
@@ -507,6 +601,49 @@
                             </div>
                         </div>
                     )}
+
+                    {/* MODAL REPORT */}
+                    {showReportMenu && (
+                        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setShowReportMenu(false)}>
+                            <div className="bg-slate-800 rounded-2xl p-6 w-full max-w-sm border-2 border-purple-500" onClick={e => e.stopPropagation()}>
+                                <div className="text-center mb-4">
+                                    <div className="text-5xl mb-3">📊</div>
+                                    <h3 className="text-xl font-bold text-purple-400">Invia Report</h3>
+                                </div>
+                                
+                                <p className="text-center text-slate-300 mb-6 text-sm">
+                                    Scegli come inviare il report ai genitori
+                                </p>
+                                
+                                <div className="flex flex-col gap-3">
+                                    <button 
+                                        onClick={shareReportWhatsApp}
+                                        className="w-full bg-green-600 text-white py-3 rounded-xl font-bold active:scale-95 flex items-center justify-center gap-2"
+                                    >
+                                        💬 WhatsApp
+                                    </button>
+                                    <button 
+                                        onClick={shareReportEmail}
+                                        className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold active:scale-95 flex items-center justify-center gap-2"
+                                    >
+                                        📧 Email
+                                    </button>
+                                    <button 
+                                        onClick={saveReportFile}
+                                        className="w-full bg-purple-600 text-white py-3 rounded-xl font-bold active:scale-95 flex items-center justify-center gap-2"
+                                    >
+                                        💾 Salva File
+                                    </button>
+                                    <button 
+                                        onClick={() => setShowReportMenu(false)}
+                                        className="w-full bg-slate-600 text-white py-3 rounded-xl font-bold active:scale-95 mt-2"
+                                    >
+                                        ✕ Chiudi
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -516,3 +653,4 @@
     </script>
 </body>
 </html>
+
