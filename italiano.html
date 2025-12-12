@@ -50,12 +50,8 @@
         }
 
         /* ERRORI */
-        .error-card {
-            transition: all 0.2s;
-        }
-        .error-card:active {
-            transform: scale(0.98);
-        }
+        .error-card { transition: all 0.2s; }
+        .error-card:active { transform: scale(0.98); }
 
         /* TIPO ERRORE */
         .badge-ort { background: #dc2626; }
@@ -85,7 +81,7 @@
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useRef } = React;
-        const MODEL = "gemini-2.5-flash";
+        const MODEL = "gemini-2.5-flash"; // MODELLO AGGIORNATO
 
         const DB = {
             getKey: () => localStorage.getItem('gemini_api_key')
@@ -96,11 +92,6 @@
             return text
                 .replace(/[*#_`~]/g, '')
                 .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
-                .replace(/[\u{2600}-\u{26FF}]/gu, '')
-                .replace(/[\u{2700}-\u{27BF}]/gu, '')
-                .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
-                .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')
-                .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')
                 .replace(/\n+/g, '. ')
                 .replace(/\.+/g, '.')
                 .replace(/\s+/g, ' ')
@@ -111,22 +102,24 @@
             const key = DB.getKey();
             if(!key) throw new Error("Manca API Key! Vai su Home.");
             
-            const prompt = `Sei un correttore di italiano per un ragazzo di 9-10 anni con DSA.
-            
+            // NUOVO PROMPT "SEGUGIO"
+            const prompt = `Sei un correttore esperto e RIGOROSO per la scuola primaria.
             Analizza questo testo: "${text}"
             
-            Trova errori di questi tipi:
-            - ORT = Ortografia (lettere sbagliate, doppie, accenti)
-            - PUN = Punteggiatura (virgole, punti, maiuscole)
-            - SIN = Sintassi (frasi che non hanno senso)
+            OBIETTIVO: Trova TUTTI gli errori in un unico passaggio. Sii ossessivo sulla PUNTEGGIATURA.
             
-            Per ogni errore spiega in modo SEMPLICE perché è sbagliato.
-            Usa spiegazioni brevi, adatte a un ragazzo.
-            
-            Rispondi SOLO con un JSON array, senza altro testo:
-            [{"original":"parola sbagliata", "type":"ORT", "correction":"parola corretta", "explanation":"spiegazione semplice"}]
-            
-            Se non ci sono errori, rispondi: []`;
+            CATEGORIE ERRORE:
+            - ORT (Ortografia): Accenti, doppie, 'h' mancanti, apostrofi, maiuscole.
+            - PUN (Punteggiatura): Virgole negli elenchi, punti fine frase, spazi dopo la virgola.
+            - SIN (Sintassi): Frasi contorte, verbi sbagliati, ripetizioni.
+
+            ISTRUZIONI:
+            1. Se mancano virgole o punti, SEGNALO.
+            2. Spiegazioni TELEGRAFICHE (max 6 parole).
+            3. Se il testo è perfetto, array vuoto.
+
+            Rispondi SOLO con un JSON array valido:
+            [{"original":"testo errato", "type":"ORT", "correction":"correzione", "explanation":"spiegazione"}]`;
             
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -145,29 +138,39 @@
             const [errors, setErrors] = useState(null);
             const [loading, setLoading] = useState(false);
             const [showShareMenu, setShowShareMenu] = useState(false);
+            const [viewMode, setViewMode] = useState('edit'); // 'edit' o 'review'
             const textareaRef = useRef(null);
 
-            // Funzione XP con fallback
+            // Funzione XP
             const addXP = (amount, action) => {
                 if (window.EduGamer) {
                     window.EduGamer.addXP(amount, 'italiano', action);
                 } else {
-                    // Fallback al vecchio sistema
                     const next = parseInt(localStorage.getItem('edu_xp') || '0') + amount;
                     localStorage.setItem('edu_xp', next.toString());
                     window.dispatchEvent(new Event('xpChanged'));
                 }
             };
 
+            // NUOVA FUNZIONE VOCE CON FIX GOOGLE
             const speak = (text) => {
                 window.speechSynthesis.cancel();
                 const cleanText = cleanTextForSpeech(text);
                 const u = new SpeechSynthesisUtterance(cleanText);
+                
+                // FORZA VOCE GOOGLE
+                const voices = window.speechSynthesis.getVoices();
+                const googleVoice = voices.find(v => v.lang.includes('it') && v.name.includes('Google'));
+                const itVoice = voices.find(v => v.lang.includes('it'));
+                if (googleVoice) u.voice = googleVoice;
+                else if (itVoice) u.voice = itVoice;
+
                 u.lang = 'it-IT'; 
                 u.rate = 0.85;
                 window.speechSynthesis.speak(u);
             };
 
+            // HANDLECHECK CHE ATTIVA LA REVISIONE
             const handleCheck = async () => {
                 if(!text.trim()) return;
                 setLoading(true);
@@ -179,16 +182,37 @@
                     setCorrectedText(text);
                     
                     if(res.length === 0) {
-                        speak("Ottimo! Nessun errore trovato!");
-                        addXP(30, 'perfect'); // Testo perfetto
+                        speak("Bravissimo! Non ho trovato nessun errore!");
+                        addXP(30, 'perfect');
                     } else {
-                        speak(`Ho trovato ${res.length} errori. Tocca le correzioni per applicarle.`);
-                        addXP(10, 'check'); // Controllo eseguito
+                        speak(`Ho trovato ${res.length} errori. Guarda le parole sottolineate.`);
+                        setViewMode('review'); // ATTIVA MODALITÀ SOTTOLINEATA
+                        addXP(10, 'check');
                     }
                 } catch(e) { 
                     alert("Errore: " + e.message); 
                 }
                 setLoading(false);
+            };
+
+            // GENERATORE TESTO EVIDENZIATO
+            const renderHighlightedText = () => {
+                if (!errors) return text;
+                
+                let htmlText = text;
+                const sortedErrors = [...errors].sort((a, b) => b.original.length - a.original.length);
+
+                sortedErrors.forEach(err => {
+                    let colorClass = "";
+                    if(err.type === 'ORT') colorClass = "decoration-red-500 bg-red-500/20";
+                    else if(err.type === 'PUN') colorClass = "decoration-yellow-500 bg-yellow-500/20";
+                    else colorClass = "decoration-purple-500 bg-purple-500/20";
+                    
+                    const span = `<span class="underline decoration-wavy decoration-2 ${colorClass} font-bold cursor-pointer" title="${err.explanation}">${err.original}</span>`;
+                    htmlText = htmlText.replace(err.original, span);
+                });
+
+                return <div className="editor-area p-4 whitespace-pre-wrap" dangerouslySetInnerHTML={{__html: htmlText}}></div>;
             };
 
             const fixError = (idx) => {
@@ -201,11 +225,11 @@
                 setErrors(newErrors);
                 
                 speak(`Corretto! ${err.original} diventa ${err.correction}`);
-                addXP(5, 'fix'); // Singola correzione
+                addXP(5, 'fix');
                 
                 if(newErrors.length === 0) {
-                    speak("Perfetto! Hai corretto tutti gli errori!");
-                    addXP(20, 'perfect'); // Tutti corretti
+                    speak("Perfetto! Hai corretto tutto!");
+                    setViewMode('edit');
                 }
             };
 
@@ -218,17 +242,19 @@
                 setText(newText);
                 setErrors([]);
                 speak("Ho corretto tutti gli errori!");
-                addXP(30, 'perfect'); // Tutti corretti in blocco
+                setViewMode('edit');
+                addXP(30, 'perfect');
             };
 
             const reset = () => {
                 setText('');
                 setCorrectedText('');
                 setErrors(null);
+                setViewMode('edit');
                 window.speechSynthesis.cancel();
             };
 
-            // === FUNZIONI CONDIVISIONE ===
+            // === FUNZIONI CONDIVISIONE RIPRISTINATE ===
             const getShareText = () => {
                 let shareContent = `CORREZIONE TESTO - EduGamer\n${'='.repeat(30)}\n\n`;
                 shareContent += `TESTO ORIGINALE:\n${text}\n\n`;
@@ -292,7 +318,7 @@
                 }
             };
 
-            // MENU CONDIVISIONE
+            // MENU CONDIVISIONE RIPRISTINATO
             const renderShareMenu = () => {
                 if(!showShareMenu) return null;
                 
@@ -337,33 +363,48 @@
                     {/* AREA PRINCIPALE */}
                     <div className="flex-1 flex flex-col lg:flex-row gap-3 overflow-hidden">
                         
-                        {/* EDITOR */}
-                        <div className="flex-1 flex flex-col bg-slate-950 rounded-2xl border-2 border-slate-700 overflow-hidden">
+                        {/* EDITOR CON VISTA DOPPIA */}
+                        <div className="flex-1 flex flex-col bg-slate-950 rounded-2xl border-2 border-slate-700 overflow-hidden relative">
                             <div className="p-2 bg-slate-800 border-b border-slate-700 flex justify-between items-center">
-                                <span className="text-sm text-slate-400 font-bold">📝 SCRIVI IL TUO TESTO</span>
-                                <span className="text-xs text-slate-500">{text.length} caratteri</span>
+                                <span className="text-sm text-slate-400 font-bold">
+                                    {viewMode === 'edit' ? '📝 SCRIVI IL TUO TESTO' : '👀 REVISIONE ERRORI'}
+                                </span>
+                                {viewMode === 'review' && (
+                                    <button 
+                                        onClick={() => setViewMode('edit')}
+                                        className="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded-lg text-white"
+                                    >
+                                        ✏️ Torna a modificare
+                                    </button>
+                                )}
                             </div>
-                            <textarea 
-                                ref={textareaRef}
-                                value={text} 
-                                onChange={e => setText(e.target.value)} 
-                                className="editor-area flex-1 bg-slate-950 p-4 text-white outline-none resize-none"
-                                placeholder="Scrivi qui il tuo testo da controllare...
+                            
+                            {viewMode === 'edit' ? (
+                                <textarea 
+                                    ref={textareaRef}
+                                    value={text} 
+                                    onChange={e => setText(e.target.value)} 
+                                    className="editor-area flex-1 bg-slate-950 p-4 text-white outline-none resize-none"
+                                    placeholder="Scrivi qui il tuo testo..."
+                                />
+                            ) : (
+                                <div className="flex-1 bg-slate-900 overflow-y-auto">
+                                    {renderHighlightedText()}
+                                </div>
+                            )}
 
-Esempio: Ogi sono andato a scuola e ho imparato tante cose belle la maestra era molto contenta di me"
-                            />
                             <div className="p-2 bg-slate-800 border-t border-slate-700 flex gap-2">
                                 <button 
                                     onClick={handleCheck} 
                                     disabled={loading || !text.trim()} 
-                                    className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 text-white font-bold py-3 rounded-xl active:scale-95"
+                                    className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 text-white font-bold py-3 rounded-xl active:scale-95 transition-all"
                                 >
-                                    {loading ? '⏳ CONTROLLO...' : '🔍 CONTROLLA TESTO'}
+                                    {loading ? '⏳ CONTROLLO...' : (viewMode === 'edit' ? '🔍 CONTROLLA' : '🔄 RICONTROLLA')}
                                 </button>
                             </div>
                         </div>
 
-                        {/* RISULTATI */}
+                        {/* RISULTATI A LATO */}
                         {errors !== null && (
                             <div className="w-full lg:w-80 flex flex-col bg-slate-800 rounded-2xl border-2 border-slate-600 overflow-hidden animate-fade-in">
                                 <div className="p-3 bg-slate-700 border-b border-slate-600 flex justify-between items-center">
@@ -385,7 +426,6 @@ Esempio: Ogi sono andato a scuola e ho imparato tante cose belle la maestra era 
                                         <div className="flex flex-col items-center justify-center py-8 text-center">
                                             <div className="text-5xl mb-3">🎉</div>
                                             <p className="text-green-400 font-bold text-lg">Nessun errore trovato!</p>
-                                            <p className="text-slate-400 text-sm mt-2">Il tuo testo è scritto bene!</p>
                                         </div>
                                     ) : (
                                         <div className="flex flex-col gap-3">
@@ -397,10 +437,10 @@ Esempio: Ogi sono andato a scuola e ho imparato tante cose belle la maestra era 
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center gap-2 mb-2">
-                                                        <span className="text-red-400 line-through text-lg">{e.original}</span>
+                                                        <span className="text-red-400 line-through decoration-wavy">{e.original}</span>
                                                         <span className="text-slate-500">→</span>
                                                         <span 
-                                                            className="text-green-400 font-bold text-lg cursor-pointer hover:underline"
+                                                            className="text-green-400 font-bold cursor-pointer"
                                                             onClick={() => fixError(i)}
                                                         >
                                                             {e.correction}
@@ -424,7 +464,7 @@ Esempio: Ogi sono andato a scuola e ho imparato tante cose belle la maestra era 
                                 {/* PULSANTI AZIONE */}
                                 <div className="p-3 bg-slate-700 border-t border-slate-600 flex gap-2">
                                     <button 
-                                        onClick={() => speak(errors.length === 0 ? "Nessun errore trovato!" : `Hai ${errors.length} errori da correggere.`)}
+                                        onClick={() => speak(errors.length === 0 ? "Nessun errore trovato!" : `Hai ${errors.length} errori.`)}
                                         className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 rounded-xl text-sm active:scale-95"
                                     >
                                         🔊 Leggi
@@ -440,22 +480,6 @@ Esempio: Ogi sono andato a scuola e ho imparato tante cose belle la maestra era 
                         )}
                     </div>
 
-                    {/* LEGENDA (sempre visibile in basso) */}
-                    <div className="shrink-0 flex gap-4 justify-center text-xs text-slate-500">
-                        <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 rounded badge-ort"></div>
-                            <span>Ortografia</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 rounded badge-pun"></div>
-                            <span>Punteggiatura</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 rounded badge-sin"></div>
-                            <span>Sintassi</span>
-                        </div>
-                    </div>
-
                     {/* MENU CONDIVISIONE */}
                     {renderShareMenu()}
                 </div>
@@ -464,9 +488,6 @@ Esempio: Ogi sono andato a scuola e ho imparato tante cose belle la maestra era 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
-    
-    <!-- GAME SYSTEM -->
     <script src="game-system.js"></script>
-	<script src="game-system.js"></script>
 </body>
 </html>
