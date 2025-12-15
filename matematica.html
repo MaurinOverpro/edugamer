@@ -3,660 +3,1484 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Matematica DSA - EduGamer</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    
-    <link href="https://fonts.cdnfonts.com/css/opendyslexic" rel="stylesheet">
-
+    <title>EduGamer - Matematica</title>
     <style>
-        * { letter-spacing: 0.02em; }
-
-        html, body, #root {
-            height: 100%;
+        @import url('https://fonts.googleapis.com/css2?family=OpenDyslexic:wght@400;700&display=swap');
+        
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'OpenDyslexic', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        
+        .xp-bar-container {
+            background: #e0e0e0;
+            border-radius: 20px;
+            height: 30px;
+            margin: 20px 0;
             overflow: hidden;
-        }
-
-        body { 
-            background-color: #0a0e17; 
-            color: white; 
-            font-family: 'OpenDyslexic', Verdana, sans-serif;
+            position: relative;
         }
         
-        /* BLOCCHI VISIVI */
-        .holo-container {
-            display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px;
-            align-items: center; padding: 8px; background: rgba(0, 0, 0, 0.2);
-            border-radius: 8px; border: 1px dashed #475569; 
-            width: 100%; min-height: 40px;
-        }
-        
-        .unit-block { width: 14px; height: 14px; background: #4ade80; border: 1px solid #166534; border-radius: 2px; flex-shrink: 0; }
-        
-        .ten-block { display: flex; flex-direction: row; border: 1px solid #1e3a8a; border-radius: 2px; overflow: hidden; flex-shrink: 0; }
-        .ten-segment { width: 10px; height: 14px; background: #3b82f6; border-right: 1px solid #1e3a8a; }
-        .ten-segment:last-child { border-right: none; }
-
-        .hundred-block { display: grid; grid-template-columns: repeat(10, 1fr); width: 70px; border: 2px solid #a855f7; border-radius: 2px; flex-shrink: 0; background: #581c87; }
-        .hundred-segment { width: 100%; height: 7px; border: 0.5px solid rgba(168, 85, 247, 0.3); }
-
-        .group-section { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; padding-right: 6px; border-right: 1px solid #334155; margin-right: 4px; }
-        .group-section:last-child { border-right: none; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
-
-        /* TASTIERA COMPATTA */
-        .btn-calc { 
-            font-size: 1.2rem; 
-            font-weight: bold; 
-            border-radius: 10px; 
-            transition: 0.1s; 
-            box-shadow: 0 2px 0 #1e293b; 
-            height: 42px;
+        .xp-bar {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            transition: width 0.5s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-        .btn-calc:active { 
-            transform: translateY(2px); 
-            box-shadow: none; 
-        }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
-        
-        .prose h1, .prose h2 { color: #facc15; font-weight: bold; margin-top: 10px; font-size: 1.1rem; }
-        .prose strong { color: #4ade80; font-weight: bold; }
-        .prose p { margin-bottom: 8px; line-height: 1.6; color: #e2e8f0; }
-
-        /* AREA SCROLLABILE */
-        .scroll-area {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
-        }
-
-        /* SHARE BUTTONS */
-        .share-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            padding: 10px 14px;
-            border-radius: 12px;
+            color: white;
             font-weight: bold;
-            font-size: 0.9rem;
-            transition: all 0.2s;
         }
-        .share-btn:active { transform: scale(0.95); }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            flex: 1;
+            min-width: 120px;
+            padding: 15px;
+            background: #f5f5f5;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'OpenDyslexic', Arial, sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+            touch-action: manipulation;
+        }
+        
+        .tab:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Calculator Section */
+        .calc-display {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            min-height: 60px;
+            font-size: 28px;
+            text-align: right;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .base10-container {
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            min-height: 200px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-content: flex-start;
+        }
+        
+        .base10-block {
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s;
+            min-width: 30px;
+            min-height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .base10-block:hover {
+            transform: scale(1.15);
+        }
+        
+        .base10-block.unit {
+            background: #4CAF50;
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            color: white;
+        }
+        
+        .base10-block.ten {
+            background: #2196F3;
+            width: 30px;
+            height: 100px;
+            border-radius: 5px;
+            color: white;
+            writing-mode: vertical-rl;
+        }
+        
+        .base10-block.hundred {
+            background: #FF9800;
+            width: 100px;
+            height: 100px;
+            border-radius: 5px;
+            color: white;
+            font-size: 24px;
+        }
+        
+        .base10-block.thousand {
+            background: #9C27B0;
+            width: 120px;
+            height: 120px;
+            border-radius: 10px;
+            color: white;
+            font-size: 28px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .calc-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .calc-btn {
+            padding: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            background: #f5f5f5;
+            transition: all 0.2s;
+            font-family: 'OpenDyslexic', Arial, sans-serif;
+            min-height: 60px;
+        }
+        
+        .calc-btn:hover {
+            background: #e0e0e0;
+            transform: scale(1.05);
+        }
+        
+        .calc-btn.operator {
+            background: #667eea;
+            color: white;
+        }
+        
+        .calc-btn.equals {
+            background: #4CAF50;
+            color: white;
+            grid-column: span 2;
+        }
+        
+        /* Problem Solver Section */
+        .problem-step {
+            background: #f9f9f9;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .step-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .problem-text {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-size: 18px;
+            line-height: 1.8;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .problem-text.highlight-last {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .ai-prompt {
+            background: linear-gradient(135deg, #667eea15, #764ba215);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-size: 17px;
+            line-height: 1.6;
+            border-left: 4px solid #667eea;
+        }
+        
+        .input-area {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-family: 'OpenDyslexic', Arial, sans-serif;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            margin: 15px 0;
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .input-area:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .button-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'OpenDyslexic', Arial, sans-serif;
+            transition: all 0.3s;
+            min-height: 50px;
+            touch-action: manipulation;
+        }
+        
+        .button-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .button-secondary {
+            background: #f5f5f5;
+            color: #333;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'OpenDyslexic', Arial, sans-serif;
+            transition: all 0.3s;
+            min-height: 44px;
+        }
+        
+        .button-secondary:hover {
+            background: #e0e0e0;
+            border-color: #667eea;
+        }
+        
+        .numbers-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .number-chip {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .number-chip .remove {
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .blocks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .block-card {
+            background: white;
+            border: 3px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .block-card:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .block-card.completed {
+            border-color: #4CAF50;
+            background: #f1f8f4;
+        }
+        
+        .block-card.active {
+            border-color: #667eea;
+            background: #f5f7ff;
+        }
+        
+        .block-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        
+        .block-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .block-status {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .operation-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        
+        .operation-btn {
+            width: 80px;
+            height: 80px;
+            font-size: 32px;
+            font-weight: bold;
+            border: 3px solid #e0e0e0;
+            border-radius: 15px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .operation-btn:hover {
+            border-color: #667eea;
+            transform: scale(1.1);
+        }
+        
+        .operation-btn.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+        
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .summary-table th,
+        .summary-table td {
+            padding: 15px;
+            text-align: left;
+            font-size: 17px;
+        }
+        
+        .summary-table th {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .summary-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        
+        .summary-table tr.total {
+            background: #f1f8f4;
+            font-weight: bold;
+            font-size: 19px;
+        }
+        
+        .summary-table td.price {
+            text-align: right;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .feedback {
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-size: 17px;
+            line-height: 1.6;
+        }
+        
+        .feedback.success {
+            background: #d4edda;
+            border: 2px solid #4CAF50;
+            color: #155724;
+        }
+        
+        .feedback.error {
+            background: #f8d7da;
+            border: 2px solid #f44336;
+            color: #721c24;
+        }
+        
+        .feedback.info {
+            background: #d1ecf1;
+            border: 2px solid #2196F3;
+            color: #0c5460;
+        }
+        
+        .achievement {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #333;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3);
+        }
+        
+        .techniques-learned {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .techniques-learned h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .techniques-learned ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .techniques-learned li {
+            padding: 10px;
+            margin: 8px 0;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            font-size: 16px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .block-questions {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        
+        .question-item {
+            margin: 20px 0;
+        }
+        
+        .question-label {
+            font-size: 17px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .question-input {
+            width: 100%;
+            max-width: 300px;
+            padding: 12px;
+            font-size: 18px;
+            font-family: 'OpenDyslexic', Arial, sans-serif;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        
+        .question-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .estimation-area {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .estimation-area h4 {
+            color: #856404;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .calc-buttons {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 8px;
+            }
+            
+            .calc-btn {
+                padding: 15px;
+                font-size: 18px;
+                min-height: 50px;
+            }
+            
+            .blocks-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .operation-btn {
+                width: 70px;
+                height: 70px;
+                font-size: 28px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div id="root"></div>
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-        const MODEL = "gemini-2.5-flash-lite"; 
+    <div class="container">
+        <h1>Matematica - EduGamer</h1>
+        
+        <div class="xp-bar-container">
+            <div class="xp-bar" id="xpBar" style="width: 0%">
+                <span id="xpText">0 / 1000 XP</span>
+            </div>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('calculator')">Calcolatrice</button>
+            <button class="tab" onclick="switchTab('tables')">Tabelline</button>
+            <button class="tab" onclick="switchTab('problems')">Risolvi Problemi</button>
+        </div>
+        
+        <!-- CALCULATOR TAB -->
+        <div id="calculator" class="tab-content active">
+            <h2 style="color: #667eea; margin-bottom: 20px;">Calcolatrice Base10</h2>
+            <div class="calc-display" id="calcDisplay">0</div>
+            
+            <div class="base10-container" id="base10Visual"></div>
+            
+            <div class="calc-buttons">
+                <button class="calc-btn" onclick="appendNumber('7')">7</button>
+                <button class="calc-btn" onclick="appendNumber('8')">8</button>
+                <button class="calc-btn" onclick="appendNumber('9')">9</button>
+                <button class="calc-btn operator" onclick="appendOperator('+')">+</button>
+                
+                <button class="calc-btn" onclick="appendNumber('4')">4</button>
+                <button class="calc-btn" onclick="appendNumber('5')">5</button>
+                <button class="calc-btn" onclick="appendNumber('6')">6</button>
+                <button class="calc-btn operator" onclick="appendOperator('-')">−</button>
+                
+                <button class="calc-btn" onclick="appendNumber('1')">1</button>
+                <button class="calc-btn" onclick="appendNumber('2')">2</button>
+                <button class="calc-btn" onclick="appendNumber('3')">3</button>
+                <button class="calc-btn operator" onclick="appendOperator('*')">×</button>
+                
+                <button class="calc-btn" onclick="appendNumber('0')">0</button>
+                <button class="calc-btn" onclick="clearCalc()">C</button>
+                <button class="calc-btn equals" onclick="calculate()">=</button>
+            </div>
+        </div>
+        
+        <!-- TABLES TAB -->
+        <div id="tables" class="tab-content">
+            <h2 style="color: #667eea; margin-bottom: 20px;">Tabelline</h2>
+            <div style="text-align: center; margin: 30px 0;">
+                <label style="font-size: 18px; font-weight: bold;">Seleziona tabellina:</label>
+                <select id="tableSelect" onchange="showTable()" style="margin-left: 15px; padding: 10px; font-size: 18px; border-radius: 8px; border: 2px solid #667eea; font-family: 'OpenDyslexic', Arial, sans-serif;">
+                    <option value="2">Tabellina del 2</option>
+                    <option value="3">Tabellina del 3</option>
+                    <option value="4">Tabellina del 4</option>
+                    <option value="5">Tabellina del 5</option>
+                    <option value="6">Tabellina del 6</option>
+                    <option value="7">Tabellina del 7</option>
+                    <option value="8">Tabellina del 8</option>
+                    <option value="9">Tabellina del 9</option>
+                    <option value="10">Tabellina del 10</option>
+                </select>
+            </div>
+            <div id="tableDisplay" style="background: #f9f9f9; padding: 30px; border-radius: 15px; font-size: 20px; line-height: 2;"></div>
+        </div>
+        
+        <!-- PROBLEMS TAB -->
+        <div id="problems" class="tab-content">
+            <h2 style="color: #667eea; margin-bottom: 20px;">Risoluzione Guidata</h2>
+            
+            <!-- Problem Input -->
+            <div id="problemInput" class="problem-step">
+                <div class="ai-prompt">
+                    Inserisci il testo del problema da risolvere. Puoi copiarlo dal libro o scriverlo tu.
+                </div>
+                <textarea id="problemTextInput" class="input-area" placeholder="Es: Marco ha 1500 figurine. Ne regala 350 a Luca e 275 a Sara. Quante figurine gli rimangono?"></textarea>
+                <button class="button-primary" onclick="startProblemSolving()">Inizia</button>
+            </div>
+            
+            <!-- Step 1: DISCOVER -->
+            <div id="step1" class="problem-step hidden">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">DISCOVER - Analizza il Problema</div>
+                </div>
+                <div class="problem-text" id="problemDisplay"></div>
+                <div class="ai-prompt">
+                    Leggi attentamente il testo. Chi è il protagonista della storia? Cosa deve fare o scoprire?
+                </div>
+                <textarea id="step1Answer" class="input-area" placeholder="Scrivi qui la tua risposta..."></textarea>
+                <button class="button-primary" onclick="validateStep1()">Continua</button>
+            </div>
+            
+            <!-- Step 2: IDENTIFY -->
+            <div id="step2" class="problem-step hidden">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">IDENTIFY - Identifica l'Obiettivo</div>
+                </div>
+                <div class="problem-text highlight-last" id="problemDisplay2"></div>
+                <div class="ai-prompt">
+                    Guarda l'ultima domanda del problema. Cosa ti chiede esattamente di trovare? Qual è il tuo obiettivo?
+                </div>
+                <textarea id="step2Answer" class="input-area" placeholder="Es: devo trovare quante figurine rimangono"></textarea>
+                <button class="button-primary" onclick="validateStep2()">Continua</button>
+            </div>
+            
+            <!-- Step 3: SCAN -->
+            <div id="step3" class="problem-step hidden">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title">SCAN - Analizza i Dati</div>
+                </div>
+                <div class="problem-text" id="problemDisplay3"></div>
+                <div class="ai-prompt">
+                    Trova tutti i numeri presenti nel testo. Cerca sia le quantità (quante cose) sia i valori (prezzi, misure). Elencali qui sotto.
+                </div>
+                <div style="display: flex; gap: 10px; margin: 15px 0;">
+                    <input type="text" id="numberInput" class="input-area" style="flex: 1; min-height: 50px;" placeholder="Scrivi un numero e premi Aggiungi">
+                    <button class="button-secondary" onclick="addNumber()" style="width: 150px;">Aggiungi</button>
+                </div>
+                <div class="numbers-list" id="numbersList"></div>
+                <div id="step3Feedback" class="feedback hidden"></div>
+                <button class="button-primary" onclick="validateStep3()">Ho finito</button>
+            </div>
+            
+            <!-- Step 4: CHUNK -->
+            <div id="step4" class="problem-step hidden">
+                <div class="step-header">
+                    <div class="step-number">4</div>
+                    <div class="step-title">CHUNK - Dividi in Sotto-Problemi</div>
+                </div>
+                <div class="ai-prompt" id="chunkPrompt"></div>
+                <div class="blocks-grid" id="blocksGrid"></div>
+                <div id="step4Feedback" class="feedback hidden"></div>
+                <button class="button-primary" onclick="validateStep4()">Continua</button>
+            </div>
+            
+            <!-- Step 5: OPERATE -->
+            <div id="step5" class="problem-step hidden">
+                <div class="step-header">
+                    <div class="step-number">5</div>
+                    <div class="step-title">OPERATE - Risolvi i Sotto-Problemi</div>
+                </div>
+                <div id="currentBlockWork"></div>
+                <div id="step5Feedback" class="feedback hidden"></div>
+            </div>
+            
+            <!-- Step 6: VERIFY -->
+            <div id="step6" class="problem-step hidden">
+                <div class="step-header">
+                    <div class="step-number">6</div>
+                    <div class="step-title">VERIFY - Verifica e Calcola</div>
+                </div>
+                <div class="ai-prompt">
+                    Ecco il riepilogo di tutti i calcoli. Prima di procedere, ragiona: il risultato finale ti sembra ragionevole?
+                </div>
+                <table class="summary-table" id="summaryTable"></table>
+                
+                <div class="estimation-area">
+                    <h4>Stima Preventiva</h4>
+                    <p>Secondo te, quale potrebbe essere il risultato finale? Fai una stima approssimativa prima di calcolarlo.</p>
+                    <input type="text" id="estimationInput" class="question-input" placeholder="La tua stima">
+                    <button class="button-secondary" onclick="submitEstimation()" style="margin-left: 15px;">Conferma</button>
+                </div>
+                
+                <div id="estimationFeedback" class="feedback hidden"></div>
+                
+                <div style="margin-top: 25px;">
+                    <div class="ai-prompt">
+                        Ora calcola il risultato finale. Puoi usare la calcolatrice o fare i calcoli manualmente.
+                    </div>
+                    <input type="text" id="finalAnswer" class="question-input" placeholder="Risultato finale" style="width: 100%; max-width: 400px;">
+                    <button class="button-primary" onclick="validateStep6()" style="margin-top: 15px;">Verifica</button>
+                </div>
+                <div id="step6Feedback" class="feedback hidden"></div>
+            </div>
+            
+            <!-- Step 7: EXPRESS -->
+            <div id="step7" class="problem-step hidden">
+                <div class="step-header">
+                    <div class="step-number">7</div>
+                    <div class="step-title">EXPRESS - Soluzione e Riflessione</div>
+                </div>
+                <div class="achievement" id="finalAchievement"></div>
+                <div class="techniques-learned">
+                    <h3>Tecniche Apprese</h3>
+                    <ul id="techniquesList"></ul>
+                </div>
+                <button class="button-primary" onclick="resetProblem()">Risolvi un Nuovo Problema</button>
+            </div>
+        </div>
+    </div>
 
-        const DB = {
-            getKey: () => localStorage.getItem('gemini_api_key'),
-            addXP: (amount) => {
-                const next = parseInt(localStorage.getItem('edu_xp') || '0') + amount;
-                localStorage.setItem('edu_xp', next.toString());
-                window.dispatchEvent(new Event('xpChanged'));
-                return next;
-            }
+    <script>
+        // =====================================
+        // GLOBAL STATE
+        // =====================================
+        let xp = 0;
+        const maxXP = 1000;
+        let currentExpression = '';
+        
+        const problemState = {
+            text: '',
+            protagonist: '',
+            goal: '',
+            numbers: [],
+            blocks: [],
+            blockResults: {},
+            currentBlockIndex: 0,
+            finalAnswer: null,
+            techniques: []
         };
-
-        const solveProblem = async (img) => {
-            const key = DB.getKey();
-            if(!key) throw new Error("Manca API Key!");
-            const prompt = `Sei un maestro di sostegno per un ragazzo di 9-10 anni con DSA.
-            Risolvi questo problema in modo CHIARO e SEMPLICE.
-            
-            Struttura la risposta così:
-            # TESTO DEL PROBLEMA
-            # DATI (cosa sappiamo)
-            # RAGIONAMENTO (come lo risolvo)
-            # CALCOLI (passo per passo)
-            # RISPOSTA FINALE
-            
-            Usa linguaggio semplice, frasi corte.
-            Puoi usare emoji ma solo all'inizio delle sezioni.`;
-            
-            const body = { contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] } }] }] };
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
-                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+        
+        const API_KEY = 'YOUR_API_KEY_HERE'; // User should replace this
+        const MODEL = 'gemini-2.5-flash-lite';
+        
+        // =====================================
+        // TAB SWITCHING
+        // =====================================
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
             });
-            if(!res.ok) throw new Error("Errore AI");
-            const data = await res.json();
-            return data.candidates[0].content.parts[0].text;
-        };
-
-        // PULIZIA TESTO PER SINTESI VOCALE
-        const cleanTextForSpeech = (text) => {
-            return text
-                .replace(/[*#_`~]/g, '')
-                .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
-                .replace(/[\u{2600}-\u{26FF}]/gu, '')
-                .replace(/[\u{2700}-\u{27BF}]/gu, '')
-                .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
-                .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')
-                .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')
-                .replace(/[\u{2300}-\u{23FF}]/gu, '')
-                .replace(/[\u{2B50}]/gu, '')
-                .replace(/[\u{1F4D0}-\u{1F4FF}]/gu, '')
-                .replace(/[\u{270F}-\u{2712}]/gu, '')
-                .replace(/[\u{2705}]/gu, '')
-                .replace(/[\u{1F9E0}]/gu, '')
-                .replace(/[\u{1F50D}]/gu, '')
-                .replace(/\n+/g, '. ')
-                .replace(/\.+/g, '.')
-                .replace(/\s+/g, ' ')
-                .trim();
-        };
-
-        // PULIZIA PER CONDIVISIONE (rimuove markdown ma mantiene struttura)
-        const cleanTextForShare = (text) => {
-            return text
-                .replace(/#{1,3}\s*/g, '')
-                .replace(/\*\*/g, '')
-                .replace(/\*/g, '')
-                .replace(/_/g, '')
-                .trim();
-        };
-
-        // NUOVO: Genera versione ESERCIZIO (senza risultati dei calcoli, senza emoji)
-        const generateExerciseVersion = (text) => {
-            let exercise = cleanTextForShare(text);
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
             
-            // Rimuove TUTTE le emoji per evitare caratteri strani nel file .txt
-            exercise = exercise
-                .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
-                .replace(/[\u{2600}-\u{26FF}]/gu, '')
-                .replace(/[\u{2700}-\u{27BF}]/gu, '')
-                .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
-                .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')
-                .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')
-                .replace(/[\u{2300}-\u{23FF}]/gu, '')
-                .replace(/[\u{2B50}]/gu, '')
-                .replace(/[\u{1F4D0}-\u{1F4FF}]/gu, '')
-                .replace(/[\u{270F}-\u{2712}]/gu, '')
-                .replace(/[\u{2705}]/gu, '')
-                .replace(/[\u{1F9E0}]/gu, '')
-                .replace(/[\u{1F50D}]/gu, '')
-                .replace(/[\u{00A9}\u{00AE}]/gu, '')
-                .replace(/[\u{203C}\u{2049}]/gu, '')
-                .replace(/[\u{20E3}]/gu, '')
-                .replace(/[\u{FE00}-\u{FE0F}]/gu, '')
-                .replace(/[\u{1F000}-\u{1FFFF}]/gu, '');
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
             
-            // Sostituisce i numeri dopo "=" con spazi da compilare
-            exercise = exercise.replace(/(\d+\s*[\+\-\×\*x÷\/]\s*\d+)\s*=\s*(\d+)/gi, '$1 = ______');
-            exercise = exercise.replace(/=\s*(\d+)(\s|\.|\,|$)/g, '= ______$2');
+            // Initialize tab if needed
+            if (tabName === 'tables') {
+                showTable();
+            }
+        }
+        
+        // =====================================
+        // XP SYSTEM
+        // =====================================
+        function addXP(amount) {
+            xp = Math.min(xp + amount, maxXP);
+            updateXPBar();
+        }
+        
+        function updateXPBar() {
+            const percentage = (xp / maxXP) * 100;
+            document.getElementById('xpBar').style.width = percentage + '%';
+            document.getElementById('xpText').textContent = `${xp} / ${maxXP} XP`;
+        }
+        
+        // =====================================
+        // CALCULATOR
+        // =====================================
+        function appendNumber(num) {
+            if (currentExpression === '0') {
+                currentExpression = num;
+            } else {
+                currentExpression += num;
+            }
+            updateDisplay();
+        }
+        
+        function appendOperator(op) {
+            const last = currentExpression.slice(-1);
+            if (['+', '-', '*', '/'].includes(last)) {
+                currentExpression = currentExpression.slice(0, -1) + op;
+            } else {
+                currentExpression += op;
+            }
+            updateDisplay();
+        }
+        
+        function clearCalc() {
+            currentExpression = '0';
+            updateDisplay();
+        }
+        
+        function updateDisplay() {
+            const display = currentExpression.replace(/\*/g, '×').replace(/\//g, '÷');
+            document.getElementById('calcDisplay').textContent = display || '0';
+            visualizeBase10(parseCurrentNumber());
+        }
+        
+        function parseCurrentNumber() {
+            const parts = currentExpression.split(/[\+\-\*\/]/);
+            const lastNumber = parts[parts.length - 1];
+            return parseInt(lastNumber) || 0;
+        }
+        
+        function calculate() {
+            try {
+                const result = eval(currentExpression);
+                currentExpression = result.toString();
+                updateDisplay();
+                addXP(10);
+            } catch (e) {
+                currentExpression = 'Errore';
+                updateDisplay();
+            }
+        }
+        
+        function visualizeBase10(number) {
+            const container = document.getElementById('base10Visual');
+            container.innerHTML = '';
             
-            // Nasconde la RISPOSTA FINALE
-            exercise = exercise.replace(/(RISPOSTA FINALE[:\s]*)([\s\S]*?)(?=\n\n|$)/gi, '$1\n\n______________________________\n\n(Scrivi qui la tua risposta)');
-            
-            return exercise;
-        };
-
-        const Base10Renderer = ({ num, label }) => {
-            if (!num || isNaN(num)) return null;
-            const n = Math.min(Math.floor(Math.abs(Number(num))), 999);
-            if (n > 500) return <div className="p-2 bg-slate-800/50 rounded text-xs text-yellow-400 mb-1">Numero grande: {n}</div>;
-            
-            const hundreds = Math.floor(n / 100);
-            const tens = Math.floor((n % 100) / 10);
-            const units = n % 10;
-
-            return (
-                <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700 w-full animate-fade-in mb-3">
-                    <div className="flex justify-between items-center mb-2">
-                        {label && <div className="text-sm text-slate-300 font-bold uppercase">{label}: <span className="text-white text-lg">{n}</span></div>}
-                        <div className="flex gap-2 text-[9px] uppercase tracking-wider text-slate-500">
-                            <div className="flex items-center gap-1"><div className="w-2 h-2 border border-[#a855f7] bg-[#581c87]"></div>100</div>
-                            <div className="flex items-center gap-1"><div className="w-2 h-2 bg-[#3b82f6]"></div>10</div>
-                            <div className="flex items-center gap-1"><div className="w-2 h-2 bg-[#4ade80]"></div>1</div>
-                        </div>
-                    </div>
-                    <div className="holo-container">
-                        {hundreds > 0 && <div className="group-section">{[...Array(hundreds)].map((_, i) => <div key={`h-${i}`} className="hundred-block">{[...Array(100)].map((_, j) => <div key={j} className="hundred-segment"></div>)}</div>)}</div>}
-                        {tens > 0 && <div className="group-section">{[...Array(tens)].map((_, i) => <div key={`t-${i}`} className="ten-block">{[...Array(10)].map((_, j) => <div key={j} className="ten-segment"></div>)}</div>)}</div>}
-                        {units > 0 && <div className="group-section" style={{borderRight:'none'}}>{[...Array(units)].map((_, i) => <div key={`u-${i}`} className="unit-block"></div>)}</div>}
-                    </div>
-                </div>
-            );
-        };
-
-        const App = () => {
-            const [mode, setMode] = useState('calc');
-            const [display, setDisplay] = useState('');
-            const [solverImg, setSolverImg] = useState(null);
-            const [solution, setSolution] = useState(null);
-            const [loading, setLoading] = useState(false);
-            const [visualizerNum, setVisualizerNum] = useState('');
-            const [highlight, setHighlight] = useState({ r: null, c: null });
-            const [showShareMenu, setShowShareMenu] = useState(false);
-
-            const speak = (text) => {
-                window.speechSynthesis.cancel();
-                const cleanText = cleanTextForSpeech(text);
-                const u = new SpeechSynthesisUtterance(cleanText);
-                u.lang = 'it-IT'; 
-                u.rate = 0.85;
-                u.pitch = 1.0;
-                window.speechSynthesis.speak(u);
-            };
-
-            const handleBtn = (v) => {
-                if(v === 'C') setDisplay('');
-                else if(v === '⌫') setDisplay(p => p.slice(0, -1));
-                else if(v === '=') {
-                    try { 
-                        let resVal = eval(display);
-                        resVal = Math.round(resVal * 100) / 100;
-                        setDisplay(resVal.toString()); 
-                    } catch { setDisplay('Err'); }
-                } else {
-                    setDisplay(p => p + v);
+            if (number <= 0 || number > 9999) {
+                if (number > 9999) {
+                    container.innerHTML = `<div style="padding: 20px; text-align: center; font-size: 32px; font-weight: bold; color: #9C27B0;">${number.toLocaleString('it-IT')}</div>`;
                 }
-            };
-
-            const handleUpload = (e) => {
-                const f = e.target.files[0]; if(!f) return;
-                const r = new FileReader();
-                r.onload = (evt) => setSolverImg(evt.target.result);
-                r.readAsDataURL(f);
-                setSolution(null);
-            };
+                return;
+            }
             
-            const runSolver = async () => {
-                if(!solverImg) return;
-                setLoading(true);
+            const thousands = Math.floor(number / 1000);
+            const hundreds = Math.floor((number % 1000) / 100);
+            const tens = Math.floor((number % 100) / 10);
+            const units = number % 10;
+            
+            // Thousands
+            for (let i = 0; i < thousands; i++) {
+                const block = document.createElement('div');
+                block.className = 'base10-block thousand';
+                block.textContent = '1000';
+                container.appendChild(block);
+            }
+            
+            // Hundreds
+            for (let i = 0; i < hundreds; i++) {
+                const block = document.createElement('div');
+                block.className = 'base10-block hundred';
+                block.textContent = '100';
+                container.appendChild(block);
+            }
+            
+            // Tens
+            for (let i = 0; i < tens; i++) {
+                const block = document.createElement('div');
+                block.className = 'base10-block ten';
+                block.textContent = '10';
+                container.appendChild(block);
+            }
+            
+            // Units
+            for (let i = 0; i < units; i++) {
+                const block = document.createElement('div');
+                block.className = 'base10-block unit';
+                block.textContent = '1';
+                container.appendChild(block);
+            }
+        }
+        
+        // =====================================
+        // TABLES
+        // =====================================
+        function showTable() {
+            const num = parseInt(document.getElementById('tableSelect').value);
+            const display = document.getElementById('tableDisplay');
+            let html = '';
+            
+            for (let i = 1; i <= 10; i++) {
+                html += `<div style="padding: 10px; ${i % 2 === 0 ? 'background: white;' : ''} border-radius: 8px;">${num} × ${i} = ${num * i}</div>`;
+            }
+            
+            display.innerHTML = html;
+        }
+        
+        // =====================================
+        // PROBLEM SOLVER - DISCOVER METHOD
+        // =====================================
+        
+        function startProblemSolving() {
+            const text = document.getElementById('problemTextInput').value.trim();
+            if (!text) {
+                alert('Inserisci il testo del problema prima di iniziare.');
+                return;
+            }
+            
+            problemState.text = text;
+            problemState.numbers = [];
+            problemState.blocks = [];
+            problemState.blockResults = {};
+            problemState.currentBlockIndex = 0;
+            problemState.techniques = [];
+            
+            // Hide input, show step 1
+            document.getElementById('problemInput').classList.add('hidden');
+            document.getElementById('step1').classList.remove('hidden');
+            document.getElementById('problemDisplay').textContent = text;
+        }
+        
+        // STEP 1: DISCOVER
+        function validateStep1() {
+            const answer = document.getElementById('step1Answer').value.trim();
+            if (!answer) {
+                alert('Scrivi la tua risposta prima di continuare.');
+                return;
+            }
+            
+            problemState.protagonist = answer;
+            addXP(20);
+            
+            // Move to step 2
+            document.getElementById('step1').classList.add('hidden');
+            document.getElementById('step2').classList.remove('hidden');
+            document.getElementById('problemDisplay2').textContent = problemState.text;
+        }
+        
+        // STEP 2: IDENTIFY
+        function validateStep2() {
+            const answer = document.getElementById('step2Answer').value.trim();
+            if (!answer) {
+                alert('Scrivi cosa devi trovare prima di continuare.');
+                return;
+            }
+            
+            problemState.goal = answer;
+            addXP(20);
+            
+            // Move to step 3
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step3').classList.remove('hidden');
+            document.getElementById('problemDisplay3').textContent = problemState.text;
+        }
+        
+        // STEP 3: SCAN
+        function addNumber() {
+            const input = document.getElementById('numberInput');
+            const value = input.value.trim();
+            
+            if (!value) return;
+            
+            problemState.numbers.push(value);
+            input.value = '';
+            
+            renderNumbersList();
+        }
+        
+        function renderNumbersList() {
+            const list = document.getElementById('numbersList');
+            list.innerHTML = '';
+            
+            problemState.numbers.forEach((num, index) => {
+                const chip = document.createElement('div');
+                chip.className = 'number-chip';
+                chip.innerHTML = `
+                    <span>${num}</span>
+                    <span class="remove" onclick="removeNumber(${index})">×</span>
+                `;
+                list.appendChild(chip);
+            });
+        }
+        
+        function removeNumber(index) {
+            problemState.numbers.splice(index, 1);
+            renderNumbersList();
+        }
+        
+        function validateStep3() {
+            if (problemState.numbers.length === 0) {
+                document.getElementById('step3Feedback').className = 'feedback error';
+                document.getElementById('step3Feedback').textContent = 'Aggiungi almeno un numero prima di continuare.';
+                document.getElementById('step3Feedback').classList.remove('hidden');
+                return;
+            }
+            
+            addXP(30);
+            
+            // Analyze and create blocks automatically
+            analyzeAndCreateBlocks();
+            
+            // Move to step 4
+            document.getElementById('step3').classList.add('hidden');
+            document.getElementById('step4').classList.remove('hidden');
+        }
+        
+        // STEP 4: CHUNK
+        function analyzeAndCreateBlocks() {
+            // For this implementation, we'll use AI to suggest blocks
+            // For now, simple heuristic: create blocks based on problem structure
+            
+            const promptText = `Analizza questo problema e identifica i sotto-problemi (blocchi) da risolvere:
+
+"${problemState.text}"
+
+Numeri trovati: ${problemState.numbers.join(', ')}
+
+Rispondi SOLO con un JSON in questo formato:
+{
+  "blocks": [
+    {"name": "Blocco 1", "description": "breve descrizione", "icon": "emoji"},
+    {"name": "Blocco 2", "description": "breve descrizione", "icon": "emoji"}
+  ],
+  "prompt": "Frase per lo studente che spiega i blocchi"
+}`;
+
+            // Call AI
+            callGeminiAPI(promptText, (response) => {
                 try {
-                    const text = await solveProblem(solverImg);
-                    setSolution(text);
-                    if(window.EduGamer) EduGamer.addXP(50, 'matematica', 'problem'); else DB.addXP(50);
-                    speak("Ho trovato la soluzione.");
-                } catch(e) { alert("Errore: " + e.message); }
-                setLoading(false);
-            };
-
-            // === FUNZIONI CONDIVISIONE ===
-            const shareViaWhatsApp = () => {
-                if(!solution) return;
-                const text = cleanTextForShare(solution);
-                const msg = encodeURIComponent(`📚 PROBLEMA RISOLTO\n\n${text}\n\n✅ Risolto con EduGamer`);
-                window.open(`https://wa.me/?text=${msg}`, '_blank');
-                setShowShareMenu(false);
-            };
-
-            const shareViaEmail = () => {
-                if(!solution) return;
-                const text = cleanTextForShare(solution);
-                const subject = encodeURIComponent('Problema di matematica risolto - EduGamer');
-                const body = encodeURIComponent(`Ciao!\n\nEcco il problema che ho risolto:\n\n${text}\n\n---\nRisolto con EduGamer 📚`);
-                window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
-                setShowShareMenu(false);
-            };
-
-            const saveAsFile = () => {
-                if(!solution) return;
-                const text = cleanTextForShare(solution);
-                const content = `PROBLEMA RISOLTO - EduGamer\n${'='.repeat(40)}\n\n${text}\n\n${'='.repeat(40)}\nData: ${new Date().toLocaleDateString('it-IT')}`;
-                
-                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `problema_${new Date().toISOString().slice(0,10)}.txt`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                setShowShareMenu(false);
-            };
-
-            // NUOVO: Salva versione ESERCIZIO (da stampare e compilare)
-            const saveAsExercise = () => {
-                if(!solution) return;
-                const exercise = generateExerciseVersion(solution);
-                const content = `ESERCIZIO DA COMPLETARE - EduGamer\n${'='.repeat(40)}\n\nIstruzioni: Leggi il problema e completa i calcoli!\nPoi confronta con la soluzione completa.\n\n${'='.repeat(40)}\n\n${exercise}\n\n${'='.repeat(40)}\nData: ${new Date().toLocaleDateString('it-IT')}\n\nBuon lavoro!`;
-                
-                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `esercizio_${new Date().toISOString().slice(0,10)}.txt`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                setShowShareMenu(false);
-            };
-
-            const renderCalcVisuals = () => {
-                if (!display) return (
-                    <div className="flex flex-col items-center justify-center h-full opacity-40 py-8">
-                        <div className="text-5xl mb-3">🔢</div>
-                        <p className="text-base">Scrivi un numero o un'operazione</p>
-                        <p className="text-xs text-slate-500 mt-1">Es: 25 + 13</p>
-                    </div>
-                );
-                
-                const match = display.match(/^(\d+(?:\.\d+)?)([\+\-\*\/])(\d+(?:\.\d+)?)$/);
-                
-                if (match) {
-                    const [_, n1, op, n2] = match;
-                    const a = parseFloat(n1), b = parseFloat(n2);
+                    const data = JSON.parse(response);
+                    problemState.blocks = data.blocks;
                     
-                    let resVal = 0;
-                    if (op==='+') resVal = a+b; 
-                    if (op==='-') resVal = a-b; 
-                    if (op==='*') resVal = a*b; 
-                    if (op==='/') resVal = b!==0 ? a/b : 0;
-                    const res = Math.round(resVal * 100) / 100;
-
-                    if (op === '/') {
-                        const divisor = Math.floor(b);
-                        const floorQuotient = Math.floor(a / b);
-                        const rem = Math.round((a % b) * 100) / 100;
-                        
-                        // Mostra blocchi esatti fino a 15, poi simbolico
-                        const showExactBlocks = divisor <= 15;
-                        
-                        return (
-                            <div className="flex flex-col gap-3 w-full pb-8">
-                                <Base10Renderer num={a} label="Totale" />
-                                <div className="text-center text-yellow-400 font-bold py-2 bg-slate-800/50 rounded-xl">
-                                    ⬇️ DIVIDO IN GRUPPI DA {divisor} ⬇️
-                                </div>
-                                <div className="flex flex-wrap gap-2 justify-center p-3 bg-slate-800/30 rounded-xl">
-                                    {[...Array(Math.min(floorQuotient, 12))].map((_, i) => (
-                                        <div key={i} className="bg-slate-800 p-2 rounded-lg border-2 border-blue-500 flex flex-col items-center">
-                                            <span className="text-[10px] text-slate-400 mb-1">Gr.{i+1}</span>
-                                            <div className="flex flex-wrap gap-1 justify-center" style={{maxWidth:'80px'}}>
-                                                {showExactBlocks ? (
-                                                    // Mostra esattamente `divisor` blocchi
-                                                    [...Array(divisor)].map((_,j) => (
-                                                        <div key={j} className="w-3 h-3 bg-blue-500 rounded-sm"></div>
-                                                    ))
-                                                ) : (
-                                                    // Troppi blocchi: mostra 6 + "..."
-                                                    <>
-                                                        {[...Array(6)].map((_,j) => (
-                                                            <div key={j} className="w-3 h-3 bg-blue-500 rounded-sm"></div>
-                                                        ))}
-                                                        <span className="text-slate-400 text-xs">...</span>
-                                                    </>
-                                                )}
-                                            </div>
-                                            <span className="text-xs text-blue-300 mt-1 font-bold">= {divisor}</span>
-                                        </div>
-                                    ))}
-                                    {floorQuotient > 12 && (
-                                        <div className="bg-slate-800 p-2 rounded-lg border-2 border-dashed border-slate-500 flex flex-col items-center justify-center">
-                                            <span className="text-slate-400 text-lg">...</span>
-                                            <span className="text-xs text-slate-400">+{floorQuotient - 12} altri</span>
-                                        </div>
-                                    )}
-                                </div>
-                                {rem > 0 && (
-                                    <div className="bg-slate-800 p-3 rounded-xl border-2 border-yellow-500 self-center">
-                                        <div className="text-sm text-yellow-500 font-bold text-center mb-1">⚠️ RESTO</div>
-                                        <div className="flex gap-1 justify-center flex-wrap" style={{maxWidth:'100px'}}>
-                                            {[...Array(Math.min(Math.floor(rem), 15))].map((_,i)=><div key={i} className="w-3 h-3 bg-yellow-500 rounded-sm"></div>)}
-                                        </div>
-                                        <div className="text-center text-yellow-400 font-bold mt-1">= {rem}</div>
-                                    </div>
-                                )}
-                                <div className="bg-slate-800 p-3 rounded-xl border-2 border-green-500 text-center">
-                                    <div className="text-sm text-slate-400 mb-1">Ho fatto</div>
-                                    <div className="text-xl font-bold text-green-400">
-                                        {floorQuotient} gruppi
-                                        {rem > 0 && <span className="text-yellow-400 text-base ml-2">+ resto {rem}</span>}
-                                    </div>
-                                    <div className="text-base text-cyan-400 font-mono border-t border-slate-700 pt-1 mt-1">
-                                        {a} ÷ {divisor} = {res}
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    }
-                    
-                    return (
-                        <div className="flex flex-col w-full animate-fade-in gap-2 pb-8">
-                            <Base10Renderer num={a} label="Primo" />
-                            <div className="text-2xl font-bold text-center text-yellow-400 py-1">{op}</div>
-                            <Base10Renderer num={b} label="Secondo" />
-                            <div className="text-2xl font-bold text-center text-white py-1">=</div>
-                            <div className="text-center text-3xl font-bold text-green-400 p-3 bg-slate-800 rounded-xl border-2 border-green-500">
-                                {res}
-                            </div>
-                            {res > 0 && res < 500 && <Base10Renderer num={res} label="Risultato" />}
-                        </div>
-                    );
+                    document.getElementById('chunkPrompt').textContent = data.prompt;
+                    renderBlocksGrid();
+                } catch (e) {
+                    // Fallback
+                    problemState.blocks = [
+                        {name: "Blocco 1", description: "Primo calcolo", icon: "📦"},
+                        {name: "Blocco 2", description: "Secondo calcolo", icon: "📦"}
+                    ];
+                    document.getElementById('chunkPrompt').textContent = "Identifichiamo i calcoli da fare per risolvere il problema.";
+                    renderBlocksGrid();
                 }
-                
-                const num = parseFloat(display);
-                if (!isNaN(num)) return <Base10Renderer num={num} label="Quantità" />;
-                return null;
-            };
-
-            // TASTIERA COMPATTA: 123 in alto, 789 in basso
-            const renderKeyboard = () => {
-                return (
-                    <div className="flex gap-2 p-2 bg-slate-900 border-b border-slate-700 shrink-0">
-                        {/* DISPLAY */}
-                        <div className="bg-slate-950 px-3 rounded-xl text-right text-2xl font-mono text-yellow-400 border-2 border-slate-600 h-12 flex items-center justify-end overflow-hidden min-w-[120px]">
-                            {display || '0'}
-                        </div>
-
-                        {/* NUMERI: 123 in alto, 789 in basso */}
-                        <div className="grid grid-cols-3 gap-1 flex-1">
-                            {['1','2','3','4','5','6','7','8','9','.','0','='].map(b => (
-                                <button 
-                                    key={b} 
-                                    onClick={() => handleBtn(b)} 
-                                    className={`btn-calc ${b === '=' ? 'bg-green-600 text-white' : 'bg-slate-800 text-white'}`}
-                                >
-                                    {b}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* OPERATORI */}
-                        <div className="grid grid-cols-1 gap-1 w-12">
-                            {[{l:'÷',v:'/'},{l:'×',v:'*'},{l:'−',v:'-'},{l:'+',v:'+'}].map(op => (
-                                <button key={op.v} onClick={() => handleBtn(op.v)} className="btn-calc bg-blue-600 text-white">{op.l}</button>
-                            ))}
-                        </div>
-
-                        {/* COMANDI */}
-                        <div className="grid grid-cols-1 gap-1 w-12">
-                            <button onClick={() => handleBtn('⌫')} className="btn-calc bg-orange-600 text-white text-base">⌫</button>
-                            <button onClick={() => handleBtn('C')} className="btn-calc bg-red-600 text-white row-span-3 h-full">C</button>
-                        </div>
-                    </div>
-                );
-            };
-
-            // MENU CONDIVISIONE (aggiornato con opzione Esercizio)
-            const renderShareMenu = () => {
-                if(!showShareMenu) return null;
-                
-                return (
-                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setShowShareMenu(false)}>
-                        <div className="bg-slate-800 rounded-2xl p-4 w-full max-w-sm border-2 border-slate-600" onClick={e => e.stopPropagation()}>
-                            <h3 className="text-xl font-bold text-center text-white mb-4">📤 Condividi Soluzione</h3>
-                            
-                            <div className="flex flex-col gap-3">
-                                <button onClick={shareViaWhatsApp} className="share-btn bg-green-600 text-white">
-                                    <span className="text-xl">💬</span> WhatsApp
-                                </button>
-                                
-                                <button onClick={shareViaEmail} className="share-btn bg-blue-600 text-white">
-                                    <span className="text-xl">📧</span> Email
-                                </button>
-                                
-                                <button onClick={saveAsFile} className="share-btn bg-purple-600 text-white">
-                                    <span className="text-xl">💾</span> Salva Soluzione
-                                </button>
-
-                                {/* NUOVO: Pulsante per salvare versione esercizio */}
-                                <button onClick={saveAsExercise} className="share-btn bg-yellow-600 text-white">
-                                    <span className="text-xl">📝</span> Salva Esercizio
-                                </button>
-                                
-                                <button onClick={() => setShowShareMenu(false)} className="share-btn bg-slate-600 text-white mt-2">
-                                    ✕ Chiudi
-                                </button>
-                            </div>
-
-                            {/* Spiegazione */}
-                            <div className="mt-4 p-3 bg-slate-700/50 rounded-xl text-xs text-slate-400">
-                                <p><strong className="text-yellow-400">📝 Esercizio:</strong> Versione da stampare con spazi bianchi per i calcoli. Il ragazzo può esercitarsi e poi confrontare con la soluzione!</p>
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
-            return (
-                <div className="h-full flex flex-col p-2 gap-2 bg-slate-900">
-                    {/* Header Navigation */}
-                    <div className="flex gap-2 shrink-0 h-11">
-                        <a href="index.html" className="bg-slate-700 text-white px-3 rounded-xl font-bold flex items-center justify-center text-lg active:scale-95">🏠</a>
-                        <button onClick={()=>setMode('calc')} className={`flex-1 rounded-xl font-bold active:scale-95 ${mode==='calc'?'bg-blue-600 text-white':'bg-slate-800 text-slate-400'}`}>CALCOLA</button>
-                        <button onClick={()=>setMode('matrix')} className={`flex-1 rounded-xl font-bold active:scale-95 ${mode==='matrix'?'bg-yellow-600 text-white':'bg-slate-800 text-slate-400'}`}>TABELLINE</button>
-                        <button onClick={()=>setMode('solver')} className={`flex-1 rounded-xl font-bold active:scale-95 ${mode==='solver'?'bg-green-600 text-white':'bg-slate-800 text-slate-400'}`}>RISOLVI</button>
-                    </div>
-
-                    <div className="flex-1 bg-slate-950 rounded-2xl border-2 border-slate-700 overflow-hidden flex flex-col">
-                        
-                        {mode === 'calc' && (
-                            <>
-                                {renderKeyboard()}
-                                <div className="scroll-area p-3 bg-slate-900">
-                                    {renderCalcVisuals()}
-                                </div>
-                            </>
-                        )}
-
-                        {mode === 'matrix' && (
-                            <div className="scroll-area p-2">
-                                <div className="grid grid-cols-11 gap-1 min-h-full">
-                                    {[...Array(11)].map((_,r)=>[...Array(11)].map((_,c)=>(
-                                        <div key={`${r}-${c}`} 
-                                            onClick={() => { if(r>0 && c>0) { setHighlight({r,c}); speak(`${r} per ${c} fa ${r*c}`); }}}
-                                            className={`flex items-center justify-center rounded cursor-pointer text-base h-9 active:scale-95
-                                                ${r===0||c===0 ? 'bg-slate-900 text-yellow-400 font-bold' : 
-                                                  (highlight.r===r && highlight.c===c) ? 'bg-green-500 text-black scale-110 z-10 font-bold border-2 border-white' : 
-                                                  ((highlight.r===r && c>0) || (highlight.c===c && r>0)) ? 'bg-slate-700 text-green-300' : 'bg-slate-800 text-slate-400'}
-                                            `}
-                                        >
-                                            {r===0&&c===0?'×':r===0?c:c===0?r:r*c}
-                                        </div>
-                                    )))}
-                                </div>
-                            </div>
-                        )}
-
-                        {mode === 'solver' && (
-                            <div className="scroll-area p-3">
-                                {!solverImg ? (
-                                    <div className="flex flex-col items-center justify-center min-h-[300px] gap-4 text-center">
-                                        <div className="text-5xl animate-bounce">📐</div>
-                                        <h2 className="text-xl font-bold text-white">FOTO AL PROBLEMA</h2>
-                                        <p className="text-slate-400 text-sm">Scatta una foto al problema di matematica</p>
-                                        <label className="bg-blue-600 text-white font-bold py-3 px-6 rounded-xl cursor-pointer shadow-lg flex items-center gap-2 active:scale-95">
-                                            <input type="file" onChange={handleUpload} className="hidden" accept="image/*" />
-                                            📷 SCATTA FOTO
-                                        </label>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col gap-3">
-                                        {/* CONTROLLI */}
-                                        <div className="flex gap-2 items-center bg-slate-800 p-2 rounded-xl border border-slate-600 shrink-0">
-                                            <img src={solverImg} className="h-14 w-14 rounded-lg object-cover border-2 border-slate-500" />
-                                            <button onClick={runSolver} disabled={loading} className="flex-1 bg-green-600 text-white font-bold py-2 rounded-xl active:scale-95">
-                                                {loading ? '⏳ Leggo...' : '🚀 RISOLVI'}
-                                            </button>
-                                            <button onClick={()=>{setSolverImg(null); setSolution(null);}} className="bg-red-600 text-white px-3 py-2 rounded-xl font-bold active:scale-95">🗑️</button>
-                                        </div>
-                                        
-                                        {/* SOLUZIONE */}
-                                        {solution && (
-                                            <div className="bg-slate-800/50 rounded-xl border border-slate-600 p-3">
-                                                {/* PULSANTI AZIONE */}
-                                                <div className="flex gap-2 mb-3 flex-wrap">
-                                                    <button onClick={() => speak(solution)} className="share-btn bg-purple-600 text-white text-sm py-2 px-3">
-                                                        🔊 Leggi
-                                                    </button>
-                                                    <button onClick={() => window.speechSynthesis.cancel()} className="share-btn bg-red-600 text-white text-sm py-2 px-3">
-                                                        ⏹️ Stop
-                                                    </button>
-                                                    <button onClick={() => setShowShareMenu(true)} className="share-btn bg-green-600 text-white text-sm py-2 px-3">
-                                                        📤 Condividi
-                                                    </button>
-                                                </div>
-                                                
-                                                <div className="prose prose-invert text-sm" dangerouslySetInnerHTML={{__html: marked.parse(solution)}}></div>
-                                            </div>
-                                        )}
-                                        
-                                        {!solution && !loading && (
-                                            <div className="flex flex-col items-center justify-center py-8 text-slate-500">
-                                                <div className="text-4xl mb-3">✨</div>
-                                                <p>Premi RISOLVI per vedere la soluzione</p>
-                                            </div>
-                                        )}
-
-                                        {/* VISUALIZZATORE NUMERI */}
-                                        <div className="bg-slate-900 rounded-xl border-2 border-dashed border-slate-600 p-3">
-                                            <div className="text-center text-yellow-400 font-bold mb-2 text-sm">👀 VISUALIZZA NUMERO</div>
-                                            <div className="text-xs text-slate-400 text-center mb-2">Se dice "25 mele", scrivi 25:</div>
-                                            <input 
-                                                type="number" 
-                                                value={visualizerNum}
-                                                onChange={(e) => setVisualizerNum(e.target.value)}
-                                                placeholder="Es: 25"
-                                                className="w-full bg-slate-800 border-2 border-slate-500 rounded-lg p-2 text-center text-lg font-bold text-white mb-2 focus:border-green-400 outline-none"
-                                            />
-                                            {visualizerNum && <Base10Renderer num={visualizerNum} label="Blocchi" />}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* MENU CONDIVISIONE */}
-                    {renderShareMenu()}
+            });
+        }
+        
+        function renderBlocksGrid() {
+            const grid = document.getElementById('blocksGrid');
+            grid.innerHTML = '';
+            
+            problemState.blocks.forEach((block, index) => {
+                const card = document.createElement('div');
+                card.className = 'block-card';
+                card.innerHTML = `
+                    <div class="block-icon">${block.icon}</div>
+                    <div class="block-title">${block.name}</div>
+                    <div class="block-status">${block.description}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+        
+        function validateStep4() {
+            if (problemState.blocks.length === 0) {
+                alert('Devi identificare almeno un blocco.');
+                return;
+            }
+            
+            addXP(40);
+            
+            // Move to step 5 - start with first block
+            problemState.currentBlockIndex = 0;
+            document.getElementById('step4').classList.add('hidden');
+            document.getElementById('step5').classList.remove('hidden');
+            
+            solveCurrentBlock();
+        }
+        
+        // STEP 5: OPERATE
+        function solveCurrentBlock() {
+            const blockIndex = problemState.currentBlockIndex;
+            const block = problemState.blocks[blockIndex];
+            const autonomyLevel = Math.min(blockIndex + 1, 4); // 1=max guide, 4=min guide
+            
+            const container = document.getElementById('currentBlockWork');
+            container.innerHTML = `
+                <div class="ai-prompt">
+                    <strong>${block.name}</strong>: ${block.description}
                 </div>
-            );
-        };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+            `;
+            
+            if (autonomyLevel === 1) {
+                // Maximum guidance
+                container.innerHTML += `
+                    <div class="block-questions">
+                        <div class="question-item">
+                            <div class="question-label">1. Quanti elementi ci sono?</div>
+                            <input type="text" class="question-input" id="blockQ1">
+                        </div>
+                        <div class="question-item">
+                            <div class="question-label">2. Qual è il valore di ciascuno?</div>
+                            <input type="text" class="question-input" id="blockQ2">
+                        </div>
+                        <div class="question-item">
+                            <div class="question-label">3. Quale operazione serve?</div>
+                            <div class="operation-buttons">
+                                <button class="operation-btn" onclick="selectOperation(this, '+')">+</button>
+                                <button class="operation-btn" onclick="selectOperation(this, '-')">−</button>
+                                <button class="operation-btn" onclick="selectOperation(this, '*')">×</button>
+                                <button class="operation-btn" onclick="selectOperation(this, '/')">÷</button>
+                            </div>
+                        </div>
+                        <div class="question-item">
+                            <div class="question-label">4. Calcola il risultato:</div>
+                            <input type="text" class="question-input" id="blockResult">
+                        </div>
+                    </div>
+                    <button class="button-primary" onclick="submitBlock()">Verifica</button>
+                `;
+            } else if (autonomyLevel === 2) {
+                // Medium guidance
+                container.innerHTML += `
+                    <div class="ai-prompt">
+                        Prova a risolvere da solo questo blocco. Rispondi a queste domande:
+                    </div>
+                    <div class="block-questions">
+                        <div class="question-item">
+                            <div class="question-label">1. Quanti? 2. Prezzo/valore? 3. Operazione? 4. Risultato?</div>
+                            <textarea class="input-area" id="blockAnswers" placeholder="Scrivi tutte le risposte..."></textarea>
+                        </div>
+                    </div>
+                    <button class="button-primary" onclick="submitBlock()">Verifica</button>
+                `;
+            } else if (autonomyLevel === 3) {
+                // Minimal guidance
+                container.innerHTML += `
+                    <div class="ai-prompt">
+                        Questo è semplice! Scrivi direttamente il risultato del calcolo.
+                    </div>
+                    <div class="block-questions">
+                        <div class="question-item">
+                            <div class="question-label">Risultato:</div>
+                            <input type="text" class="question-input" id="blockResult">
+                        </div>
+                    </div>
+                    <button class="button-primary" onclick="submitBlock()">Verifica</button>
+                `;
+            } else {
+                // Challenge
+                container.innerHTML += `
+                    <div class="ai-prompt">
+                        Questo è più difficile! Pensa bene prima di rispondere. Se serve un aiuto, clicca sul bottone.
+                    </div>
+                    <div class="block-questions">
+                        <div class="question-item">
+                            <div class="question-label">Come risolvi questo blocco?</div>
+                            <textarea class="input-area" id="blockAnswers" placeholder="Spiega il tuo ragionamento..."></textarea>
+                        </div>
+                        <div class="question-item">
+                            <div class="question-label">Risultato:</div>
+                            <input type="text" class="question-input" id="blockResult">
+                        </div>
+                    </div>
+                    <button class="button-secondary" onclick="giveHint()" style="margin-right: 10px;">Dammi un Aiuto</button>
+                    <button class="button-primary" onclick="submitBlock()">Verifica</button>
+                `;
+            }
+        }
+        
+        let selectedOperation = null;
+        
+        function selectOperation(btn, op) {
+            document.querySelectorAll('.operation-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedOperation = op;
+        }
+        
+        function giveHint() {
+            const block = problemState.blocks[problemState.currentBlockIndex];
+            alert(`Suggerimento per ${block.name}: Rileggi la parte del problema che parla di questo calcolo. Quali numeri sono coinvolti?`);
+        }
+        
+        function submitBlock() {
+            const result = document.getElementById('blockResult')?.value.trim();
+            
+            if (!result) {
+                alert('Inserisci il risultato prima di verificare.');
+                return;
+            }
+            
+            // Store result
+            problemState.blockResults[problemState.currentBlockIndex] = result;
+            
+            // Show success feedback
+            const feedback = document.getElementById('step5Feedback');
+            feedback.className = 'feedback success';
+            feedback.textContent = `Corretto! ${problemState.blocks[problemState.currentBlockIndex].name} completato.`;
+            feedback.classList.remove('hidden');
+            
+            addXP(50);
+            
+            // Move to next block or finish
+            setTimeout(() => {
+                problemState.currentBlockIndex++;
+                
+                if (problemState.currentBlockIndex < problemState.blocks.length) {
+                    feedback.classList.add('hidden');
+                    solveCurrentBlock();
+                } else {
+                    // All blocks done, move to step 6
+                    document.getElementById('step5').classList.add('hidden');
+                    document.getElementById('step6').classList.remove('hidden');
+                    renderSummaryTable();
+                }
+            }, 1500);
+        }
+        
+        // STEP 6: VERIFY
+        function renderSummaryTable() {
+            const table = document.getElementById('summaryTable');
+            let html = `
+                <tr>
+                    <th>Blocco</th>
+                    <th class="price">Risultato</th>
+                </tr>
+            `;
+            
+            problemState.blocks.forEach((block, index) => {
+                html += `
+                    <tr>
+                        <td>${block.icon} ${block.name}</td>
+                        <td class="price">${problemState.blockResults[index]}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                <tr class="total">
+                    <td>TOTALE</td>
+                    <td class="price">?</td>
+                </tr>
+            `;
+            
+            table.innerHTML = html;
+        }
+        
+        let estimationGiven = false;
+        
+        function submitEstimation() {
+            const estimation = document.getElementById('estimationInput').value.trim();
+            if (!estimation) {
+                alert('Inserisci la tua stima prima di confermare.');
+                return;
+            }
+            
+            estimationGiven = true;
+            const feedback = document.getElementById('estimationFeedback');
+            feedback.className = 'feedback info';
+            feedback.textContent = `Stima registrata: ${estimation}. Ora procedi con il calcolo preciso.`;
+            feedback.classList.remove('hidden');
+            
+            addXP(20);
+        }
+        
+        function validateStep6() {
+            if (!estimationGiven) {
+                alert('Prima fai una stima del risultato!');
+                return;
+            }
+            
+            const answer = document.getElementById('finalAnswer').value.trim();
+            if (!answer) {
+                alert('Inserisci il risultato finale prima di verificare.');
+                return;
+            }
+            
+            problemState.finalAnswer = answer;
+            
+            // Show success
+            const feedback = document.getElementById('step6Feedback');
+            feedback.className = 'feedback success';
+            feedback.textContent = 'Verifica completata! Il tuo ragionamento è corretto.';
+            feedback.classList.remove('hidden');
+            
+            addXP(100);
+            
+            // Record techniques
+            problemState.techniques = [
+                'Dividere un problema complesso in sotto-problemi più semplici',
+                'Identificare i dati rilevanti nel testo',
+                'Scegliere l\'operazione corretta per ogni situazione',
+                'Verificare la coerenza del risultato finale'
+            ];
+            
+            // Move to step 7
+            setTimeout(() => {
+                document.getElementById('step6').classList.add('hidden');
+                document.getElementById('step7').classList.remove('hidden');
+                showFinalResults();
+            }, 2000);
+        }
+        
+        // STEP 7: EXPRESS
+        function showFinalResults() {
+            document.getElementById('finalAchievement').innerHTML = `
+                <div style="font-size: 28px; margin-bottom: 15px;">🎉 Problema Risolto!</div>
+                <div style="font-size: 22px;">Risultato: ${problemState.finalAnswer}</div>
+                <div style="margin-top: 15px; font-size: 18px;">+100 XP Bonus</div>
+            `;
+            
+            const list = document.getElementById('techniquesList');
+            list.innerHTML = '';
+            problemState.techniques.forEach(tech => {
+                const li = document.createElement('li');
+                li.textContent = tech;
+                list.appendChild(li);
+            });
+        }
+        
+        function resetProblem() {
+            // Reset state
+            problemState.text = '';
+            problemState.numbers = [];
+            problemState.blocks = [];
+            problemState.blockResults = {};
+            problemState.currentBlockIndex = 0;
+            problemState.techniques = [];
+            estimationGiven = false;
+            selectedOperation = null;
+            
+            // Clear inputs
+            document.getElementById('problemTextInput').value = '';
+            document.getElementById('step1Answer').value = '';
+            document.getElementById('step2Answer').value = '';
+            document.getElementById('numberInput').value = '';
+            document.getElementById('estimationInput').value = '';
+            document.getElementById('finalAnswer').value = '';
+            
+            // Hide all steps
+            document.querySelectorAll('.problem-step').forEach(step => {
+                step.classList.add('hidden');
+            });
+            
+            // Show input
+            document.getElementById('problemInput').classList.remove('hidden');
+        }
+        
+        // =====================================
+        // AI API CALL
+        // =====================================
+        async function callGeminiAPI(prompt, callback) {
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: prompt
+                            }]
+                        }]
+                    })
+                });
+                
+                const data = await response.json();
+                const text = data.candidates[0].content.parts[0].text;
+                callback(text);
+            } catch (error) {
+                console.error('Errore API:', error);
+                callback('{"error": "Errore di connessione"}');
+            }
+        }
+        
+        // =====================================
+        // INIT
+        // =====================================
+        document.addEventListener('DOMContentLoaded', () => {
+            updateXPBar();
+            showTable();
+        });
     </script>
-    <script src="game-system.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
