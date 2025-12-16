@@ -678,13 +678,14 @@
         const API_KEY = 'AIzaSyCA3I8A2KjqS4HJqzQM-a9u0EqT6k6fWZA'; // REPLACE WITH YOUR GEMINI API KEY
         
         let problemState = {
-            text: '',
-            data: null,
-            currentStep: 1,
-            completedSteps: [],
-            totalXP: 0,
-            hintLevels: {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
-        };
+    text: '',
+    data: null,
+    currentStep: 1,
+    completedSteps: [],
+    totalXP: 0,
+    hintLevels: {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
+    step4Attempts: {} // Traccia tentativi per ogni domanda Step 4
+			};
         
         const STEP_XP = {
             1: 50,
@@ -794,7 +795,7 @@
                 // Generate dynamic questions for steps 3, 4, 5
                 generateStep3Questions();
                 generateStep4Questions();
-                generateStep5Questions();
+              idx++;  generateStep5Questions();
                 
                 // Scroll to problem header
                 setTimeout(() => {
@@ -1010,52 +1011,104 @@ Analizza il problema e genera il JSON seguendo ESATTAMENTE questa struttura.`;
         }
         
         function generateStep4Questions() {
-            const container = document.getElementById('step-4-questions');
-            const questions = problemState.data.steps.step4_azioni;
-            
-            container.innerHTML = '';
-            
-            questions.forEach((q, idx) => {
-                const block = document.createElement('div');
-                block.className = 'question-block';
-                
-                let inputHTML = `<input type="text" id="step4-q${idx}" placeholder="Scrivi qui la risposta...">`;
-                
-                if (q.calcolo) {
-                    inputHTML = `
-                        <p style="font-size: 16px; color: #667eea; margin-bottom: 10px;">
-                            <strong>Calcolo da fare:</strong> ${q.calcolo}
-                        </p>
-                        <input type="text" id="step4-q${idx}" placeholder="Risultato del calcolo...">
-                    `;
-                }
-                
-                block.innerHTML = `
-                    <label>${q.domanda}</label>
-                    ${inputHTML}
-                `;
-                container.appendChild(block);
-            });
+    const container = document.getElementById('step-4-questions');
+    const questions = problemState.data.steps.step4_azioni;
+    
+    container.innerHTML = '';
+    
+    questions.forEach((q, idx) => {
+        const block = document.createElement('div');
+        block.className = 'question-block';
+        
+        let inputHTML = `<input type="text" id="step4-q${idx}" placeholder="Scrivi qui la risposta...">`;
+        
+        if (q.calcolo) {
+            inputHTML = `
+                <div id="step4-calc-hint-${idx}" style="display: none;" class="p-3 bg-yellow-900/30 border-l-4 border-yellow-500 rounded-lg mb-3">
+                    <p class="text-yellow-400 font-bold text-sm">💡 AIUTO - Calcolo da fare:</p>
+                    <p class="text-white text-lg font-mono">${q.calcolo}</p>
+                </div>
+                <input type="text" id="step4-q${idx}" placeholder="Risultato del calcolo...">
+            `;
         }
         
-        function generateStep5Questions() {
-            const container = document.getElementById('step-5-questions');
-            const solution = problemState.data.soluzione_finale;
-            
-            container.innerHTML = '<p style="margin-bottom: 20px; font-size: 18px; font-weight: 600;">Scrivi la risposta finale per ciascuno:</p>';
-            
-            let idx = 0;
-            for (const [name, value] of Object.entries(solution)) {
-                const block = document.createElement('div');
-                block.className = 'question-block';
-                block.innerHTML = `
-                    <label>${name} ha alla fine:</label>
-                    <input type="text" id="step5-answer-${idx}" data-name="${name}" data-expected="${value}" placeholder="Numero...">
-                `;
-                container.appendChild(block);
-                idx++;
-            }
+        block.innerHTML = `
+            <label>${q.domanda}</label>
+            ${inputHTML}
+        `;
+        container.appendChild(block);
+        
+        // Inizializza contatore tentativi per questa domanda
+        if (!problemState.step4Attempts[idx]) {
+            problemState.step4Attempts[idx] = 0;
         }
+    });
+}
+        
+        function generateStep5Questions() {
+    const container = document.getElementById('step-5-questions');
+    const data = problemState.data;
+    
+    // Genera riepilogo del procedimento
+    let summary = '<div class="bg-slate-800 p-4 rounded-xl mb-4 border-l-4 border-blue-500">';
+    summary += '<h4 class="text-blue-400 font-bold mb-3">📝 RIEPILOGO DEL PROCEDIMENTO</h4>';
+    
+    // Step 3: Situazione iniziale
+    if (data.personaggi && data.personaggi.length > 0) {
+        summary += '<p class="mb-2"><strong>Situazione iniziale:</strong></p><ul class="list-disc list-inside mb-3">';
+        data.personaggi.forEach(p => {
+            summary += `<li>${p.nome} aveva <span class="text-yellow-400 font-bold">${p.valore_iniziale}</span></li>`;
+        });
+        summary += '</ul>';
+    }
+    
+    // Step 4: Azioni e calcoli
+    if (data.steps.step4_azioni && data.steps.step4_azioni.length > 0) {
+        summary += '<p class="mb-2"><strong>Calcoli effettuati:</strong></p><ul class="list-disc list-inside mb-3">';
+        data.steps.step4_azioni.forEach(action => {
+            if (action.calcolo) {
+                summary += `<li><span class="text-green-400 font-bold">${action.calcolo} = ${action.risposta}</span></li>`;
+            }
+        });
+        summary += '</ul>';
+    }
+    
+    summary += '</div>';
+    
+    // Frase soluzione finale
+    const solution = data.soluzione_finale;
+    const names = Object.keys(solution);
+    let finalSentence = '<div class="bg-slate-900 p-4 rounded-xl mb-4 border-2 border-green-500">';
+    finalSentence += '<h4 class="text-green-400 font-bold mb-3">✅ SOLUZIONE FINALE</h4>';
+    finalSentence += '<p class="text-lg mb-3">Alla fine: ';
+    
+    const parts = names.map((name, idx) => {
+        if (idx === names.length - 1 && names.length > 1) {
+            return `e ${name} ha <span class="text-yellow-400 font-bold">${solution[name]}</span>`;
+        }
+        return `${name} ha <span class="text-yellow-400 font-bold">${solution[name]}</span>`;
+    });
+    
+    finalSentence += parts.join(', ') + '.</p></div>';
+    
+    // Campi di input per le risposte
+    let inputFields = '<div class="space-y-3">';
+    inputFields += '<p class="font-bold text-lg mb-3">Ora scrivi tu le risposte finali:</p>';
+    
+    let idx = 0;
+    for (const [name, value] of Object.entries(solution)) {
+        inputFields += `
+            <div class="question-block">
+                <label>${name} ha alla fine:</label>
+                <input type="text" id="step5-answer-${idx}" data-name="${name}" data-expected="${value}" placeholder="Scrivi il numero...">
+            </div>
+        `;
+        idx++;
+    }
+    inputFields += '</div>';
+    
+    container.innerHTML = summary + finalSentence + inputFields;
+}
         
         // ============================================
         // VALIDATION FUNCTIONS
@@ -1157,27 +1210,47 @@ Analizza il problema e genera il JSON seguendo ESATTAMENTE questa struttura.`;
         }
         
         function checkStep4() {
-            const questions = problemState.data.steps.step4_azioni;
-            let allCorrect = true;
-            let incorrectIndex = -1;
+    const questions = problemState.data.steps.step4_azioni;
+    let allCorrect = true;
+    let incorrectIndex = -1;
+    
+    questions.forEach((q, idx) => {
+        const input = document.getElementById(`step4-q${idx}`).value;
+        const isCorrect = validateAnswer(input, q.risposta, q.tipo, q.parole_chiave);
+        
+        if (!isCorrect && incorrectIndex === -1) {
+            incorrectIndex = idx;
+            allCorrect = false;
             
-            questions.forEach((q, idx) => {
-                const input = document.getElementById(`step4-q${idx}`).value;
-                const isCorrect = validateAnswer(input, q.risposta, q.tipo, q.parole_chiave);
-                
-                if (!isCorrect && incorrectIndex === -1) {
-                    incorrectIndex = idx;
-                    allCorrect = false;
+            // Incrementa tentativi per questa domanda
+            problemState.step4Attempts[idx]++;
+            
+            // Mostra hint del calcolo dopo 3 tentativi
+            if (problemState.step4Attempts[idx] >= 3 && q.calcolo) {
+                const hintElement = document.getElementById(`step4-calc-hint-${idx}`);
+                if (hintElement) {
+                    hintElement.style.display = 'block';
                 }
-            });
-            
-            if (allCorrect) {
-                showFeedback(4, 'success', `✅ Eccellente! Hai seguito tutti i passaggi. (+${STEP_XP[4]} XP)`);
-                completeStep(4);
-            } else {
-                showFeedback(4, 'error', `❌ Ricontrolla la risposta numero ${incorrectIndex + 1}.`);
             }
         }
+    });
+    
+    if (allCorrect) {
+        showFeedback(4, 'success', `✅ Eccellente! Hai seguito tutti i passaggi. (+${STEP_XP[4]} XP)`);
+        completeStep(4);
+    } else {
+        const attemptsCount = problemState.step4Attempts[incorrectIndex];
+        let feedbackMsg = `❌ Ricontrolla la risposta numero ${incorrectIndex + 1}.`;
+        
+        if (attemptsCount >= 3) {
+            feedbackMsg += ' 💡 Guarda l\'aiuto che è apparso sopra!';
+        } else if (attemptsCount === 2) {
+            feedbackMsg += ' (Ancora 1 tentativo e ti darò un aiuto)';
+        }
+        
+        showFeedback(4, 'error', feedbackMsg);
+    }
+}
         
         function checkStep5() {
             const solution = problemState.data.soluzione_finale;
@@ -1392,7 +1465,8 @@ Analizza il problema e genera il JSON seguendo ESATTAMENTE questa struttura.`;
                 currentStep: 1,
                 completedSteps: [],
                 totalXP: 0,
-                hintLevels: {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+                hintLevels: {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
+		step4Attempts: {}
             };
             
             // Clear localStorage
