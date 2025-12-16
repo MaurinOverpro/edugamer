@@ -675,7 +675,7 @@
         // GLOBAL STATE
         // ============================================
         
-        const API_KEY = 'AIzaSyCYDbrAF61uvX3WEm_t9ZakYPf4rGavtzc'; // REPLACE WITH YOUR GEMINI API KEY
+        const API_KEY = 'YOUR_API_KEY_HERE'; // REPLACE WITH YOUR GEMINI API KEY
         
         let problemState = {
             text: '',
@@ -760,7 +760,7 @@
             }
             
             if (API_KEY === 'YOUR_API_KEY_HERE') {
-                alert('ATTENZIONE: Devi inserire la tua API KEY di Google AI Studio nel codice!\n\nCerca "YOUR_API_KEY_HERE" nel file e sostituiscila con la tua chiave.');
+                alert('⚠️ CONFIGURAZIONE MANCANTE\n\nDevi inserire la tua API KEY di Google AI Studio nel codice!\n\nCerca "YOUR_API_KEY_HERE" nel file discover.html e sostituiscila con la tua chiave che inizia con "AIza..."');
                 return;
             }
             
@@ -770,13 +770,15 @@
             document.getElementById('loading').style.display = 'block';
             
             try {
+                console.log('🚀 Avvio analisi problema...');
                 const data = await analyzeProblem(problemText);
                 
                 if (!data) {
-                    throw new Error('Analisi fallita');
+                    throw new Error('ANALYSIS_FAILED');
                 }
                 
                 problemState.data = data;
+                console.log('💾 Dati salvati:', data);
                 
                 // Hide input section
                 document.getElementById('input-section').style.display = 'none';
@@ -795,54 +797,116 @@
                 generateStep5Questions();
                 
                 // Scroll to problem header
-                document.getElementById('problem-header').scrollIntoView({ behavior: 'smooth' });
+                setTimeout(() => {
+                    document.getElementById('problem-header').scrollIntoView({ behavior: 'smooth' });
+                }, 100);
                 
             } catch (error) {
-                console.error('Errore analisi:', error);
-                alert('Si è verificato un errore nell\'analisi del problema. Riprova!');
+                console.error('💥 Errore durante startProblem:', error);
                 document.getElementById('loading').style.display = 'none';
+                
+                let errorMessage = '❌ Si è verificato un errore nell\'analisi del problema.\n\n';
+                
+                switch(error.message) {
+                    case 'RATE_LIMIT':
+                        errorMessage = '⏰ TROPPO VELOCE!\n\n' +
+                                     'Stai facendo troppe richieste ravvicinate.\n\n' +
+                                     '💡 SOLUZIONE:\n' +
+                                     'Aspetta 15-20 secondi e riprova.\n\n' +
+                                     'Anche con piano a pagamento ci sono limiti di frequenza per sicurezza.';
+                        break;
+                        
+                    case 'JSON_PARSE_ERROR':
+                        errorMessage = '🔧 ERRORE DI FORMATO\n\n' +
+                                     'L\'AI ha risposto in modo non valido.\n\n' +
+                                     '💡 SOLUZIONE:\n' +
+                                     '1. Riprova (a volte basta questo)\n' +
+                                     '2. Prova a semplificare il testo del problema\n' +
+                                     '3. Controlla la console del browser (F12) per dettagli';
+                        break;
+                        
+                    case 'INCOMPLETE_DATA':
+                        errorMessage = '📋 DATI INCOMPLETI\n\n' +
+                                     'L\'AI non ha generato tutte le informazioni necessarie.\n\n' +
+                                     '💡 SOLUZIONE:\n' +
+                                     '1. Riprova\n' +
+                                     '2. Assicurati che il problema sia completo\n' +
+                                     '3. Verifica che ci siano numeri e una domanda chiara';
+                        break;
+                        
+                    case 'INVALID_REQUEST':
+                        errorMessage = '🔑 PROBLEMA CON API KEY\n\n' +
+                                     'La richiesta non è valida.\n\n' +
+                                     '💡 VERIFICA:\n' +
+                                     '1. API Key corretta?\n' +
+                                     '2. Fatturazione attiva su Google AI Studio?\n' +
+                                     '3. Vai su: https://aistudio.google.com/';
+                        break;
+                        
+                    case 'NO_CANDIDATES':
+                        errorMessage = '🚫 NESSUNA RISPOSTA\n\n' +
+                                     'L\'AI non ha generato una risposta.\n\n' +
+                                     '💡 POSSIBILI CAUSE:\n' +
+                                     '1. Problema troppo complesso\n' +
+                                     '2. Testo troppo lungo\n' +
+                                     '3. Contenuto bloccato dai filtri';
+                        break;
+                        
+                    default:
+                        errorMessage += 'Codice errore: ' + error.message + '\n\n' +
+                                      '💡 COSA FARE:\n' +
+                                      '1. Apri la Console (F12)\n' +
+                                      '2. Copia gli errori\n' +
+                                      '3. Riprova tra qualche secondo';
+                }
+                
+                alert(errorMessage);
             }
         }
         
         async function analyzeProblem(problemText) {
-            const prompt = `Analizza questo problema matematico per elementari e genera la struttura di risoluzione guidata.
+            const prompt = `Sei un assistente che analizza problemi matematici per bambini delle elementari.
 
-PROBLEMA:
+PROBLEMA DA ANALIZZARE:
 "${problemText}"
 
-Rispondi SOLO con JSON (niente markdown, niente backticks):
+ISTRUZIONI CRITICHE:
+1. Rispondi ESCLUSIVAMENTE con un oggetto JSON valido
+2. NON aggiungere testo prima o dopo il JSON
+3. NON usare markdown o backticks
+4. Assicurati che il JSON sia perfettamente formattato
+
+STRUTTURA JSON RICHIESTA:
 {
-  "numeri_attesi": ["numero1", "numero2", ...],
-  "domanda": "la domanda del problema",
+  "numeri_attesi": ["125", "200", "100", "20"],
+  "domanda": "Quante figurine ha ogni bambino alla fine?",
   "personaggi": [
-    {"nome": "Nome1", "valore_iniziale": "valore o 'da_calcolare'"},
-    {"nome": "Nome2", "valore_iniziale": "valore o 'da_calcolare'"}
+    {"nome": "Marco", "valore_iniziale": "125"},
+    {"nome": "Matteo", "valore_iniziale": "200"}
   ],
   "steps": {
     "step3_personaggi": [
-      {"domanda": "Quanti personaggi ci sono?", "risposta": "numero", "tipo": "number"},
-      {"domanda": "Chi sono?", "risposta": "Nome1,Nome2,Nome3", "tipo": "array"},
-      {"domanda": "Quanto/e ha Nome1 all'inizio?", "risposta": "valore", "tipo": "number"}
+      {"domanda": "Quanti bambini ci sono?", "risposta": "3", "tipo": "number"},
+      {"domanda": "Chi sono? (separati da virgola)", "risposta": "Marco,Matteo,Luca", "tipo": "array"},
+      {"domanda": "Quante figurine ha Marco all'inizio?", "risposta": "125", "tipo": "number"}
     ],
     "step4_azioni": [
-      {"domanda": "Cosa fa Nome1?", "risposta": "descrizione azione", "tipo": "text", "parole_chiave": ["parola1", "parola2"]},
-      {"domanda": "Calcola: operazione", "calcolo": "es: 125 + 100", "risposta": "risultato", "tipo": "number"}
+      {"domanda": "Cosa fa Luca?", "risposta": "regala 100 figurine a Marco", "tipo": "text", "parole_chiave": ["regala", "100", "Marco"]},
+      {"domanda": "Quindi Marco ora ha:", "calcolo": "125 + 100", "risposta": "225", "tipo": "number"}
     ]
   },
   "soluzione_finale": {
-    "Nome1": "valore_finale",
-    "Nome2": "valore_finale"
+    "Marco": "225",
+    "Matteo": "180",
+    "Luca": "80"
   }
 }
 
-IMPORTANTE:
-- Estrai TUTTI i numeri presenti nel problema
-- Crea domande chiare e specifiche
-- Per le domande di tipo "text", specifica parole_chiave per validazione flessibile
-- Gestisci qualsiasi numero (anche grandi come 1000, 5000, 100000)
-- Se non ci sono personaggi, adatta le domande alla situazione del problema`;
+Analizza il problema e genera il JSON seguendo ESATTAMENTE questa struttura.`;
 
             try {
+                console.log('📤 Invio richiesta API...');
+                
                 const response = await fetch(
                     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`,
                     {
@@ -851,29 +915,76 @@ IMPORTANTE:
                         body: JSON.stringify({
                             contents: [{
                                 parts: [{ text: prompt }]
-                            }]
+                            }],
+                            generationConfig: {
+                                temperature: 0.3,
+                                topK: 20,
+                                topP: 0.8,
+                                maxOutputTokens: 2048
+                            }
                         })
                     }
                 );
                 
+                console.log('📥 Risposta ricevuta, status:', response.status);
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('❌ Errore API:', errorData);
+                    
+                    if (response.status === 429) {
+                        throw new Error('RATE_LIMIT');
+                    }
+                    if (response.status === 400) {
+                        throw new Error('INVALID_REQUEST');
+                    }
+                    throw new Error(`HTTP_ERROR_${response.status}`);
+                }
+                
                 const result = await response.json();
+                console.log('📦 Risultato JSON:', result);
                 
                 if (!result.candidates || !result.candidates[0]) {
-                    throw new Error('Risposta API non valida');
+                    console.error('❌ Nessun candidato nella risposta');
+                    throw new Error('NO_CANDIDATES');
                 }
                 
                 let jsonText = result.candidates[0].content.parts[0].text;
+                console.log('📝 Testo grezzo:', jsonText.substring(0, 200) + '...');
                 
-                // Clean markdown if present
-                jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                // Pulizia aggressiva del testo
+                jsonText = jsonText
+                    .replace(/```json\n?/gi, '')
+                    .replace(/```\n?/g, '')
+                    .replace(/^[^{]*/, '')  // Rimuovi tutto prima della prima {
+                    .replace(/[^}]*$/, '')  // Rimuovi tutto dopo l'ultima }
+                    .trim();
                 
-                const data = JSON.parse(jsonText);
+                console.log('🧹 Testo pulito:', jsonText.substring(0, 200) + '...');
                 
+                // Tentativo di parsing
+                let data;
+                try {
+                    data = JSON.parse(jsonText);
+                    console.log('✅ JSON parsato con successo');
+                } catch (parseError) {
+                    console.error('❌ Errore parsing JSON:', parseError);
+                    console.error('Testo che ha causato errore:', jsonText);
+                    throw new Error('JSON_PARSE_ERROR');
+                }
+                
+                // Validazione struttura minima
+                if (!data.numeri_attesi || !data.domanda || !data.steps) {
+                    console.error('❌ Struttura JSON incompleta:', data);
+                    throw new Error('INCOMPLETE_DATA');
+                }
+                
+                console.log('🎉 Analisi completata con successo!');
                 return data;
                 
             } catch (error) {
-                console.error('Errore chiamata API:', error);
-                return null;
+                console.error('💥 Errore in analyzeProblem:', error);
+                throw error;
             }
         }
         
