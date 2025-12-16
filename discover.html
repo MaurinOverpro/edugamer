@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DISCOVER - Metodo Guidato | EduGamer</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 42px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 18px;
+            opacity: 0.95;
+        }
+        
+        /* PROBLEMA STICKY HEADER */
+        .problem-header {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            position: sticky;
+            top: 20px;
+            z-index: 50;
+        }
+        
+        .problem-header h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+        
+        #problem-display {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #333;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 10px;
+            min-height: 80px;
+        }
+        
+        .tts-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .tts-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .tts-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .tts-slow { background: #90EE90; color: #333; }
+        .tts-normal { background: #87CEEB; color: #333; }
+        .tts-fast { background: #FFB6C1; color: #333; }
+        .tts-stop { background: #FF6B6B; color: white; }
+        
+        /* PROGRESS BAR */
+        .progress-bar {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .progress-track {
+            background: #e0e0e0;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .xp-display {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 20px;
+            color: #667eea;
+            font-weight: 700;
+        }
+        
+        /* STEPS */
+        .step {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+        
+        .step-locked {
+            opacity: 0.4;
+            pointer-events: none;
+            filter: blur(3px);
+        }
+        
+        .step-unlocked {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        .step-completed {
+            border-left: 6px solid #4CAF50;
+            background: #f1f8f4;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .step h3 {
+            color: #667eea;
+            font-size: 26px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .step p {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        /* INPUTS */
+        input[type="text"], 
+        textarea {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-family: 'OpenDyslexic', 'Poppins', sans-serif;
+            transition: border-color 0.3s;
+            margin-bottom: 15px;
+            min-height: 50px;
+        }
+        
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        /* BUTTONS */
+        .btn {
+            padding: 15px 35px;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            min-height: 50px;
+            min-width: 120px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-hint {
+            background: #FFA726;
+            color: white;
+        }
+        
+        .btn-disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .btn-disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        
+        /* FEEDBACK */
+        .feedback {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            display: none;
+        }
+        
+        .feedback.success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+            display: block;
+        }
+        
+        .feedback.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+            display: block;
+        }
+        
+        .feedback.hint {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeaa7;
+            display: block;
+        }
+        
+        /* HINT SYSTEM */
+        .hint-container {
+            margin-top: 20px;
+        }
+        
+        .hint-text {
+            margin-top: 10px;
+            padding: 15px;
+            background: #fff3cd;
+            border-left: 4px solid #FFA726;
+            border-radius: 8px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        
+        /* QUESTION BLOCK */
+        .question-block {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .question-block label {
+            display: block;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        /* FLOATING CALCULATOR BUTTON */
+        .calc-floating-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            font-size: 32px;
+            border: none;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.3s;
+        }
+        
+        .calc-floating-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+        
+        /* CALCULATOR MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 3% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 95%;
+            max-width: 1000px;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            animation: slideDown 0.4s;
+        }
+        
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal-header {
+            background: #667eea;
+            color: white;
+            padding: 20px;
+            border-radius: 15px 15px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        .close {
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+            transition: all 0.3s;
+        }
+        
+        .close:hover {
+            transform: rotate(90deg);
+            color: #FFB6C1;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-body iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+            border-radius: 10px;
+        }
+        
+        /* LOADING SPINNER */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+        
+        .spinner {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* VICTORY SCREEN */
+        .victory {
+            display: none;
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .victory h2 {
+            color: #4CAF50;
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+        
+        .victory-xp {
+            font-size: 48px;
+            color: #667eea;
+            font-weight: 700;
+            margin: 20px 0;
+        }
+        
+        /* INPUT PROBLEM SECTION */
+        .input-problem {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .input-problem h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+                padding-bottom: 100px;
+            }
+            
+            .header h1 {
+                font-size: 32px;
+            }
+            
+            .problem-header {
+                padding: 20px;
+                top: 10px;
+            }
+            
+            .step {
+                padding: 20px;
+            }
+            
+            .calc-floating-btn {
+                bottom: 20px;
+                right: 20px;
+                width: 60px;
+                height: 60px;
+                font-size: 28px;
+            }
+            
+            .modal-content {
+                width: 98%;
+                margin: 2% auto;
+            }
+            
+            .modal-body iframe {
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>🎯 METODO DISCOVER</h1>
+            <p>Risolvi problemi matematici guidato passo dopo passo</p>
+        </div>
+        
+        <!-- INPUT PROBLEM SECTION (shown initially) -->
+        <div id="input-section" class="input-problem">
+            <h2>📝 Inserisci il Problema</h2>
+            <p style="margin-bottom: 15px; color: #555;">Scrivi o incolla il testo del problema da risolvere:</p>
+            <textarea id="problem-input" placeholder="Es: Marco ha 125 figurine. Matteo ha 200 figurine. Luca regala 100 delle sue figurine a Marco..."></textarea>
+            <button class="btn btn-primary" onclick="startProblem()">Inizia Risoluzione</button>
+            
+            <!-- Loading spinner -->
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>L'intelligenza artificiale sta analizzando il problema...</p>
+            </div>
+        </div>
+        
+        <!-- PROBLEM HEADER (hidden initially, shown sticky after start) -->
+        <div id="problem-header" class="problem-header" style="display: none;">
+            <h2>📝 Il Tuo Problema</h2>
+            <div id="problem-display"></div>
+            <div class="tts-controls">
+                <button class="tts-btn tts-slow" onclick="readProblem(0.7)">🐢 Lento</button>
+                <button class="tts-btn tts-normal" onclick="readProblem(1.0)">▶️ Normale</button>
+                <button class="tts-btn tts-fast" onclick="readProblem(1.3)">🐇 Veloce</button>
+                <button class="tts-btn tts-stop" onclick="stopReading()">⏹️ Stop</button>
+            </div>
+        </div>
+        
+        <!-- PROGRESS BAR -->
+        <div id="progress-section" class="progress-bar" style="display: none;">
+            <div class="progress-track">
+                <div id="progress-fill" class="progress-fill">0%</div>
+            </div>
+            <div class="xp-display">XP: <span id="xp-total">0</span> / 500</div>
+        </div>
+        
+        <!-- STEPS CONTAINER -->
+        <div id="steps-container" style="display: none;">
+            
+            <!-- STEP 1: DATI -->
+            <div id="step-1" class="step step-unlocked">
+                <h3><span class="step-number">1</span> 📊 DATI</h3>
+                <p>Scrivi <strong>TUTTI</strong> i numeri che trovi nel problema, separati da virgola:</p>
+                <input type="text" id="input-step-1" placeholder="Es: 125, 200, 100, 20">
+                <button class="btn btn-primary" onclick="checkStep1()">Verifica</button>
+                <button class="btn btn-hint" onclick="showHint(1)" style="margin-left: 10px;">💡 Aiuto</button>
+                <div id="feedback-1" class="feedback"></div>
+                <div id="hint-1" class="hint-container"></div>
+            </div>
+            
+            <!-- STEP 2: DOMANDA -->
+            <div id="step-2" class="step step-locked">
+                <h3><span class="step-number">2</span> ❓ DOMANDA</h3>
+                <p>Qual è la <strong>domanda</strong> del problema? Cosa ti viene chiesto?</p>
+                <input type="text" id="input-step-2" placeholder="Es: Quante figurine ha ogni bambino alla fine?">
+                <button class="btn btn-primary" onclick="checkStep2()">Verifica</button>
+                <button class="btn btn-hint" onclick="showHint(2)" style="margin-left: 10px;">💡 Aiuto</button>
+                <div id="feedback-2" class="feedback"></div>
+                <div id="hint-2" class="hint-container"></div>
+            </div>
+            
+            <!-- STEP 3: PERSONAGGI -->
+            <div id="step-3" class="step step-locked">
+                <h3><span class="step-number">3</span> 👥 PERSONAGGI E SITUAZIONE</h3>
+                <p>Rispondi alle domande per capire bene la situazione:</p>
+                <div id="step-3-questions">
+                    <!-- Questions will be dynamically generated by AI -->
+                </div>
+                <button class="btn btn-primary" onclick="checkStep3()">Verifica</button>
+                <button class="btn btn-hint" onclick="showHint(3)" style="margin-left: 10px;">💡 Aiuto</button>
+                <div id="feedback-3" class="feedback"></div>
+                <div id="hint-3" class="hint-container"></div>
+            </div>
+            
+            <!-- STEP 4: AZIONI -->
+            <div id="step-4" class="step step-locked">
+                <h3><span class="step-number">4</span> 🔄 AZIONI E CALCOLI</h3>
+                <p>Ora analizziamo cosa succede nel problema:</p>
+                <div id="step-4-questions">
+                    <!-- Questions will be dynamically generated by AI -->
+                </div>
+                <button class="btn btn-primary" onclick="checkStep4()">Verifica</button>
+                <button class="btn btn-hint" onclick="showHint(4)" style="margin-left: 10px;">💡 Aiuto</button>
+                <div id="feedback-4" class="feedback"></div>
+                <div id="hint-4" class="hint-container"></div>
+            </div>
+            
+            <!-- STEP 5: SOLUZIONE FINALE -->
+            <div id="step-5" class="step step-locked">
+                <h3><span class="step-number">5</span> 🎯 SOLUZIONE FINALE</h3>
+                <p>Ora scrivi la risposta finale al problema:</p>
+                <div id="step-5-questions">
+                    <!-- Final answer fields will be dynamically generated -->
+                </div>
+                <button class="btn btn-success" onclick="checkStep5()">Completa Problema</button>
+                <button class="btn btn-hint" onclick="showHint(5)" style="margin-left: 10px;">💡 Aiuto</button>
+                <div id="feedback-5" class="feedback"></div>
+                <div id="hint-5" class="hint-container"></div>
+            </div>
+        </div>
+        
+        <!-- VICTORY SCREEN -->
+        <div id="victory-screen" class="victory">
+            <h2>🎉 HAI RISOLTO IL PROBLEMA!</h2>
+            <div class="victory-xp">+500 XP</div>
+            <p style="font-size: 20px; color: #555; margin: 20px 0;">Ottimo lavoro! Hai completato tutti i passaggi.</p>
+            <button class="btn btn-primary" onclick="resetProblem()">Nuovo Problema</button>
+        </div>
+    </div>
+    
+    <!-- FLOATING CALCULATOR BUTTON -->
+    <button class="calc-floating-btn" onclick="openCalculator()" title="Apri Calcolatrice">
+        🧮
+    </button>
+    
+    <!-- CALCULATOR MODAL -->
+    <div id="calc-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🧮 Calcolatrice</h2>
+                <span class="close" onclick="closeCalculator()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <iframe src="matematica.html" id="calc-iframe"></iframe>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ============================================
+        // GLOBAL STATE
+        // ============================================
+        
+        const API_KEY = 'AIzaSyCYDbrAF61uvX3WEm_t9ZakYPf4rGavtzc'; // REPLACE WITH YOUR GEMINI API KEY
+        
+        let problemState = {
+            text: '',
+            data: null,
+            currentStep: 1,
+            completedSteps: [],
+            totalXP: 0,
+            hintLevels: {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+        };
+        
+        const STEP_XP = {
+            1: 50,
+            2: 50,
+            3: 80,
+            4: 100,
+            5: 150,
+            bonus: 70
+        };
+        
+        // ============================================
+        // TEXT-TO-SPEECH
+        // ============================================
+        
+        let utterance = null;
+        
+        function readProblem(speed) {
+            if ('speechSynthesis' in window) {
+                stopReading();
+                utterance = new SpeechSynthesisUtterance(problemState.text);
+                utterance.lang = 'it-IT';
+                utterance.rate = speed;
+                utterance.pitch = 1.0;
+                speechSynthesis.speak(utterance);
+            } else {
+                alert('Il tuo browser non supporta la lettura vocale');
+            }
+        }
+        
+        function stopReading() {
+            if (speechSynthesis.speaking) {
+                speechSynthesis.cancel();
+            }
+        }
+        
+        // ============================================
+        // CALCULATOR MODAL
+        // ============================================
+        
+        function openCalculator() {
+            document.getElementById('calc-modal').style.display = 'block';
+        }
+        
+        function closeCalculator() {
+            document.getElementById('calc-modal').style.display = 'none';
+        }
+        
+        // Close modal with ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeCalculator();
+            }
+        });
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('calc-modal');
+            if (event.target == modal) {
+                closeCalculator();
+            }
+        }
+        
+        // ============================================
+        // PROBLEM ANALYSIS (API CALL)
+        // ============================================
+        
+        async function startProblem() {
+            const problemText = document.getElementById('problem-input').value.trim();
+            
+            if (!problemText) {
+                alert('Per favore, inserisci il testo del problema!');
+                return;
+            }
+            
+            if (API_KEY === 'YOUR_API_KEY_HERE') {
+                alert('ATTENZIONE: Devi inserire la tua API KEY di Google AI Studio nel codice!\n\nCerca "YOUR_API_KEY_HERE" nel file e sostituiscila con la tua chiave.');
+                return;
+            }
+            
+            problemState.text = problemText;
+            
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                const data = await analyzeProblem(problemText);
+                
+                if (!data) {
+                    throw new Error('Analisi fallita');
+                }
+                
+                problemState.data = data;
+                
+                // Hide input section
+                document.getElementById('input-section').style.display = 'none';
+                
+                // Show problem header, progress, and steps
+                document.getElementById('problem-header').style.display = 'block';
+                document.getElementById('progress-section').style.display = 'block';
+                document.getElementById('steps-container').style.display = 'block';
+                
+                // Display problem text
+                document.getElementById('problem-display').textContent = problemText;
+                
+                // Generate dynamic questions for steps 3, 4, 5
+                generateStep3Questions();
+                generateStep4Questions();
+                generateStep5Questions();
+                
+                // Scroll to problem header
+                document.getElementById('problem-header').scrollIntoView({ behavior: 'smooth' });
+                
+            } catch (error) {
+                console.error('Errore analisi:', error);
+                alert('Si è verificato un errore nell\'analisi del problema. Riprova!');
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+        
+        async function analyzeProblem(problemText) {
+            const prompt = `Analizza questo problema matematico per elementari e genera la struttura di risoluzione guidata.
+
+PROBLEMA:
+"${problemText}"
+
+Rispondi SOLO con JSON (niente markdown, niente backticks):
+{
+  "numeri_attesi": ["numero1", "numero2", ...],
+  "domanda": "la domanda del problema",
+  "personaggi": [
+    {"nome": "Nome1", "valore_iniziale": "valore o 'da_calcolare'"},
+    {"nome": "Nome2", "valore_iniziale": "valore o 'da_calcolare'"}
+  ],
+  "steps": {
+    "step3_personaggi": [
+      {"domanda": "Quanti personaggi ci sono?", "risposta": "numero", "tipo": "number"},
+      {"domanda": "Chi sono?", "risposta": "Nome1,Nome2,Nome3", "tipo": "array"},
+      {"domanda": "Quanto/e ha Nome1 all'inizio?", "risposta": "valore", "tipo": "number"}
+    ],
+    "step4_azioni": [
+      {"domanda": "Cosa fa Nome1?", "risposta": "descrizione azione", "tipo": "text", "parole_chiave": ["parola1", "parola2"]},
+      {"domanda": "Calcola: operazione", "calcolo": "es: 125 + 100", "risposta": "risultato", "tipo": "number"}
+    ]
+  },
+  "soluzione_finale": {
+    "Nome1": "valore_finale",
+    "Nome2": "valore_finale"
+  }
+}
+
+IMPORTANTE:
+- Estrai TUTTI i numeri presenti nel problema
+- Crea domande chiare e specifiche
+- Per le domande di tipo "text", specifica parole_chiave per validazione flessibile
+- Gestisci qualsiasi numero (anche grandi come 1000, 5000, 100000)
+- Se non ci sono personaggi, adatta le domande alla situazione del problema`;
+
+            try {
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{ text: prompt }]
+                            }]
+                        })
+                    }
+                );
+                
+                const result = await response.json();
+                
+                if (!result.candidates || !result.candidates[0]) {
+                    throw new Error('Risposta API non valida');
+                }
+                
+                let jsonText = result.candidates[0].content.parts[0].text;
+                
+                // Clean markdown if present
+                jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                
+                const data = JSON.parse(jsonText);
+                
+                return data;
+                
+            } catch (error) {
+                console.error('Errore chiamata API:', error);
+                return null;
+            }
+        }
+        
+        // ============================================
+        // DYNAMIC QUESTION GENERATION
+        // ============================================
+        
+        function generateStep3Questions() {
+            const container = document.getElementById('step-3-questions');
+            const questions = problemState.data.steps.step3_personaggi;
+            
+            container.innerHTML = '';
+            
+            questions.forEach((q, idx) => {
+                const block = document.createElement('div');
+                block.className = 'question-block';
+                block.innerHTML = `
+                    <label>${q.domanda}</label>
+                    <input type="text" id="step3-q${idx}" placeholder="Scrivi qui la risposta...">
+                `;
+                container.appendChild(block);
+            });
+        }
+        
+        function generateStep4Questions() {
+            const container = document.getElementById('step-4-questions');
+            const questions = problemState.data.steps.step4_azioni;
+            
+            container.innerHTML = '';
+            
+            questions.forEach((q, idx) => {
+                const block = document.createElement('div');
+                block.className = 'question-block';
+                
+                let inputHTML = `<input type="text" id="step4-q${idx}" placeholder="Scrivi qui la risposta...">`;
+                
+                if (q.calcolo) {
+                    inputHTML = `
+                        <p style="font-size: 16px; color: #667eea; margin-bottom: 10px;">
+                            <strong>Calcolo da fare:</strong> ${q.calcolo}
+                        </p>
+                        <input type="text" id="step4-q${idx}" placeholder="Risultato del calcolo...">
+                    `;
+                }
+                
+                block.innerHTML = `
+                    <label>${q.domanda}</label>
+                    ${inputHTML}
+                `;
+                container.appendChild(block);
+            });
+        }
+        
+        function generateStep5Questions() {
+            const container = document.getElementById('step-5-questions');
+            const solution = problemState.data.soluzione_finale;
+            
+            container.innerHTML = '<p style="margin-bottom: 20px; font-size: 18px; font-weight: 600;">Scrivi la risposta finale per ciascuno:</p>';
+            
+            let idx = 0;
+            for (const [name, value] of Object.entries(solution)) {
+                const block = document.createElement('div');
+                block.className = 'question-block';
+                block.innerHTML = `
+                    <label>${name} ha alla fine:</label>
+                    <input type="text" id="step5-answer-${idx}" data-name="${name}" data-expected="${value}" placeholder="Numero...">
+                `;
+                container.appendChild(block);
+                idx++;
+            }
+        }
+        
+        // ============================================
+        // VALIDATION FUNCTIONS
+        // ============================================
+        
+        function validateAnswer(userInput, expected, type = 'text', keywords = []) {
+            const user = String(userInput).trim().toLowerCase();
+            const exp = String(expected).trim().toLowerCase();
+            
+            switch(type) {
+                case 'number':
+                    // Extract only numbers from both
+                    const userNum = parseInt(user.replace(/[^0-9]/g, '')) || 0;
+                    const expNum = parseInt(exp.replace(/[^0-9]/g, '')) || 0;
+                    return userNum === expNum;
+                    
+                case 'array':
+                    // Split by comma, trim, sort and compare
+                    const userArr = user.split(',').map(s => s.trim()).filter(s => s).sort();
+                    const expArr = exp.split(',').map(s => s.trim()).filter(s => s).sort();
+                    return JSON.stringify(userArr) === JSON.stringify(expArr);
+                    
+                case 'text':
+                    // Check if user answer contains expected keywords
+                    if (keywords && keywords.length > 0) {
+                        return keywords.some(kw => user.includes(kw.toLowerCase()));
+                    }
+                    // Fallback: check if contains expected text
+                    return user.includes(exp) || exp.includes(user);
+                    
+                case 'exact':
+                    return user === exp;
+                    
+                default:
+                    return user.includes(exp);
+            }
+        }
+        
+        // ============================================
+        // STEP VALIDATION
+        // ============================================
+        
+        function checkStep1() {
+            const input = document.getElementById('input-step-1').value;
+            const expected = problemState.data.numeri_attesi;
+            
+            // Extract all numbers from user input
+            const userNumbers = input.match(/\d+/g) || [];
+            
+            // Check if user found at least 70% of numbers
+            const threshold = Math.ceil(expected.length * 0.7);
+            
+            if (userNumbers.length >= threshold) {
+                showFeedback(1, 'success', `✅ Ottimo! Hai trovato ${userNumbers.length} numeri. (+${STEP_XP[1]} XP)`);
+                completeStep(1);
+            } else {
+                showFeedback(1, 'error', `❌ Cerca ancora! Nel problema ci sono circa ${expected.length} numeri.`);
+            }
+        }
+        
+        function checkStep2() {
+            const input = document.getElementById('input-step-2').value;
+            const expected = problemState.data.domanda;
+            
+            // Extract keywords from expected answer
+            const keywords = expected.toLowerCase().split(' ').filter(w => w.length > 3);
+            
+            const isCorrect = validateAnswer(input, expected, 'text', keywords);
+            
+            if (isCorrect) {
+                showFeedback(2, 'success', `✅ Corretto! Hai capito bene cosa ti viene chiesto. (+${STEP_XP[2]} XP)`);
+                completeStep(2);
+            } else {
+                showFeedback(2, 'error', '❌ Non è esattamente questo. Rileggi l\'ultima frase del problema.');
+            }
+        }
+        
+        function checkStep3() {
+            const questions = problemState.data.steps.step3_personaggi;
+            let allCorrect = true;
+            let incorrectIndex = -1;
+            
+            questions.forEach((q, idx) => {
+                const input = document.getElementById(`step3-q${idx}`).value;
+                const isCorrect = validateAnswer(input, q.risposta, q.tipo, q.parole_chiave);
+                
+                if (!isCorrect && incorrectIndex === -1) {
+                    incorrectIndex = idx;
+                    allCorrect = false;
+                }
+            });
+            
+            if (allCorrect) {
+                showFeedback(3, 'success', `✅ Perfetto! Hai capito la situazione iniziale. (+${STEP_XP[3]} XP)`);
+                completeStep(3);
+            } else {
+                showFeedback(3, 'error', `❌ Controlla la risposta numero ${incorrectIndex + 1}.`);
+            }
+        }
+        
+        function checkStep4() {
+            const questions = problemState.data.steps.step4_azioni;
+            let allCorrect = true;
+            let incorrectIndex = -1;
+            
+            questions.forEach((q, idx) => {
+                const input = document.getElementById(`step4-q${idx}`).value;
+                const isCorrect = validateAnswer(input, q.risposta, q.tipo, q.parole_chiave);
+                
+                if (!isCorrect && incorrectIndex === -1) {
+                    incorrectIndex = idx;
+                    allCorrect = false;
+                }
+            });
+            
+            if (allCorrect) {
+                showFeedback(4, 'success', `✅ Eccellente! Hai seguito tutti i passaggi. (+${STEP_XP[4]} XP)`);
+                completeStep(4);
+            } else {
+                showFeedback(4, 'error', `❌ Ricontrolla la risposta numero ${incorrectIndex + 1}.`);
+            }
+        }
+        
+        function checkStep5() {
+            const solution = problemState.data.soluzione_finale;
+            let allCorrect = true;
+            let incorrectName = '';
+            
+            let idx = 0;
+            for (const [name, expected] of Object.entries(solution)) {
+                const input = document.getElementById(`step5-answer-${idx}`).value;
+                const isCorrect = validateAnswer(input, expected, 'number');
+                
+                if (!isCorrect && !incorrectName) {
+                    incorrectName = name;
+                    allCorrect = false;
+                }
+                idx++;
+            }
+            
+            if (allCorrect) {
+                showFeedback(5, 'success', `✅ HAI RISOLTO IL PROBLEMA! (+${STEP_XP[5]} XP)`);
+                completeStep(5);
+                setTimeout(showVictory, 1000);
+            } else {
+                showFeedback(5, 'error', `❌ Controlla il valore per ${incorrectName}.`);
+            }
+        }
+        
+        // ============================================
+        // STEP COMPLETION
+        // ============================================
+        
+        function completeStep(stepNum) {
+            if (problemState.completedSteps.includes(stepNum)) {
+                return; // Already completed
+            }
+            
+            problemState.completedSteps.push(stepNum);
+            
+            // Add XP
+            addXP(STEP_XP[stepNum]);
+            
+            // Mark step as completed visually
+            const stepEl = document.getElementById(`step-${stepNum}`);
+            stepEl.classList.add('step-completed');
+            
+            // Unlock next step
+            if (stepNum < 5) {
+                unlockStep(stepNum + 1);
+            }
+            
+            // Save progress
+            saveProgress();
+        }
+        
+        function unlockStep(stepNum) {
+            const stepEl = document.getElementById(`step-${stepNum}`);
+            stepEl.classList.remove('step-locked');
+            stepEl.classList.add('step-unlocked');
+            
+            // Scroll to new step
+            setTimeout(() => {
+                stepEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 300);
+            
+            problemState.currentStep = stepNum;
+        }
+        
+        function addXP(amount) {
+            problemState.totalXP += amount;
+            document.getElementById('xp-total').textContent = problemState.totalXP;
+            
+            // Update progress bar
+            const percentage = Math.min((problemState.totalXP / 500) * 100, 100);
+            const progressFill = document.getElementById('progress-fill');
+            progressFill.style.width = percentage + '%';
+            progressFill.textContent = Math.round(percentage) + '%';
+        }
+        
+        // ============================================
+        // FEEDBACK SYSTEM
+        // ============================================
+        
+        function showFeedback(stepNum, type, message) {
+            const feedbackEl = document.getElementById(`feedback-${stepNum}`);
+            feedbackEl.className = `feedback ${type}`;
+            feedbackEl.textContent = message;
+            feedbackEl.style.display = 'block';
+            
+            // Auto-hide after 5 seconds for errors
+            if (type === 'error') {
+                setTimeout(() => {
+                    feedbackEl.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        // ============================================
+        // HINT SYSTEM
+        // ============================================
+        
+        function showHint(stepNum) {
+            const level = problemState.hintLevels[stepNum];
+            
+            const hints = getHintsForStep(stepNum);
+            
+            if (level >= hints.length) {
+                return; // No more hints
+            }
+            
+            const hintContainer = document.getElementById(`hint-${stepNum}`);
+            const hintText = document.createElement('div');
+            hintText.className = 'hint-text';
+            hintText.innerHTML = `<strong>💡 Suggerimento ${level + 1}:</strong> ${hints[level]}`;
+            
+            hintContainer.appendChild(hintText);
+            
+            problemState.hintLevels[stepNum]++;
+        }
+        
+        function getHintsForStep(stepNum) {
+            const data = problemState.data;
+            
+            switch(stepNum) {
+                case 1:
+                    return [
+                        'Cerca tutti i numeri scritti nel problema (anche quelli scritti in lettere come "cento").',
+                        `Nel problema ci sono circa ${data.numeri_attesi.length} numeri. Hai trovato tutti?`,
+                        `I numeri sono: ${data.numeri_attesi.join(', ')}`
+                    ];
+                    
+                case 2:
+                    return [
+                        'La domanda si trova di solito alla fine del problema.',
+                        'Cerca una frase che inizia con parole come "Quanti", "Quanto", "Chi", "Cosa".',
+                        `La domanda è: ${data.domanda}`
+                    ];
+                    
+                case 3:
+                    const step3 = data.steps.step3_personaggi;
+                    return [
+                        'Rileggi con attenzione la prima parte del problema.',
+                        'Cerca i nomi delle persone e guarda cosa hanno all\'inizio.',
+                        `Le risposte sono: ${step3.map(q => q.risposta).join(', ')}`
+                    ];
+                    
+                case 4:
+                    const step4 = data.steps.step4_azioni;
+                    return [
+                        'Guarda cosa succede nel problema: chi dà cosa a chi?',
+                        'Per i calcoli, usa la calcolatrice se hai bisogno!',
+                        `Le risposte sono: ${step4.map(q => q.risposta).join(', ')}`
+                    ];
+                    
+                case 5:
+                    const solution = data.soluzione_finale;
+                    return [
+                        'Ricontrolla tutti i calcoli che hai fatto negli step precedenti.',
+                        'Usa la calcolatrice per verificare!',
+                        `Le risposte finali sono: ${Object.entries(solution).map(([k,v]) => `${k}: ${v}`).join(', ')}`
+                    ];
+                    
+                default:
+                    return ['Rileggi attentamente il problema.'];
+            }
+        }
+        
+        // ============================================
+        // VICTORY SCREEN
+        // ============================================
+        
+        function showVictory() {
+            // Add bonus XP
+            addXP(STEP_XP.bonus);
+            
+            // Hide steps
+            document.getElementById('steps-container').style.display = 'none';
+            
+            // Show victory
+            document.getElementById('victory-screen').style.display = 'block';
+            
+            // Scroll to victory
+            document.getElementById('victory-screen').scrollIntoView({ behavior: 'smooth' });
+            
+            // Confetti effect (optional - can be added with a library)
+        }
+        
+        // ============================================
+        // PROGRESS SAVE/LOAD
+        // ============================================
+        
+        function saveProgress() {
+            localStorage.setItem('discover_state', JSON.stringify(problemState));
+        }
+        
+        function loadProgress() {
+            const saved = localStorage.getItem('discover_state');
+            if (saved) {
+                problemState = JSON.parse(saved);
+                // Restore UI based on saved state (implement if needed)
+            }
+        }
+        
+        // ============================================
+        // RESET
+        // ============================================
+        
+        function resetProblem() {
+            // Clear state
+            problemState = {
+                text: '',
+                data: null,
+                currentStep: 1,
+                completedSteps: [],
+                totalXP: 0,
+                hintLevels: {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+            };
+            
+            // Clear localStorage
+            localStorage.removeItem('discover_state');
+            
+            // Reset UI
+            document.getElementById('victory-screen').style.display = 'none';
+            document.getElementById('input-section').style.display = 'block';
+            document.getElementById('problem-header').style.display = 'none';
+            document.getElementById('progress-section').style.display = 'none';
+            document.getElementById('steps-container').style.display = 'none';
+            
+            // Clear input
+            document.getElementById('problem-input').value = '';
+            
+            // Reset all steps
+            for (let i = 1; i <= 5; i++) {
+                const step = document.getElementById(`step-${i}`);
+                step.classList.remove('step-completed', 'step-unlocked');
+                if (i > 1) step.classList.add('step-locked');
+                
+                // Clear feedbacks
+                document.getElementById(`feedback-${i}`).style.display = 'none';
+                document.getElementById(`hint-${i}`).innerHTML = '';
+            }
+            
+            // Reset progress
+            document.getElementById('xp-total').textContent = '0';
+            document.getElementById('progress-fill').style.width = '0%';
+            document.getElementById('progress-fill').textContent = '0%';
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        
+        // Load progress on page load (optional)
+        // loadProgress();
+        
+    </script>
+</body>
+</html>
