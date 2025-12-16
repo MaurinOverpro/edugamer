@@ -1045,7 +1045,7 @@ Analizza il problema e genera il JSON seguendo ESATTAMENTE questa struttura.`;
     });
 }
         
-        function generateStep5Questions() {
+    function generateStep5Questions() {
     const container = document.getElementById('step-5-questions');
     const data = problemState.data;
     
@@ -1082,8 +1082,8 @@ Analizza il problema e genera il JSON seguendo ESATTAMENTE questa struttura.`;
     finalSentence += '<h4 class="text-green-400 font-bold mb-3">✅ SOLUZIONE FINALE</h4>';
     finalSentence += '<p class="text-lg mb-3">Alla fine: ';
     
-    const parts = names.map((name, idx) => {
-        if (idx === names.length - 1 && names.length > 1) {
+    const parts = names.map((name, index) => {
+        if (index === names.length - 1 && names.length > 1) {
             return `e ${name} ha <span class="text-yellow-400 font-bold">${solution[name]}</span>`;
         }
         return `${name} ha <span class="text-yellow-400 font-bold">${solution[name]}</span>`;
@@ -1095,21 +1095,20 @@ Analizza il problema e genera il JSON seguendo ESATTAMENTE questa struttura.`;
     let inputFields = '<div class="space-y-3">';
     inputFields += '<p class="font-bold text-lg mb-3">Ora scrivi tu le risposte finali:</p>';
     
-    let idx = 0;
-    for (const [name, value] of Object.entries(solution)) {
+    // CORREZIONE: Usa Object.entries con destructuring nell'indice
+    Object.entries(solution).forEach(([name, value], index) => {
         inputFields += `
             <div class="question-block">
                 <label>${name} ha alla fine:</label>
-                <input type="text" id="step5-answer-${idx}" data-name="${name}" data-expected="${value}" placeholder="Scrivi il numero...">
+                <input type="text" id="step5-answer-${index}" data-name="${name}" data-expected="${value}" placeholder="Scrivi il numero...">
             </div>
         `;
-        idx++;
-    }
+    });
+    
     inputFields += '</div>';
     
     container.innerHTML = summary + finalSentence + inputFields;
-}
-        
+} 
         // ============================================
         // VALIDATION FUNCTIONS
         // ============================================
