@@ -588,7 +588,7 @@
             <div id="step-1" class="step step-unlocked">
                 <h3><span class="step-number">1</span> 📊 DATI</h3>
                 <p>Scrivi <strong>TUTTI</strong> i numeri che trovi nel problema, separati da virgola:</p>
-                <input type="text" id="input-step-1" placeholder="Es: 125, 200, 100, 20">
+                <input type="text" id="input-step-1" autocomplete="off" placeholder="Es: 125, 200, 100, 20">
                 <button class="btn btn-primary" onclick="checkStep1()">Verifica</button>
                 <button class="btn btn-hint" onclick="showHint(1)" style="margin-left: 10px;">💡 Aiuto</button>
                 <div id="feedback-1" class="feedback"></div>
@@ -599,7 +599,7 @@
             <div id="step-2" class="step step-locked">
                 <h3><span class="step-number">2</span> ❓ DOMANDA</h3>
                 <p>Qual è la <strong>domanda</strong> del problema? Cosa ti viene chiesto?</p>
-                <input type="text" id="input-step-2" placeholder="Es: Quante figurine ha ogni bambino alla fine?">
+                <input type="text" id="input-step-2" autocomplete="off" placeholder="Es: Quante figurine ha ogni bambino alla fine?">
                 <button class="btn btn-primary" onclick="checkStep2()">Verifica</button>
                 <button class="btn btn-hint" onclick="showHint(2)" style="margin-left: 10px;">💡 Aiuto</button>
                 <div id="feedback-2" class="feedback"></div>
@@ -1459,7 +1459,8 @@ Analizza il problema reale e genera il JSON adattandolo alla situazione specific
             document.getElementById('progress-section').style.display = 'none';
             document.getElementById('steps-container').style.display = 'none';
             document.getElementById('problem-input').value = '';
-            
+            document.getElementById('input-step-1').value = ''; 
+            document.getElementById('input-step-2').value = ''; 
             for (let i = 1; i <= 5; i++) {
                 const step = document.getElementById(`step-${i}`);
                 step.classList.remove('step-completed', 'step-unlocked');
