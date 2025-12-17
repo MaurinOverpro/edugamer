@@ -545,7 +545,7 @@
     </a>
     <h1>🎯 METODO DISCOVER</h1>
     <p>Risolvi problemi matematici guidato passo dopo passo</p>
-	</div>
+</div>
         
         <!-- INPUT PROBLEM SECTION (shown initially) -->
         <div id="input-section" class="input-problem">
@@ -770,10 +770,45 @@
     return;
 }
             
-            problemState.text = problemText;
-            // Reset completo stato
-		problemState.data = null;
-		problemState.step4Attempts = {};
+          // 1. RESET COMPLETO DELLO STATO
+            problemState = {
+                text: problemText,
+                data: null,
+                currentStep: 1,
+                completedSteps: [],
+                totalXP: 0,
+                hintLevels: {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
+                step4Attempts: {}
+            };
+
+            // 2. PULIZIA INPUT UTENTE (Step 1 e 2)
+            document.getElementById('input-step-1').value = '';
+            document.getElementById('input-step-2').value = '';
+
+            // 3. PULIZIA FEEDBACK E HINT
+            document.querySelectorAll('.feedback').forEach(el => {
+                el.style.display = 'none';
+                el.textContent = '';
+            });
+            document.querySelectorAll('.hint-container').forEach(el => el.innerHTML = '');
+
+            // 4. RESET VISIVO DEGLI STEP
+            // Sblocca lo step 1
+            const step1 = document.getElementById('step-1');
+            step1.classList.remove('step-completed', 'step-locked');
+            step1.classList.add('step-unlocked'); 
+
+            // Blocca step 2, 3, 4, 5
+            for (let i = 2; i <= 5; i++) {
+                const step = document.getElementById(`step-${i}`);
+                step.classList.remove('step-completed', 'step-unlocked');
+                step.classList.add('step-locked');
+            }
+
+            // 5. RESET PROGRESS BAR E XP
+            document.getElementById('xp-total').textContent = '0';
+            document.getElementById('progress-fill').style.width = '0%';
+            document.getElementById('progress-fill').textContent = '0%';
             document.getElementById('loading').style.display = 'block';
             
             try {
