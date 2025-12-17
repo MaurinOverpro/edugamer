@@ -540,9 +540,12 @@
     <div class="container">
         <!-- HEADER -->
         <div class="header">
-            <h1>🎯 METODO DISCOVER</h1>
-            <p>Risolvi problemi matematici guidato passo dopo passo</p>
-        </div>
+    <a href="matematica.html" style="position: absolute; left: 20px; top: 20px; background: white; padding: 10px 20px; border-radius: 10px; color: #667eea; text-decoration: none; font-weight: bold; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+        ← Matematica
+    </a>
+    <h1>🎯 METODO DISCOVER</h1>
+    <p>Risolvi problemi matematici guidato passo dopo passo</p>
+	</div>
         
         <!-- INPUT PROBLEM SECTION (shown initially) -->
         <div id="input-section" class="input-problem">
@@ -768,7 +771,9 @@
 }
             
             problemState.text = problemText;
-            
+            // Reset completo stato
+		problemState.data = null;
+		problemState.step4Attempts = {};
             document.getElementById('loading').style.display = 'block';
             
             try {
@@ -827,7 +832,7 @@
         }
         
         async function analyzeProblem(problemText) {
-            const prompt = `Sei un assistente che analizza problemi matematici per bambini delle elementari.
+           const prompt = `Sei un assistente che analizza problemi matematici per bambini delle elementari.
 
 PROBLEMA DA ANALIZZARE:
 "${problemText}"
@@ -836,36 +841,58 @@ ISTRUZIONI CRITICHE:
 1. Rispondi ESCLUSIVAMENTE con un oggetto JSON valido
 2. NON aggiungere testo prima o dopo il JSON
 3. NON usare markdown o backticks
-4. Assicurati che il JSON sia perfettamente formattato
-IMPORTANTE: In "numeri_attesi" inserisci SOLO i numeri effettivi (cifre), NON i nomi delle persone.
-Esempio: "Marco ha 10" → numero: "10" (Marco NON è un numero)
-STRUTTURA JSON RICHIESTA:
+
+REGOLE ADATTIVE:
+- In "numeri_attesi" inserisci SOLO numeri scritti come cifre (es: 45, 30, 15). NON contare nomi ripetuti.
+- Se c'è 1 solo protagonista, "personaggi" avrà 1 elemento
+- Se ci sono più protagonisti, "personaggi" avrà più elementi
+- "step3_personaggi" deve avere 3-5 domande adatte al problema
+- "step4_azioni" descrive cosa succede in ordine cronologico
+- "soluzione_finale" contiene i valori finali richiesti dalla domanda
+
+ESEMPIO CON PIÙ PERSONAGGI:
 {
-    "numeri_attesi": ["45", "30", "15", "20"],  // SOLO i numeri numerici, NON contare nomi ripetuti
-  "domanda": "Quante figurine ha ogni bambino alla fine?",
+  "numeri_attesi": ["125", "200", "100"],
+  "domanda": "Quante figurine ha ognuno?",
   "personaggi": [
     {"nome": "Marco", "valore_iniziale": "125"},
-    {"nome": "Matteo", "valore_iniziale": "200"}
+    {"nome": "Luca", "valore_iniziale": "200"}
   ],
   "steps": {
     "step3_personaggi": [
-      {"domanda": "Quanti bambini ci sono?", "risposta": "3", "tipo": "number"},
-      {"domanda": "Chi sono? (separati da virgola)", "risposta": "Marco,Matteo,Luca", "tipo": "array"},
-      {"domanda": "Quante figurine ha Marco all'inizio?", "risposta": "125", "tipo": "number"}
+      {"domanda": "Quanti bambini ci sono?", "risposta": "2", "tipo": "number"},
+      {"domanda": "Chi sono?", "risposta": "Marco,Luca", "tipo": "array"}
     ],
     "step4_azioni": [
-      {"domanda": "Cosa fa Luca?", "risposta": "regala 100 figurine a Marco", "tipo": "text", "parole_chiave": ["regala", "100", "Marco"]},
-      {"domanda": "Quindi Marco ora ha:", "calcolo": "125 + 100", "risposta": "225", "tipo": "number"}
+      {"domanda": "Cosa fa Marco?", "risposta": "regala 100 a Luca", "tipo": "text", "parole_chiave": ["regala", "Luca"]},
+      {"domanda": "Marco ora ha:", "calcolo": "125 - 100", "risposta": "25", "tipo": "number"}
     ]
   },
-  "soluzione_finale": {
-    "Marco": "225",
-    "Matteo": "180",
-    "Luca": "80"
-  }
+  "soluzione_finale": {"Marco": "25", "Luca": "300"}
 }
 
-Analizza il problema e genera il JSON seguendo ESATTAMENTE questa struttura.`;
+ESEMPIO CON 1 PERSONAGGIO:
+{
+  "numeri_attesi": ["45", "30", "15", "20"],
+  "domanda": "Quante caramelle ha alla fine?",
+  "personaggi": [
+    {"nome": "Luca", "valore_iniziale": "45"}
+  ],
+  "steps": {
+    "step3_personaggi": [
+      {"domanda": "Chi è il protagonista?", "risposta": "Luca", "tipo": "text"},
+      {"domanda": "Quante caramelle ha all'inizio?", "risposta": "45", "tipo": "number"}
+    ],
+    "step4_azioni": [
+      {"domanda": "Quante ne riceve dalla mamma?", "calcolo": "45 + 30", "risposta": "75", "tipo": "number"},
+      {"domanda": "Quante ne aggiunge il papà?", "calcolo": "75 + 15", "risposta": "90", "tipo": "number"},
+      {"domanda": "Quante ne mangia?", "calcolo": "90 - 20", "risposta": "70", "tipo": "number"}
+    ]
+  },
+  "soluzione_finale": {"Luca": "70"}
+}
+
+Analizza il problema reale e genera il JSON adattandolo alla situazione specifica.`;
 
             try {
                 console.log('📤 Invio richiesta API...');
