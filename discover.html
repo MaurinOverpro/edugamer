@@ -675,7 +675,7 @@
         // GLOBAL STATE
         // ============================================
         
-        const API_KEY = 'AIzaSyDnreIoFrtthL4ChY203KkKClGy9nPKbJ0';
+        const API_KEY = localStorage.getItem('gemini_api_key') || '';
         
         let problemState = {
             text: '',
@@ -758,10 +758,14 @@
                 return;
             }
             
-            if (API_KEY === 'YOUR_API_KEY_HERE') {
-                alert('⚠️ CONFIGURAZIONE MANCANTE\n\nDevi inserire la tua API KEY di Google AI Studio nel codice!\n\nCerca "YOUR_API_KEY_HERE" nel file discover.html e sostituiscila con la tua chiave che inizia con "AIza..."');
-                return;
-            }
+            if (!API_KEY) {
+    const userKey = prompt('⚠️ Inserisci la tua API Key di Google AI Studio:\n\n(Puoi trovarla su: https://aistudio.google.com/apikey)');
+    if (userKey) {
+        localStorage.setItem('gemini_api_key', userKey.trim());
+        location.reload();
+    }
+    return;
+}
             
             problemState.text = problemText;
             
@@ -833,10 +837,11 @@ ISTRUZIONI CRITICHE:
 2. NON aggiungere testo prima o dopo il JSON
 3. NON usare markdown o backticks
 4. Assicurati che il JSON sia perfettamente formattato
-
+IMPORTANTE: In "numeri_attesi" inserisci SOLO i numeri effettivi (cifre), NON i nomi delle persone.
+Esempio: "Marco ha 10" → numero: "10" (Marco NON è un numero)
 STRUTTURA JSON RICHIESTA:
 {
-  "numeri_attesi": ["125", "200", "100", "20"],
+    "numeri_attesi": ["45", "30", "15", "20"],  // SOLO i numeri numerici, NON contare nomi ripetuti
   "domanda": "Quante figurine ha ogni bambino alla fine?",
   "personaggi": [
     {"nome": "Marco", "valore_iniziale": "125"},
