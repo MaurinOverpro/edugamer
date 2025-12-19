@@ -1041,17 +1041,17 @@ Analizza il problema reale e genera il JSON adattandolo alla situazione specific
                 const block = document.createElement('div');
                 block.className = 'question-block';
                 
-                let inputHTML = `<input type="text" id="step4-q${idx}" placeholder="Scrivi qui la risposta...">`;
-                
-                if (q.calcolo) {
-                    inputHTML = `
-                        <div id="step4-calc-hint-${idx}" style="display: none;" class="p-3 bg-yellow-900/30 border-l-4 border-yellow-500 rounded-lg mb-3">
-                            <p class="text-yellow-400 font-bold text-sm">💡 AIUTO - Calcolo da fare:</p>
-                            <p class="text-white text-lg font-mono">${q.calcolo}</p>
-                        </div>
-                        <input type="text" id="step4-q${idx}" placeholder="Risultato del calcolo...">
-                    `;
-                }
+               let inputHTML = `<input type="text" id="step4-q${idx}" autocomplete="off" placeholder="Scrivi qui la risposta...">`;
+
+			if (q.calcolo) {
+    		inputHTML = `
+        	<div id="step4-calc-hint-${idx}" style="display: none;" class="p-3 bg-yellow-900/30 border-l-4 border-yellow-500 rounded-lg mb-3">
+            <p class="text-yellow-400 font-bold text-sm">💡 AIUTO - Calcolo da fare:</p>
+            <p class="text-white text-lg font-mono">${q.calcolo}</p>
+        	</div>
+        	<input type="text" id="step4-q${idx}" autocomplete="off" placeholder="Risultato del calcolo...">
+    	`	;
+		}
                 
                 block.innerHTML = `
                     <label>${q.domanda}</label>
@@ -1111,13 +1111,13 @@ Analizza il problema reale e genera il JSON adattandolo alla situazione specific
             inputFields += '<p style="font-weight: bold; font-size: 18px; margin-bottom: 20px;">Ora scrivi tu le risposte finali:</p>';
             
             Object.entries(solution).forEach(([name, value], index) => {
-                inputFields += `
-                    <div class="question-block">
-                        <label>${name} ha alla fine:</label>
-                        <input type="text" id="step5-answer-${index}" data-name="${name}" data-expected="${value}" placeholder="Scrivi il numero...">
-                    </div>
-                `;
-            });
+    inputFields += `
+        <div class="question-block">
+            <label>${name} ha alla fine:</label>
+            <input type="text" id="step5-answer-${index}" autocomplete="off" data-name="${name}" data-expected="${value}" placeholder="Scrivi il numero...">
+        </div>
+   	 `;
+	});
             
             inputFields += '</div>';
             
