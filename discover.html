@@ -3,1196 +3,909 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DISCOVER - Metodo Guidato | EduGamer</title>
+    <title>DISCOVER - Risolutore Problemi Multi-Tipo</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
-        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
-            padding-bottom: 100px;
+            color: white;
         }
-        
+
         .container {
             max-width: 900px;
             margin: 0 auto;
         }
-        
+
         .header {
             text-align: center;
-            color: white;
             margin-bottom: 30px;
-        }
-        
-        .header h1 {
-            font-size: 42px;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-        
-        .header p {
-            font-size: 18px;
-            opacity: 0.95;
-        }
-        
-        /* PROBLEMA STICKY HEADER */
-        .problem-header {
-            background: white;
-            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.1);
             padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            position: sticky;
-            top: 20px;
-            z-index: 50;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            position: relative;
         }
-        
-        .problem-header h2 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 24px;
-        }
-        
-        #problem-display {
-            font-size: 18px;
-            line-height: 1.8;
-            color: #333;
-            margin-bottom: 15px;
-            padding: 15px;
-            background: #f8f9ff;
-            border-radius: 10px;
-            min-height: 80px;
-        }
-        
-        .tts-controls {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        
-        .tts-btn {
-            padding: 10px 20px;
+
+        .back-button {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-        
-        .tts-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-        
-        .tts-slow { background: #90EE90; color: #333; }
-        .tts-normal { background: #87CEEB; color: #333; }
-        .tts-fast { background: #FFB6C1; color: #333; }
-        .tts-stop { background: #FF6B6B; color: white; }
-        
-        /* PROGRESS BAR */
-        .progress-bar {
-            background: white;
+            padding: 10px 20px;
             border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
         }
-        
-        .progress-track {
-            background: #e0e0e0;
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .subtitle {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .xp-bar-container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .xp-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .xp-bar {
+            width: 100%;
             height: 30px;
+            background: rgba(0, 0, 0, 0.3);
             border-radius: 15px;
             overflow: hidden;
             position: relative;
         }
-        
-        .progress-fill {
-            background: linear-gradient(90deg, #667eea, #764ba2);
+
+        .xp-fill {
             height: 100%;
+            background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
             width: 0%;
             transition: width 0.5s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-        }
-        
-        .xp-display {
-            text-align: center;
-            margin-top: 10px;
-            font-size: 20px;
-            color: #667eea;
-            font-weight: 700;
-        }
-        
-        /* STEPS */
-        .step {
-            background: white;
             border-radius: 15px;
+        }
+
+        .level-badge {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.3);
+            padding: 5px 15px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .step-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
             padding: 30px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            transition: all 0.3s;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            color: #1e293b;
         }
-        
-        .step-locked {
-            opacity: 0.4;
-            pointer-events: none;
-            filter: blur(3px);
-        }
-        
-        .step-unlocked {
-            animation: fadeInUp 0.6s ease-out;
-        }
-        
-        .step-completed {
-            border-left: 6px solid #4CAF50;
-            background: #f1f8f4;
-        }
-        
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .step h3 {
-            color: #667eea;
-            font-size: 26px;
-            margin-bottom: 15px;
+
+        .step-header {
             display: flex;
             align-items: center;
-            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
         }
-        
+
         .step-number {
-            background: #667eea;
-            color: white;
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
-            font-weight: 700;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            margin-right: 15px;
         }
-        
-        .step p {
+
+        .step-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+
+        .step-content {
+            margin-top: 20px;
+        }
+
+        .problem-text {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
             font-size: 18px;
-            color: #555;
-            margin-bottom: 15px;
             line-height: 1.6;
+            margin-bottom: 20px;
         }
-        
-        /* INPUTS */
-        input[type="text"], 
+
+        .question-block {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 16px;
+            color: #334155;
+        }
+
+        input[type="text"],
+        input[type="number"],
         textarea {
             width: 100%;
-            padding: 15px;
-            font-size: 18px;
-            border: 2px solid #ddd;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
             border-radius: 10px;
-            font-family: 'OpenDyslexic', 'Poppins', sans-serif;
-            transition: border-color 0.3s;
-            margin-bottom: 15px;
-            min-height: 50px;
+            font-size: 16px;
+            transition: all 0.3s;
+            font-family: inherit;
         }
-        
-        input[type="text"]:focus,
+
+        input:focus,
         textarea:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
-        
+
         textarea {
-            min-height: 120px;
             resize: vertical;
+            min-height: 100px;
         }
-        
-        /* BUTTONS */
+
         .btn {
-            padding: 15px 35px;
-            font-size: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
             border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-            min-height: 50px;
-            min-width: 120px;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-        }
-        
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-        
-        .btn-success {
-            background: #4CAF50;
-            color: white;
-        }
-        
-        .btn-hint {
-            background: #FFA726;
-            color: white;
-        }
-        
-        .btn-disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-        
-        .btn-disabled:hover {
-            transform: none;
-            box-shadow: none;
-        }
-        
-        /* FEEDBACK */
-        .feedback {
-            margin-top: 15px;
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            display: none;
-        }
-        
-        .feedback.success {
-            background: #d4edda;
-            color: #155724;
-            border: 2px solid #c3e6cb;
-            display: block;
-        }
-        
-        .feedback.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 2px solid #f5c6cb;
-            display: block;
-        }
-        
-        .feedback.hint {
-            background: #fff3cd;
-            color: #856404;
-            border: 2px solid #ffeaa7;
-            display: block;
-        }
-        
-        /* HINT SYSTEM */
-        .hint-container {
-            margin-top: 20px;
-        }
-        
-        .hint-text {
-            margin-top: 10px;
-            padding: 15px;
-            background: #fff3cd;
-            border-left: 4px solid #FFA726;
-            border-radius: 8px;
-            font-size: 16px;
-            line-height: 1.6;
-        }
-        
-        /* QUESTION BLOCK */
-        .question-block {
-            background: #f8f9ff;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border-left: 4px solid #667eea;
-        }
-        
-        .question-block label {
-            display: block;
+            padding: 15px 30px;
+            border-radius: 12px;
             font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 10px;
-        }
-        
-        /* FLOATING CALCULATOR BUTTON */
-        .calc-floating-btn {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: #667eea;
-            color: white;
-            font-size: 32px;
-            border: none;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-            cursor: pointer;
-            z-index: 100;
-            transition: all 0.3s;
-        }
-        
-        .calc-floating-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-        }
-        
-        /* CALCULATOR MODAL */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.7);
-            animation: fadeIn 0.3s;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        .modal-content {
-            background-color: #fefefe;
-            margin: 3% auto;
-            padding: 0;
-            border-radius: 15px;
-            width: 95%;
-            max-width: 1000px;
-            position: relative;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-            animation: slideDown 0.4s;
-        }
-        
-        @keyframes slideDown {
-            from {
-                transform: translateY(-50px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-        
-        .modal-header {
-            background: #667eea;
-            color: white;
-            padding: 20px;
-            border-radius: 15px 15px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .modal-header h2 {
-            margin: 0;
-            font-size: 24px;
-        }
-        
-        .close {
-            font-size: 40px;
             font-weight: bold;
             cursor: pointer;
-            line-height: 1;
             transition: all 0.3s;
+            display: inline-block;
+            margin-top: 10px;
         }
-        
-        .close:hover {
-            transform: rotate(90deg);
-            color: #FFB6C1;
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
-        
-        .modal-body {
-            padding: 20px;
+
+        .btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
         }
-        
-        .modal-body iframe {
-            width: 100%;
-            height: 600px;
-            border: none;
+
+        .feedback {
+            padding: 15px 20px;
             border-radius: 10px;
-        }
-        
-        /* LOADING SPINNER */
-        .loading {
+            margin-top: 15px;
+            font-weight: bold;
             display: none;
-            text-align: center;
-            padding: 30px;
+            animation: slideIn 0.3s ease;
         }
-        
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .feedback.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 2px solid #10b981;
+        }
+
+        .feedback.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 2px solid #ef4444;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
         .spinner {
-            border: 6px solid #f3f3f3;
-            border-top: 6px solid #667eea;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #667eea;
             border-radius: 50%;
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             animation: spin 1s linear infinite;
             margin: 0 auto 20px;
         }
-        
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
-        /* VICTORY SCREEN */
-        .victory {
+
+        .victory-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
             display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .victory-content {
             background: white;
-            border-radius: 15px;
-            padding: 40px;
+            padding: 50px;
+            border-radius: 30px;
             text-align: center;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            max-width: 500px;
+            animation: popIn 0.5s ease;
         }
-        
-        .victory h2 {
-            color: #4CAF50;
-            font-size: 36px;
-            margin-bottom: 20px;
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
-        
-        .victory-xp {
+
+        .victory-content h2 {
             font-size: 48px;
             color: #667eea;
-            font-weight: 700;
-            margin: 20px 0;
-        }
-        
-        /* INPUT PROBLEM SECTION */
-        .input-problem {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
-        
-        .input-problem h2 {
+
+        .victory-content p {
+            font-size: 24px;
+            color: #334155;
+            margin-bottom: 30px;
+        }
+
+        .type-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .type-trasformazione {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .type-compravendita {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .type-combinazione {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .hint-box {
+            background: rgba(251, 191, 36, 0.1);
+            border-left: 4px solid #fbbf24;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            display: none;
+        }
+
+        .hint-box p {
+            margin: 0;
+        }
+
+        .hint-title {
+            color: #fbbf24;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .hint-content {
+            color: white;
+            font-size: 18px;
+            font-family: monospace;
+        }
+
+        .summary-box {
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .summary-box h4 {
             color: #667eea;
-            margin-bottom: 20px;
-            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 20px;
         }
-        
-        /* RESPONSIVE */
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-                padding-bottom: 100px;
-            }
-            
-            .header h1 {
-                font-size: 32px;
-            }
-            
-            .problem-header {
-                padding: 20px;
-                top: 10px;
-            }
-            
-            .step {
-                padding: 20px;
-            }
-            
-            .calc-floating-btn {
-                bottom: 20px;
-                right: 20px;
-                width: 60px;
-                height: 60px;
-                font-size: 28px;
-            }
-            
-            .modal-content {
-                width: 98%;
-                margin: 2% auto;
-            }
-            
-            .modal-body iframe {
-                height: 500px;
-            }
+
+        .summary-box ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .summary-box li {
+            margin-bottom: 8px;
+        }
+
+        .solution-box {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 2px solid #10b981;
+        }
+
+        .solution-box h4 {
+            color: #10b981;
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .solution-box p {
+            font-size: 18px;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .highlight-number {
+            color: #f59e0b;
+            font-weight: bold;
+        }
+
+        .highlight-success {
+            color: #10b981;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- HEADER -->
         <div class="header">
-    <a href="matematica.html" style="position: absolute; left: 20px; top: 20px; background: white; padding: 10px 20px; border-radius: 10px; color: #667eea; text-decoration: none; font-weight: bold; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
-        ← Matematica
-    </a>
-    <h1>🎯 METODO DISCOVER</h1>
-    <p>Risolvi problemi matematici guidato passo dopo passo</p>
-</div>
-        
-        <!-- INPUT PROBLEM SECTION (shown initially) -->
-        <div id="input-section" class="input-problem">
-            <h2>📝 Inserisci il Problema</h2>
-            <p style="margin-bottom: 15px; color: #555;">Scrivi o incolla il testo del problema da risolvere:</p>
-            <textarea id="problem-input" placeholder="Es: Marco ha 125 figurine. Matteo ha 200 figurine. Luca regala 100 delle sue figurine a Marco..."></textarea>
-            <button class="btn btn-primary" onclick="startProblem()">Inizia Risoluzione</button>
-            
-            <!-- Loading spinner -->
-            <div id="loading" class="loading">
+            <button class="back-button" onclick="window.location.href='index.html'">← Matematica</button>
+            <h1>🔍 DISCOVER</h1>
+            <p class="subtitle">Risolutore Intelligente di Problemi</p>
+        </div>
+
+        <div class="xp-bar-container">
+            <div class="xp-info">
+                <span>XP: <span id="current-xp">0</span> / <span id="next-level-xp">100</span></span>
+                <span>Livello: <span id="current-level">1</span></span>
+            </div>
+            <div class="xp-bar">
+                <div class="xp-fill" id="xp-fill"></div>
+                <div class="level-badge">LV <span id="level-display">1</span></div>
+            </div>
+        </div>
+
+        <!-- STEP 1: Input Problema -->
+        <div class="step-container" id="step-1">
+            <div class="step-header">
+                <div class="step-number">1</div>
+                <div class="step-title">Inserisci il Problema</div>
+            </div>
+            <div class="step-content">
+                <div class="question-block">
+                    <label>Scrivi o incolla il testo del problema matematico:</label>
+                    <textarea id="problem-input" placeholder="Esempio: Marco ha 15 caramelle. La mamma gli dà 10 caramelle. Poi ne mangia 8. Quante caramelle ha alla fine?" autocomplete="off"></textarea>
+                </div>
+                <button class="btn" onclick="analyzeProblem()">Analizza Problema 🔍</button>
+                <div class="feedback" id="feedback-1"></div>
+            </div>
+        </div>
+
+        <!-- STEP 2: Identificazione Numeri -->
+        <div class="step-container hidden" id="step-2">
+            <div class="step-header">
+                <div class="step-number">2</div>
+                <div class="step-title">Trova i Numeri</div>
+            </div>
+            <div class="step-content">
+                <div id="problem-type-badge"></div>
+                <div class="problem-text" id="problem-text-display"></div>
+                <div class="question-block">
+                    <label>Quanti numeri (scritti come cifre) ci sono nel problema?</label>
+                    <input type="number" id="numbers-count" placeholder="Es: 4" autocomplete="off">
+                </div>
+                <button class="btn" onclick="checkStep2()">Verifica ✓</button>
+                <div class="feedback" id="feedback-2"></div>
+            </div>
+        </div>
+
+        <!-- STEP 3: Situazione Iniziale -->
+        <div class="step-container hidden" id="step-3">
+            <div class="step-header">
+                <div class="step-number">3</div>
+                <div class="step-title">Situazione Iniziale</div>
+            </div>
+            <div class="step-content">
+                <div id="step-3-questions"></div>
+                <button class="btn" onclick="checkStep3()">Verifica ✓</button>
+                <div class="feedback" id="feedback-3"></div>
+            </div>
+        </div>
+
+        <!-- STEP 4: Calcoli e Azioni -->
+        <div class="step-container hidden" id="step-4">
+            <div class="step-header">
+                <div class="step-number">4</div>
+                <div class="step-title">Risolvi Passo per Passo</div>
+            </div>
+            <div class="step-content">
+                <div id="step-4-questions"></div>
+                <button class="btn" onclick="checkStep4()">Verifica ✓</button>
+                <div class="feedback" id="feedback-4"></div>
+            </div>
+        </div>
+
+        <!-- STEP 5: Soluzione Finale -->
+        <div class="step-container hidden" id="step-5">
+            <div class="step-header">
+                <div class="step-number">5</div>
+                <div class="step-title">Scrivi la Soluzione</div>
+            </div>
+            <div class="step-content">
+                <div id="step-5-questions"></div>
+                <button class="btn" onclick="checkStep5()">Verifica Soluzione 🎯</button>
+                <div class="feedback" id="feedback-5"></div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div class="step-container hidden" id="loading">
+            <div class="loading">
                 <div class="spinner"></div>
-                <p>L'intelligenza artificiale sta analizzando il problema...</p>
-            </div>
-        </div>
-        
-        <!-- PROBLEM HEADER (hidden initially, shown sticky after start) -->
-        <div id="problem-header" class="problem-header" style="display: none;">
-            <h2>📝 Il Tuo Problema</h2>
-            <div id="problem-display"></div>
-            <div class="tts-controls">
-                <button class="tts-btn tts-slow" onclick="readProblem(0.7)">🐢 Lento</button>
-                <button class="tts-btn tts-normal" onclick="readProblem(1.0)">▶️ Normale</button>
-                <button class="tts-btn tts-fast" onclick="readProblem(1.3)">🐇 Veloce</button>
-                <button class="tts-btn tts-stop" onclick="stopReading()">⏹️ Stop</button>
-            </div>
-        </div>
-        
-        <!-- PROGRESS BAR -->
-        <div id="progress-section" class="progress-bar" style="display: none;">
-            <div class="progress-track">
-                <div id="progress-fill" class="progress-fill">0%</div>
-            </div>
-            <div class="xp-display">XP: <span id="xp-total">0</span> / 500</div>
-        </div>
-        
-        <!-- STEPS CONTAINER -->
-        <div id="steps-container" style="display: none;">
-            
-            <!-- STEP 1: DATI -->
-            <div id="step-1" class="step step-unlocked">
-                <h3><span class="step-number">1</span> 📊 DATI</h3>
-                <p>Scrivi <strong>TUTTI</strong> i numeri che trovi nel problema, separati da virgola:</p>
-                <input type="text" id="input-step-1" autocomplete="off" placeholder="Es: 125, 200, 100, 20">
-                <button class="btn btn-primary" onclick="checkStep1()">Verifica</button>
-                <button class="btn btn-hint" onclick="showHint(1)" style="margin-left: 10px;">💡 Aiuto</button>
-                <div id="feedback-1" class="feedback"></div>
-                <div id="hint-1" class="hint-container"></div>
-            </div>
-            
-            <!-- STEP 2: DOMANDA -->
-            <div id="step-2" class="step step-locked">
-                <h3><span class="step-number">2</span> ❓ DOMANDA</h3>
-                <p>Qual è la <strong>domanda</strong> del problema? Cosa ti viene chiesto?</p>
-                <input type="text" id="input-step-2" autocomplete="off" placeholder="Es: Quante figurine ha ogni bambino alla fine?">
-                <button class="btn btn-primary" onclick="checkStep2()">Verifica</button>
-                <button class="btn btn-hint" onclick="showHint(2)" style="margin-left: 10px;">💡 Aiuto</button>
-                <div id="feedback-2" class="feedback"></div>
-                <div id="hint-2" class="hint-container"></div>
-            </div>
-            
-            <!-- STEP 3: PERSONAGGI -->
-            <div id="step-3" class="step step-locked">
-                <h3><span class="step-number">3</span> 👥 PERSONAGGI E SITUAZIONE</h3>
-                <p>Rispondi alle domande per capire bene la situazione:</p>
-                <div id="step-3-questions">
-                    <!-- Questions will be dynamically generated by AI -->
-                </div>
-                <button class="btn btn-primary" onclick="checkStep3()">Verifica</button>
-                <button class="btn btn-hint" onclick="showHint(3)" style="margin-left: 10px;">💡 Aiuto</button>
-                <div id="feedback-3" class="feedback"></div>
-                <div id="hint-3" class="hint-container"></div>
-            </div>
-            
-            <!-- STEP 4: AZIONI -->
-            <div id="step-4" class="step step-locked">
-                <h3><span class="step-number">4</span> 🔄 AZIONI E CALCOLI</h3>
-                <p>Ora analizziamo cosa succede nel problema:</p>
-                <div id="step-4-questions">
-                    <!-- Questions will be dynamically generated by AI -->
-                </div>
-                <button class="btn btn-primary" onclick="checkStep4()">Verifica</button>
-                <button class="btn btn-hint" onclick="showHint(4)" style="margin-left: 10px;">💡 Aiuto</button>
-                <div id="feedback-4" class="feedback"></div>
-                <div id="hint-4" class="hint-container"></div>
-            </div>
-            
-            <!-- STEP 5: SOLUZIONE FINALE -->
-            <div id="step-5" class="step step-locked">
-                <h3><span class="step-number">5</span> 🎯 SOLUZIONE FINALE</h3>
-                <p>Ora scrivi la risposta finale al problema:</p>
-                <div id="step-5-questions">
-                    <!-- Final answer fields will be dynamically generated -->
-                </div>
-                <button class="btn btn-success" onclick="checkStep5()">Completa Problema</button>
-                <button class="btn btn-hint" onclick="showHint(5)" style="margin-left: 10px;">💡 Aiuto</button>
-                <div id="feedback-5" class="feedback"></div>
-                <div id="hint-5" class="hint-container"></div>
-            </div>
-        </div>
-        
-        <!-- VICTORY SCREEN -->
-        <div id="victory-screen" class="victory">
-            <h2>🎉 HAI RISOLTO IL PROBLEMA!</h2>
-            <div class="victory-xp">+500 XP</div>
-            <p style="font-size: 20px; color: #555; margin: 20px 0;">Ottimo lavoro! Hai completato tutti i passaggi.</p>
-            <button class="btn btn-primary" onclick="resetProblem()">Nuovo Problema</button>
-        </div>
-    </div>
-    
-    <!-- FLOATING CALCULATOR BUTTON -->
-    <button class="calc-floating-btn" onclick="openCalculator()" title="Apri Calcolatrice">
-        🧮
-    </button>
-    
-    <!-- CALCULATOR MODAL -->
-    <div id="calc-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>🧮 Calcolatrice</h2>
-                <span class="close" onclick="closeCalculator()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <iframe src="matematica.html" id="calc-iframe"></iframe>
+                <p>Sto analizzando il problema con l'AI...</p>
             </div>
         </div>
     </div>
-    
+
+    <!-- Victory Screen -->
+    <div class="victory-screen" id="victory-screen">
+        <div class="victory-content">
+            <h2>🎉 COMPLIMENTI!</h2>
+            <p>Hai risolto il problema!</p>
+            <p style="font-size: 18px; color: #667eea;">+<span id="victory-xp">0</span> XP</p>
+            <button class="btn" onclick="resetProblem()">Nuovo Problema ➜</button>
+        </div>
+    </div>
+
     <script>
-        // ============================================
-        // GLOBAL STATE
-        // ============================================
-        
+        // ==================== CONFIGURAZIONE ====================
         const API_KEY = localStorage.getItem('gemini_api_key') || '';
-        
-        let problemState = {
-            text: '',
+        const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+
+        if (!API_KEY) {
+            const userKey = prompt('🔑 Inserisci la tua API Key di Google Gemini:\n\n(La chiave verrà salvata solo nel tuo browser)');
+            if (userKey) {
+                localStorage.setItem('gemini_api_key', userKey.trim());
+                location.reload();
+            } else {
+                alert('⚠️ Serve una API Key per usare DISCOVER!');
+            }
+        }
+
+        // ==================== GAMIFICATION ====================
+const STEP_XP = {
+    1: 10,
+    2: 15,
+    3: 20,
+    4: 30,
+    5: 50
+};
+
+// Usa il sistema XP globale di EduGamer
+function updateXPBar() {
+    if (!window.EduGamer) return;
+    
+    const stats = window.EduGamer.getStats();
+    const level = window.EduGamer.getLevel();
+    const progress = window.EduGamer.getProgress();
+    
+    document.getElementById('current-xp').textContent = progress.current;
+    document.getElementById('next-level-xp').textContent = progress.required;
+    document.getElementById('current-level').textContent = level.level;
+    document.getElementById('level-display').textContent = level.level;
+    document.getElementById('xp-fill').style.width = progress.progress + '%';
+}
+
+function addXP(amount) {
+    if (window.EduGamer) {
+        window.EduGamer.addXP(amount, 'matematica', 'discover');
+        updateXPBar();
+    } else {
+        // Fallback al vecchio sistema se game-system.js non è caricato
+        const currentXP = parseInt(localStorage.getItem('edu_xp') || '0');
+        localStorage.setItem('edu_xp', (currentXP + amount).toString());
+        window.dispatchEvent(new Event('xpChanged'));
+    }
+}
+
+// Inizializza la barra XP
+window.addEventListener('load', updateXPBar);
+window.addEventListener('edugamer-xp-added', updateXPBar);
+
+        // ==================== STATE MANAGEMENT ====================
+        const problemState = {
+            originalText: '',
             data: null,
-            currentStep: 1,
             completedSteps: [],
-            totalXP: 0,
-            hintLevels: {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
             step4Attempts: {}
         };
-        
-        const STEP_XP = {
-            1: 50,
-            2: 50,
-            3: 80,
-            4: 100,
-            5: 150,
-            bonus: 70
-        };
-        
-        // ============================================
-        // TEXT-TO-SPEECH
-        // ============================================
-        
-        let utterance = null;
-        
-        function readProblem(speed) {
-            if ('speechSynthesis' in window) {
-                stopReading();
-                utterance = new SpeechSynthesisUtterance(problemState.text);
-                utterance.lang = 'it-IT';
-                utterance.rate = speed;
-                utterance.pitch = 1.0;
-                speechSynthesis.speak(utterance);
-            } else {
-                alert('Il tuo browser non supporta la lettura vocale');
+
+        // ==================== UTILITY FUNCTIONS ====================
+        function showStep(stepNumber) {
+            for (let i = 1; i <= 5; i++) {
+                document.getElementById(`step-${i}`).classList.add('hidden');
             }
+            document.getElementById(`step-${stepNumber}`).classList.remove('hidden');
         }
-        
-        function stopReading() {
-            if (speechSynthesis.speaking) {
-                speechSynthesis.cancel();
+
+        function showFeedback(stepNumber, type, message) {
+            const feedback = document.getElementById(`feedback-${stepNumber}`);
+            feedback.className = `feedback ${type}`;
+            feedback.textContent = message;
+            feedback.style.display = 'block';
+            
+            setTimeout(() => {
+                feedback.style.display = 'none';
+            }, 5000);
+        }
+
+        function completeStep(stepNumber) {
+            if (!problemState.completedSteps.includes(stepNumber)) {
+                problemState.completedSteps.push(stepNumber);
+                addXP(STEP_XP[stepNumber]);
             }
+            
+            setTimeout(() => {
+                if (stepNumber < 5) {
+                    showStep(stepNumber + 1);
+                    
+                    if (stepNumber === 2) {
+                        generateStep3Questions();
+                    } else if (stepNumber === 3) {
+                        generateStep4Questions();
+                    } else if (stepNumber === 4) {
+                        generateStep5Questions();
+                    }
+                }
+            }, 1500);
         }
-        
-        // ============================================
-        // CALCULATOR MODAL
-        // ============================================
-        
-        function openCalculator() {
-            document.getElementById('calc-modal').style.display = 'block';
-        }
-        
-        function closeCalculator() {
-            document.getElementById('calc-modal').style.display = 'none';
-        }
-        
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeCalculator();
+
+        function validateAnswer(userInput, expected, type = 'text', keywords = []) {
+            const cleaned = userInput.trim().toLowerCase();
+            const expectedCleaned = expected.toString().trim().toLowerCase();
+            
+            if (type === 'number') {
+                const userNum = parseFloat(cleaned.replace(',', '.'));
+                const expectedNum = parseFloat(expectedCleaned.replace(',', '.'));
+                return Math.abs(userNum - expectedNum) < 0.01;
             }
-        });
-        
-        window.onclick = function(event) {
-            const modal = document.getElementById('calc-modal');
-            if (event.target == modal) {
-                closeCalculator();
+            
+            if (type === 'text') {
+                if (cleaned === expectedCleaned) return true;
+                
+                if (keywords && keywords.length > 0) {
+                    return keywords.some(kw => cleaned.includes(kw.toLowerCase()));
+                }
+                
+                const similarity = cleaned.includes(expectedCleaned) || expectedCleaned.includes(cleaned);
+                return similarity;
             }
+            
+            return false;
         }
-        
-        // ============================================
-        // PROBLEM ANALYSIS (API CALL)
-        // ============================================
-        
-        async function startProblem() {
+
+        // ==================== STEP 1: ANALYZE PROBLEM ====================
+        async function analyzeProblem() {
             const problemText = document.getElementById('problem-input').value.trim();
             
             if (!problemText) {
-                alert('Per favore, inserisci il testo del problema!');
+                showFeedback(1, 'error', '❌ Devi inserire un problema!');
                 return;
             }
+
+            problemState.originalText = problemText;
             
-            if (!API_KEY) {
-    const userKey = prompt('⚠️ Inserisci la tua API Key di Google AI Studio:\n\n(Puoi trovarla su: https://aistudio.google.com/apikey)');
-    if (userKey) {
-        localStorage.setItem('gemini_api_key', userKey.trim());
-        location.reload();
-    }
-    return;
-}
-            
-          // 1. RESET COMPLETO DELLO STATO
-            problemState = {
-                text: problemText,
-                data: null,
-                currentStep: 1,
-                completedSteps: [],
-                totalXP: 0,
-                hintLevels: {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
-                step4Attempts: {}
-            };
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('step-1').classList.add('hidden');
 
-            // 2. PULIZIA INPUT UTENTE (Step 1 e 2)
-            document.getElementById('input-step-1').value = '';
-            document.getElementById('input-step-2').value = '';
-
-            // 3. PULIZIA FEEDBACK E HINT
-            document.querySelectorAll('.feedback').forEach(el => {
-                el.style.display = 'none';
-                el.textContent = '';
-            });
-            document.querySelectorAll('.hint-container').forEach(el => el.innerHTML = '');
-
-            // 4. RESET VISIVO DEGLI STEP
-            // Sblocca lo step 1
-            const step1 = document.getElementById('step-1');
-            step1.classList.remove('step-completed', 'step-locked');
-            step1.classList.add('step-unlocked'); 
-
-            // Blocca step 2, 3, 4, 5
-            for (let i = 2; i <= 5; i++) {
-                const step = document.getElementById(`step-${i}`);
-                step.classList.remove('step-completed', 'step-unlocked');
-                step.classList.add('step-locked');
-            }
-
-            // 5. RESET PROGRESS BAR E XP
-            document.getElementById('xp-total').textContent = '0';
-            document.getElementById('progress-fill').style.width = '0%';
-            document.getElementById('progress-fill').textContent = '0%';
-            document.getElementById('loading').style.display = 'block';
-            
-            try {
-                console.log('🚀 Avvio analisi problema...');
-                const data = await analyzeProblem(problemText);
-                
-                if (!data) {
-                    throw new Error('ANALYSIS_FAILED');
-                }
-                
-                problemState.data = data;
-                console.log('💾 Dati salvati:', data);
-                
-                document.getElementById('input-section').style.display = 'none';
-                document.getElementById('problem-header').style.display = 'block';
-                document.getElementById('progress-section').style.display = 'block';
-                document.getElementById('steps-container').style.display = 'block';
-                document.getElementById('problem-display').textContent = problemText;
-                
-                generateStep3Questions();
-                generateStep4Questions();
-                generateStep5Questions();
-                
-                setTimeout(() => {
-                    document.getElementById('problem-header').scrollIntoView({ behavior: 'smooth' });
-                }, 100);
-                
-            } catch (error) {
-                console.error('💥 Errore durante startProblem:', error);
-                document.getElementById('loading').style.display = 'none';
-                
-                let errorMessage = '❌ Si è verificato un errore nell\'analisi del problema.\n\n';
-                
-                switch(error.message) {
-                    case 'RATE_LIMIT':
-                        errorMessage = '⏰ TROPPO VELOCE!\n\nStai facendo troppe richieste ravvicinate.\n\n💡 SOLUZIONE:\nAspetta 15-20 secondi e riprova.';
-                        break;
-                    case 'JSON_PARSE_ERROR':
-                        errorMessage = '🔧 ERRORE DI FORMATO\n\nL\'AI ha risposto in modo non valido.\n\n💡 SOLUZIONE:\n1. Riprova\n2. Semplifica il testo del problema';
-                        break;
-                    case 'INCOMPLETE_DATA':
-                        errorMessage = '📋 DATI INCOMPLETI\n\nL\'AI non ha generato tutte le informazioni necessarie.\n\n💡 SOLUZIONE:\nRiprova con un problema più semplice.';
-                        break;
-                    case 'INVALID_REQUEST':
-                        errorMessage = '🔑 PROBLEMA CON API KEY\n\nLa richiesta non è valida.\n\n💡 VERIFICA:\n1. API Key corretta?\n2. Fatturazione attiva su Google AI Studio?';
-                        break;
-                    case 'NO_CANDIDATES':
-                        errorMessage = '🚫 NESSUNA RISPOSTA\n\nL\'AI non ha generato una risposta.\n\n💡 POSSIBILI CAUSE:\n1. Problema troppo complesso\n2. Testo troppo lungo';
-                        break;
-                    default:
-                        errorMessage += 'Codice errore: ' + error.message;
-                }
-                
-                alert(errorMessage);
-            }
-        }
-        
-        async function analyzeProblem(problemText) {
-           const prompt = `Sei un assistente che analizza problemi matematici per bambini delle elementari.
+            const prompt = `Sei un assistente che analizza problemi matematici per bambini delle elementari.
 
 PROBLEMA DA ANALIZZARE:
 "${problemText}"
+
+PASSO 1 - CLASSIFICA IL TIPO DI PROBLEMA:
+
+TIPI DISPONIBILI:
+
+1. TRASFORMAZIONE
+   - Descrizione: Situazione iniziale → azioni sequenziali → finale
+   - Parole chiave: regala, dà, prende, riceve, aggiunge, toglie, poi, dopo, perde, vince
+   - Esempio: "Marco ha 10 caramelle, riceve 5 dalla mamma, ne dà 3 a Luca, quante ne ha?"
+
+2. COMPRAVENDITA
+   - Descrizione: Acquisti multipli con calcolo totale/resto
+   - Parole chiave: comprare, costare, spendere, prezzo, euro, centesimi, acquistare, pagare
+   - Esempio: "Compra 3 penne a 2€ ciascuna e 2 quaderni a 5€, quanto spende in totale?"
+
+3. COMBINAZIONE
+   - Descrizione: Sommare insiemi già formati (NO moltiplicazioni)
+   - Parole chiave: in tutto, insieme, totale, complessivamente, somma
+   - Esempio: "In classe ci sono 12 maschi e 10 femmine, quanti alunni in totale?"
+
+PASSO 2 - GENERA IL JSON ADATTATO AL TIPO
 
 ISTRUZIONI CRITICHE:
 1. Rispondi ESCLUSIVAMENTE con un oggetto JSON valido
 2. NON aggiungere testo prima o dopo il JSON
 3. NON usare markdown o backticks
+4. In "numeri_attesi" inserisci SOLO numeri scritti come cifre (non nomi ripetuti)
+5. Conta quante volte un numero appare come CIFRA nel testo
 
-REGOLE ADATTIVE:
-- In "numeri_attesi" inserisci SOLO numeri scritti come cifre (es: 45, 30, 15). NON contare nomi ripetuti.
-- Se c'è 1 solo protagonista, "personaggi" avrà 1 elemento
-- Se ci sono più protagonisti, "personaggi" avrà più elementi
-- "step3_personaggi" deve avere 3-5 domande adatte al problema
-- "step4_azioni" descrive cosa succede in ordine cronologico
-- "soluzione_finale" contiene i valori finali richiesti dalla domanda
-
-ESEMPIO CON PIÙ PERSONAGGI:
+====================
+STRUTTURA PER TRASFORMAZIONE:
+====================
 {
-  "numeri_attesi": ["125", "200", "100"],
-  "domanda": "Quante figurine ha ognuno?",
-  "personaggi": [
-    {"nome": "Marco", "valore_iniziale": "125"},
-    {"nome": "Luca", "valore_iniziale": "200"}
-  ],
-  "steps": {
-    "step3_personaggi": [
-      {"domanda": "Quanti bambini ci sono?", "risposta": "2", "tipo": "number"},
-      {"domanda": "Chi sono?", "risposta": "Marco,Luca", "tipo": "array"}
-    ],
-    "step4_azioni": [
-      {"domanda": "Cosa fa Marco?", "risposta": "regala 100 a Luca", "tipo": "text", "parole_chiave": ["regala", "Luca"]},
-      {"domanda": "Marco ora ha:", "calcolo": "125 - 100", "risposta": "25", "tipo": "number"}
-    ]
-  },
-  "soluzione_finale": {"Marco": "25", "Luca": "300"}
-}
-
-ESEMPIO CON 1 PERSONAGGIO:
-{
-  "numeri_attesi": ["45", "30", "15", "20"],
+  "tipo": "TRASFORMAZIONE",
+  "numeri_attesi": ["10", "5", "3"],
   "domanda": "Quante caramelle ha alla fine?",
   "personaggi": [
-    {"nome": "Luca", "valore_iniziale": "45"}
+    {"nome": "Marco", "valore_iniziale": "10"}
   ],
   "steps": {
     "step3_personaggi": [
-      {"domanda": "Chi è il protagonista?", "risposta": "Luca", "tipo": "text"},
-      {"domanda": "Quante caramelle ha all'inizio?", "risposta": "45", "tipo": "number"}
+      {"domanda": "Chi è il protagonista?", "risposta": "Marco", "tipo": "text"},
+      {"domanda": "Quante caramelle ha all'inizio?", "risposta": "10", "tipo": "number"}
     ],
     "step4_azioni": [
-      {"domanda": "Quante ne riceve dalla mamma?", "calcolo": "45 + 30", "risposta": "75", "tipo": "number"},
-      {"domanda": "Quante ne aggiunge il papà?", "calcolo": "75 + 15", "risposta": "90", "tipo": "number"},
-      {"domanda": "Quante ne mangia?", "calcolo": "90 - 20", "risposta": "70", "tipo": "number"}
+      {"domanda": "Quante ne riceve dalla mamma?", "calcolo": "10 + 5", "risposta": "15", "tipo": "number"},
+      {"domanda": "Quante ne dà a Luca?", "calcolo": "15 - 3", "risposta": "12", "tipo": "number"}
     ]
   },
-  "soluzione_finale": {"Luca": "70"}
+  "soluzione_finale": {"Marco": "12"}
 }
 
-Analizza il problema reale e genera il JSON adattandolo alla situazione specifica.`;
+====================
+STRUTTURA PER COMPRAVENDITA:
+====================
+{
+  "tipo": "COMPRAVENDITA",
+  "numeri_attesi": ["3", "0.80", "4", "0.90", "13", "22"],
+  "domanda": "Quanto spende? Le bastano 22 euro?",
+  "budget": "22",
+  "prodotti": [
+    {"nome": "Penne", "quantita": "3", "prezzo_unitario": "0.80"},
+    {"nome": "Matite", "quantita": "4", "prezzo_unitario": "0.90"},
+    {"nome": "Diario", "quantita": "1", "prezzo_unitario": "13"}
+  ],
+  "steps": {
+    "step3_situazione": [
+      {"domanda": "Chi fa la spesa?", "risposta": "Anastasia", "tipo": "text"},
+      {"domanda": "Quanto ha a disposizione (euro)?", "risposta": "22", "tipo": "number"},
+      {"domanda": "Quanti tipi di articoli diversi compra?", "risposta": "4", "tipo": "number"}
+    ],
+    "step4_calcoli": [
+      {"domanda": "Quanto costano le 3 penne?", "calcolo": "3 × 0.80", "risposta": "2.40", "tipo": "number"},
+      {"domanda": "Quanto costano le 4 matite?", "calcolo": "4 × 0.90", "risposta": "3.60", "tipo": "number"},
+      {"domanda": "Quanto costa il diario?", "calcolo": "", "risposta": "13", "tipo": "number"},
+      {"domanda": "Totale spesa:", "calcolo": "2.40 + 3.60 + 13", "risposta": "19", "tipo": "number"}
+    ]
+  },
+  "soluzione_finale": {
+    "totale_spesa": "19",
+    "resto": "3",
+    "verifica_budget": "Sì, le bastano (risparmia 3€)"
+  }
+}
+
+====================
+STRUTTURA PER COMBINAZIONE:
+====================
+{
+  "tipo": "COMBINAZIONE",
+  "numeri_attesi": ["12", "10"],
+  "domanda": "Quanti alunni ci sono in tutto?",
+  "insiemi": [
+    {"nome": "Maschi", "quantita": "12"},
+    {"nome": "Femmine", "quantita": "10"}
+  ],
+  "steps": {
+    "step3_insiemi": [
+      {"domanda": "Quanti sono i maschi?", "risposta": "12", "tipo": "number"},
+      {"domanda": "Quante sono le femmine?", "risposta": "10", "tipo": "number"}
+    ],
+    "step4_somma": [
+      {"domanda": "Quanto fa la somma totale?", "calcolo": "12 + 10", "risposta": "22", "tipo": "number"}
+    ]
+  },
+  "soluzione_finale": {"totale": "22"}
+}
+
+REGOLE ADATTIVE:
+- Se 1 solo protagonista → personaggi array con 1 elemento
+- Se problema lineare semplice → step4 anche con 1 sola domanda
+- "numeri_attesi" conta SOLO cifre, non ripetizioni di nomi
+- Step4 può avere lunghezza variabile in base alla complessità
+
+Analizza il problema reale, determina il TIPO corretto, e genera il JSON seguendo la struttura appropriata.`;
 
             try {
-                console.log('📤 Invio richiesta API...');
-                
-                const response = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`,
-                    {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{
-                                parts: [{ text: prompt }]
-                            }],
-                            generationConfig: {
-                                temperature: 0.3,
-                                topK: 20,
-                                topP: 0.8,
-                                maxOutputTokens: 2048
-                            }
-                        })
-                    }
-                );
-                
-                console.log('📥 Risposta ricevuta, status:', response.status);
+                const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: prompt }]
+                        }]
+                    })
+                });
+
+                const result = await response.json();
                 
                 if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    console.error('❌ Errore API:', errorData);
-                    
-                    if (response.status === 429) {
-                        throw new Error('RATE_LIMIT');
-                    }
-                    if (response.status === 400) {
-                        throw new Error('INVALID_REQUEST');
-                    }
-                    throw new Error(`HTTP_ERROR_${response.status}`);
+                    throw new Error(result.error?.message || 'Errore API');
                 }
-                
-                const result = await response.json();
-                console.log('📦 Risultato JSON:', result);
-                
-                if (!result.candidates || !result.candidates[0]) {
-                    console.error('❌ Nessun candidato nella risposta');
-                    throw new Error('NO_CANDIDATES');
-                }
-                
+
                 let jsonText = result.candidates[0].content.parts[0].text;
-                console.log('📝 Testo grezzo:', jsonText.substring(0, 200) + '...');
+                jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
                 
-                jsonText = jsonText
-                    .replace(/```json\n?/gi, '')
-                    .replace(/```\n?/g, '')
-                    .replace(/^[^{]*/, '')
-                    .replace(/[^}]*$/, '')
-                    .trim();
+                const data = JSON.parse(jsonText);
+                problemState.data = data;
                 
-                console.log('🧹 Testo pulito:', jsonText.substring(0, 200) + '...');
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('problem-text-display').textContent = problemText;
                 
-                let data;
-                try {
-                    data = JSON.parse(jsonText);
-                    console.log('✅ JSON parsato con successo');
-                } catch (parseError) {
-                    console.error('❌ Errore parsing JSON:', parseError);
-                    console.error('Testo che ha causato errore:', jsonText);
-                    throw new Error('JSON_PARSE_ERROR');
+                // Mostra badge tipo problema
+                const typeBadge = document.getElementById('problem-type-badge');
+                let badgeClass = 'type-trasformazione';
+                let badgeText = '🔄 TRASFORMAZIONE';
+                
+                if (data.tipo === 'COMPRAVENDITA') {
+                    badgeClass = 'type-compravendita';
+                    badgeText = '🛒 COMPRAVENDITA';
+                } else if (data.tipo === 'COMBINAZIONE') {
+                    badgeClass = 'type-combinazione';
+                    badgeText = '➕ COMBINAZIONE';
                 }
                 
-                if (!data.numeri_attesi || !data.domanda || !data.steps) {
-                    console.error('❌ Struttura JSON incompleta:', data);
-                    throw new Error('INCOMPLETE_DATA');
-                }
+                typeBadge.innerHTML = `<div class="type-badge ${badgeClass}">${badgeText}</div>`;
                 
-                console.log('🎉 Analisi completata con successo!');
-                return data;
+                showStep(2);
+                showFeedback(1, 'success', `✅ Problema analizzato! Tipo: ${data.tipo} (+${STEP_XP[1]} XP)`);
+                completeStep(1);
                 
             } catch (error) {
-                console.error('💥 Errore in analyzeProblem:', error);
-                throw error;
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('step-1').classList.remove('hidden');
+                showFeedback(1, 'error', `❌ Errore: ${error.message}`);
+                console.error('Errore completo:', error);
             }
         }
-        
-        // ============================================
-        // DYNAMIC QUESTION GENERATION
-        // ============================================
-        
-        function generateStep3Questions() {
-            const container = document.getElementById('step-3-questions');
-            const questions = problemState.data.steps.step3_personaggi;
-            
-            container.innerHTML = '';
-            
-            questions.forEach((q, idx) => {
-                const block = document.createElement('div');
-                block.className = 'question-block';
-                block.innerHTML = `
-                    <label>${q.domanda}</label>
-                    <input type="text" id="step3-q${idx}" placeholder="Scrivi qui la risposta...">
-                `;
-                container.appendChild(block);
-            });
-        }
-        
-        function generateStep4Questions() {
-            const container = document.getElementById('step-4-questions');
-            const questions = problemState.data.steps.step4_azioni;
-            
-            container.innerHTML = '';
-            
-            questions.forEach((q, idx) => {
-                const block = document.createElement('div');
-                block.className = 'question-block';
-                
-               let inputHTML = `<input type="text" id="step4-q${idx}" autocomplete="off" placeholder="Scrivi qui la risposta...">`;
 
-			if (q.calcolo) {
-    		inputHTML = `
-        	<div id="step4-calc-hint-${idx}" style="display: none;" class="p-3 bg-yellow-900/30 border-l-4 border-yellow-500 rounded-lg mb-3">
-            <p class="text-yellow-400 font-bold text-sm">💡 AIUTO - Calcolo da fare:</p>
-            <p class="text-white text-lg font-mono">${q.calcolo}</p>
-        	</div>
-        	<input type="text" id="step4-q${idx}" autocomplete="off" placeholder="Risultato del calcolo...">
-    	`	;
-		}
-                
-                block.innerHTML = `
-                    <label>${q.domanda}</label>
-                    ${inputHTML}
-                `;
-                container.appendChild(block);
-                
-                if (!problemState.step4Attempts[idx]) {
-                    problemState.step4Attempts[idx] = 0;
-                }
-            });
-        }
-        
-        function generateStep5Questions() {
-            const container = document.getElementById('step-5-questions');
-            const data = problemState.data;
-            
-            let summary = '<div style="background: #f1f5f9; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #667eea;">';
-            summary += '<h4 style="color: #667eea; font-weight: bold; margin-bottom: 15px; font-size: 20px;">📝 RIEPILOGO DEL PROCEDIMENTO</h4>';
-            
-            if (data.personaggi && data.personaggi.length > 0) {
-                summary += '<p style="margin-bottom: 8px;"><strong>Situazione iniziale:</strong></p><ul style="margin-left: 20px; margin-bottom: 15px;">';
-                data.personaggi.forEach(p => {
-                    summary += `<li>${p.nome} aveva <span style="color: #f59e0b; font-weight: bold;">${p.valore_iniziale}</span></li>`;
-                });
-                summary += '</ul>';
-            }
-            
-            if (data.steps.step4_azioni && data.steps.step4_azioni.length > 0) {
-                summary += '<p style="margin-bottom: 8px;"><strong>Calcoli effettuati:</strong></p><ul style="margin-left: 20px; margin-bottom: 15px;">';
-                data.steps.step4_azioni.forEach(action => {
-                    if (action.calcolo) {
-                        summary += `<li><span style="color: #10b981; font-weight: bold;">${action.calcolo} = ${action.risposta}</span></li>`;
-                    }
-                });
-                summary += '</ul>';
-            }
-            
-            summary += '</div>';
-            
-            const solution = data.soluzione_finale;
-            const names = Object.keys(solution);
-            let finalSentence = '<div style="background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 2px solid #10b981;">';
-            finalSentence += '<h4 style="color: #10b981; font-weight: bold; margin-bottom: 15px; font-size: 20px;">✅ SOLUZIONE FINALE</h4>';
-            finalSentence += '<p style="font-size: 18px; margin-bottom: 15px; color: white;">Alla fine: ';
-            
-            const parts = names.map((name, index) => {
-                if (index === names.length - 1 && names.length > 1) {
-                    return `e ${name} ha <span style="color: #f59e0b; font-weight: bold;">${solution[name]}</span>`;
-                }
-                return `${name} ha <span style="color: #f59e0b; font-weight: bold;">${solution[name]}</span>`;
-            });
-            
-            finalSentence += parts.join(', ') + '.</p></div>';
-            
-            let inputFields = '<div style="margin-top: 20px;">';
-            inputFields += '<p style="font-weight: bold; font-size: 18px; margin-bottom: 20px;">Ora scrivi tu le risposte finali:</p>';
-            
-            Object.entries(solution).forEach(([name, value], index) => {
-    inputFields += `
-        <div class="question-block">
-            <label>${name} ha alla fine:</label>
-            <input type="text" id="step5-answer-${index}" autocomplete="off" data-name="${name}" data-expected="${value}" placeholder="Scrivi il numero...">
-        </div>
-   	 `;
-	});
-            
-            inputFields += '</div>';
-            
-            container.innerHTML = summary + finalSentence + inputFields;
-        }
-        
-        // ============================================
-        // VALIDATION FUNCTIONS
-        // ============================================
-        
-        function validateAnswer(userInput, expected, type = 'text', keywords = []) {
-            const user = String(userInput).trim().toLowerCase();
-            const exp = String(expected).trim().toLowerCase();
-            
-            switch(type) {
-                case 'number':
-                    const userNum = parseInt(user.replace(/[^0-9]/g, '')) || 0;
-                    const expNum = parseInt(exp.replace(/[^0-9]/g, '')) || 0;
-                    return userNum === expNum;
-                    
-                case 'array':
-                    const userArr = user.split(',').map(s => s.trim()).filter(s => s).sort();
-                    const expArr = exp.split(',').map(s => s.trim()).filter(s => s).sort();
-                    return JSON.stringify(userArr) === JSON.stringify(expArr);
-                    
-                case 'text':
-                    if (keywords && keywords.length > 0) {
-                        return keywords.some(kw => user.includes(kw.toLowerCase()));
-                    }
-                    return user.includes(exp) || exp.includes(user);
-                    
-                case 'exact':
-                    return user === exp;
-                    
-                default:
-                    return user.includes(exp);
-            }
-        }
-        
-        // ============================================
-        // STEP VALIDATION
-        // ============================================
-        
-        function checkStep1() {
-            const input = document.getElementById('input-step-1').value;
-            const expected = problemState.data.numeri_attesi;
-            
-            const userNumbers = input.match(/\d+/g) || [];
-            const threshold = Math.ceil(expected.length * 0.7);
-            
-            if (userNumbers.length >= threshold) {
-                showFeedback(1, 'success', `✅ Ottimo! Hai trovato ${userNumbers.length} numeri. (+${STEP_XP[1]} XP)`);
-                completeStep(1);
-            } else {
-                showFeedback(1, 'error', `❌ Cerca ancora! Nel problema ci sono circa ${expected.length} numeri.`);
-            }
-        }
-        
+        // ==================== STEP 2: COUNT NUMBERS ====================
         function checkStep2() {
-            const input = document.getElementById('input-step-2').value;
-            const expected = problemState.data.domanda;
+            const userCount = parseInt(document.getElementById('numbers-count').value);
+            const expectedCount = problemState.data.numeri_attesi.length;
             
-            const keywords = expected.toLowerCase().split(' ').filter(w => w.length > 3);
-            const isCorrect = validateAnswer(input, expected, 'text', keywords);
-            
-            if (isCorrect) {
-                showFeedback(2, 'success', `✅ Corretto! Hai capito bene cosa ti viene chiesto. (+${STEP_XP[2]} XP)`);
+            if (userCount === expectedCount) {
+                showFeedback(2, 'success', `✅ Esatto! Ci sono ${expectedCount} numeri. (+${STEP_XP[2]} XP)`);
                 completeStep(2);
             } else {
-                showFeedback(2, 'error', '❌ Non è esattamente questo. Rileggi l\'ultima frase del problema.');
+                showFeedback(2, 'error', `❌ Ricontrolla! Non sono ${userCount}...`);
             }
         }
-        
+
+        // ==================== STEP 3: INITIAL SITUATION ====================
+        function generateStep3Questions() {
+            const container = document.getElementById('step-3-questions');
+            const tipo = problemState.data.tipo;
+            
+            container.innerHTML = '';
+            
+            let questions;
+            
+            if (tipo === 'COMPRAVENDITA') {
+                questions = problemState.data.steps.step3_situazione;
+            } else if (tipo === 'COMBINAZIONE') {
+                questions = problemState.data.steps.step3_insiemi;
+            } else {
+                questions = problemState.data.steps.step3_personaggi;
+            }
+            
+            questions.forEach((q, idx) => {
+                const block = document.createElement('div');
+                block.className = 'question-block';
+                block.innerHTML = `
+                    <label>${q.domanda}</label>
+                    <input type="text" id="step3-q${idx}" autocomplete="off" placeholder="Scrivi qui la risposta...">
+                `;
+                container.appendChild(block);
+            });
+        }
+
         function checkStep3() {
-            const questions = problemState.data.steps.step3_personaggi;
+            const tipo = problemState.data.tipo;
+            let questions;
+            
+            if (tipo === 'COMPRAVENDITA') {
+                questions = problemState.data.steps.step3_situazione;
+            } else if (tipo === 'COMBINAZIONE') {
+                questions = problemState.data.steps.step3_insiemi;
+            } else {
+                questions = problemState.data.steps.step3_personaggi;
+            }
+            
             let allCorrect = true;
             let incorrectIndex = -1;
             
@@ -1213,9 +926,64 @@ Analizza il problema reale e genera il JSON adattandolo alla situazione specific
                 showFeedback(3, 'error', `❌ Controlla la risposta numero ${incorrectIndex + 1}.`);
             }
         }
-        
+
+        // ==================== STEP 4: CALCULATIONS ====================
+        function generateStep4Questions() {
+            const container = document.getElementById('step-4-questions');
+            const tipo = problemState.data.tipo;
+            
+            container.innerHTML = '';
+            
+            let questions;
+            
+            if (tipo === 'COMPRAVENDITA') {
+                questions = problemState.data.steps.step4_calcoli;
+            } else if (tipo === 'COMBINAZIONE') {
+                questions = problemState.data.steps.step4_somma;
+            } else {
+                questions = problemState.data.steps.step4_azioni;
+            }
+            
+            questions.forEach((q, idx) => {
+                const block = document.createElement('div');
+                block.className = 'question-block';
+                
+                let inputHTML = `<input type="text" id="step4-q${idx}" autocomplete="off" placeholder="Scrivi qui la risposta...">`;
+                
+                if (q.calcolo) {
+                    inputHTML = `
+                        <div class="hint-box" id="step4-calc-hint-${idx}">
+                            <p class="hint-title">💡 AIUTO - Calcolo da fare:</p>
+                            <p class="hint-content">${q.calcolo}</p>
+                        </div>
+                        <input type="text" id="step4-q${idx}" autocomplete="off" placeholder="Risultato del calcolo...">
+                    `;
+                }
+                
+                block.innerHTML = `
+                    <label>${q.domanda}</label>
+                    ${inputHTML}
+                `;
+                container.appendChild(block);
+                
+                if (!problemState.step4Attempts[idx]) {
+                    problemState.step4Attempts[idx] = 0;
+                }
+            });
+        }
+
         function checkStep4() {
-            const questions = problemState.data.steps.step4_azioni;
+            const tipo = problemState.data.tipo;
+            let questions;
+            
+            if (tipo === 'COMPRAVENDITA') {
+                questions = problemState.data.steps.step4_calcoli;
+            } else if (tipo === 'COMBINAZIONE') {
+                questions = problemState.data.steps.step4_somma;
+            } else {
+                questions = problemState.data.steps.step4_azioni;
+            }
+            
             let allCorrect = true;
             let incorrectIndex = -1;
             
@@ -1254,22 +1022,173 @@ Analizza il problema reale e genera il JSON adattandolo alla situazione specific
                 showFeedback(4, 'error', feedbackMsg);
             }
         }
-        
+
+        // ==================== STEP 5: FINAL SOLUTION ====================
+        function generateStep5Questions() {
+            const container = document.getElementById('step-5-questions');
+            const data = problemState.data;
+            const tipo = data.tipo;
+            
+            // RIEPILOGO
+            let summary = '<div class="summary-box">';
+            summary += '<h4>📝 RIEPILOGO DEL PROCEDIMENTO</h4>';
+            
+            // Situazione iniziale adattiva
+            if (tipo === 'COMPRAVENDITA') {
+                summary += '<p><strong>Situazione:</strong></p>';
+                summary += '<ul>';
+                data.prodotti.forEach(p => {
+                    summary += `<li>${p.quantita} ${p.nome} a ${p.prezzo_unitario}€</li>`;
+                });
+                summary += `<li>Budget disponibile: <span class="highlight-number">${data.budget}€</span></li>`;
+                summary += '</ul>';
+            } else if (tipo === 'COMBINAZIONE') {
+                summary += '<p><strong>Insiemi da sommare:</strong></p><ul>';
+                data.insiemi.forEach(ins => {
+                    summary += `<li>${ins.nome}: <span class="highlight-number">${ins.quantita}</span></li>`;
+                });
+                summary += '</ul>';
+            } else {
+                // TRASFORMAZIONE
+                if (data.personaggi && data.personaggi.length > 0) {
+                    summary += '<p><strong>Situazione iniziale:</strong></p><ul>';
+                    data.personaggi.forEach(p => {
+                        summary += `<li>${p.nome} aveva <span class="highlight-number">${p.valore_iniziale}</span></li>`;
+                    });
+                    summary += '</ul>';
+                }
+            }
+            
+            // Calcoli effettuati
+            let calcoli;
+            if (tipo === 'COMPRAVENDITA') {
+                calcoli = data.steps.step4_calcoli;
+            } else if (tipo === 'COMBINAZIONE') {
+                calcoli = data.steps.step4_somma;
+            } else {
+                calcoli = data.steps.step4_azioni;
+            }
+            
+            if (calcoli && calcoli.length > 0) {
+                summary += '<p><strong>Calcoli effettuati:</strong></p><ul>';
+                calcoli.forEach(action => {
+                    if (action.calcolo) {
+                        summary += `<li><span class="highlight-success">${action.calcolo} = ${action.risposta}</span></li>`;
+                    }
+                });
+                summary += '</ul>';
+            }
+            
+            summary += '</div>';
+            
+            // SOLUZIONE FINALE
+            const solution = data.soluzione_finale;
+            let finalSentence = '<div class="solution-box">';
+            finalSentence += '<h4>✅ SOLUZIONE FINALE</h4>';
+            
+            if (tipo === 'COMPRAVENDITA') {
+                finalSentence += '<p>Alla fine: ';
+                finalSentence += `Spesa totale <span class="highlight-number">${solution.totale_spesa}€</span>, `;
+                finalSentence += `resto <span class="highlight-success">${solution.resto}€</span>. `;
+                finalSentence += `<span class="highlight-success">${solution.verifica_budget}</span></p>`;
+            } else if (tipo === 'COMBINAZIONE') {
+                finalSentence += '<p>Alla fine: ';
+                finalSentence += `Totale = <span class="highlight-number">${solution.totale}</span></p>`;
+            } else {
+                // TRASFORMAZIONE
+                finalSentence += '<p>Alla fine: ';
+                const names = Object.keys(solution);
+                const parts = names.map((name, index) => {
+                    if (index === names.length - 1 && names.length > 1) {
+                        return `e ${name} ha <span class="highlight-number">${solution[name]}</span>`;
+                    }
+                    return `${name} ha <span class="highlight-number">${solution[name]}</span>`;
+                });
+                finalSentence += parts.join(', ') + '.</p>';
+            }
+            
+            finalSentence += '</div>';
+            
+            // INPUT FIELDS
+            let inputFields = '<div style="margin-top: 20px;">';
+            inputFields += '<p style="font-weight: bold; font-size: 18px; margin-bottom: 20px;">Ora scrivi tu le risposte finali:</p>';
+            
+            if (tipo === 'COMPRAVENDITA') {
+                inputFields += `
+                    <div class="question-block">
+                        <label>Spesa totale (euro):</label>
+                        <input type="text" id="step5-answer-0" autocomplete="off" data-key="totale_spesa" data-expected="${solution.totale_spesa}" placeholder="Euro...">
+                    </div>
+                    <div class="question-block">
+                        <label>Resto (euro):</label>
+                        <input type="text" id="step5-answer-1" autocomplete="off" data-key="resto" data-expected="${solution.resto}" placeholder="Euro...">
+                    </div>
+                `;
+            } else if (tipo === 'COMBINAZIONE') {
+                inputFields += `
+                    <div class="question-block">
+                        <label>Totale:</label>
+                        <input type="text" id="step5-answer-0" autocomplete="off" data-expected="${solution.totale}" placeholder="Scrivi il numero...">
+                    </div>
+                `;
+            } else {
+                // TRASFORMAZIONE
+                Object.entries(solution).forEach(([name, value], index) => {
+                    inputFields += `
+                        <div class="question-block">
+                            <label>${name} ha alla fine:</label>
+                            <input type="text" id="step5-answer-${index}" autocomplete="off" data-name="${name}" data-expected="${value}" placeholder="Scrivi il numero...">
+                        </div>
+                    `;
+                });
+            }
+            
+            inputFields += '</div>';
+            
+            container.innerHTML = summary + finalSentence + inputFields;
+        }
+
         function checkStep5() {
+            const tipo = problemState.data.tipo;
             const solution = problemState.data.soluzione_finale;
             let allCorrect = true;
-            let incorrectName = '';
+            let incorrectField = '';
             
-            let idx = 0;
-            for (const [name, expected] of Object.entries(solution)) {
-                const input = document.getElementById(`step5-answer-${idx}`).value;
-                const isCorrect = validateAnswer(input, expected, 'number');
+            if (tipo === 'COMPRAVENDITA') {
+                const totaleInput = document.getElementById('step5-answer-0').value;
+                const totaleCorrect = validateAnswer(totaleInput, solution.totale_spesa, 'number');
                 
-                if (!isCorrect && !incorrectName) {
-                    incorrectName = name;
+                const restoInput = document.getElementById('step5-answer-1').value;
+                const restoCorrect = validateAnswer(restoInput, solution.resto, 'number');
+                
+                if (!totaleCorrect) {
                     allCorrect = false;
+                    incorrectField = 'Spesa totale';
+                } else if (!restoCorrect) {
+                    allCorrect = false;
+                    incorrectField = 'Resto';
                 }
-                idx++;
+            } else if (tipo === 'COMBINAZIONE') {
+                const input = document.getElementById('step5-answer-0').value;
+                const isCorrect = validateAnswer(input, solution.totale, 'number');
+                
+                if (!isCorrect) {
+                    allCorrect = false;
+                    incorrectField = 'Totale';
+                }
+            } else {
+                // TRASFORMAZIONE
+                let idx = 0;
+                for (const [name, expected] of Object.entries(solution)) {
+                    const input = document.getElementById(`step5-answer-${idx}`).value;
+                    const isCorrect = validateAnswer(input, expected, 'number');
+                    
+                    if (!isCorrect && !incorrectField) {
+                        incorrectField = name;
+                        allCorrect = false;
+                    }
+                    idx++;
+                }
             }
             
             if (allCorrect) {
@@ -1277,205 +1196,38 @@ Analizza il problema reale e genera il JSON adattandolo alla situazione specific
                 completeStep(5);
                 setTimeout(showVictory, 1000);
             } else {
-                showFeedback(5, 'error', `❌ Controlla il valore per ${incorrectName}.`);
+                showFeedback(5, 'error', `❌ Controlla il valore per: ${incorrectField}`);
             }
         }
-        
-        // ============================================
-        // STEP COMPLETION
-        // ============================================
-        
-        function completeStep(stepNum) {
-            if (problemState.completedSteps.includes(stepNum)) {
-                return;
-            }
-            
-            problemState.completedSteps.push(stepNum);
-            addXP(STEP_XP[stepNum]);
-            
-            const stepEl = document.getElementById(`step-${stepNum}`);
-            stepEl.classList.add('step-completed');
-            
-            if (stepNum < 5) {
-                unlockStep(stepNum + 1);
-            }
-            
-            saveProgress();
-        }
-        
-        function unlockStep(stepNum) {
-            const stepEl = document.getElementById(`step-${stepNum}`);
-            stepEl.classList.remove('step-locked');
-            stepEl.classList.add('step-unlocked');
-            
-            setTimeout(() => {
-                stepEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 300);
-            
-            problemState.currentStep = stepNum;
-        }
-        
-        function addXP(amount) {
-            problemState.totalXP += amount;
-            document.getElementById('xp-total').textContent = problemState.totalXP;
-            
-            const percentage = Math.min((problemState.totalXP / 500) * 100, 100);
-            const progressFill = document.getElementById('progress-fill');
-            progressFill.style.width = percentage + '%';
-            progressFill.textContent = Math.round(percentage) + '%';
-        }
-        
-        // ============================================
-        // FEEDBACK SYSTEM
-        // ============================================
-        
-        function showFeedback(stepNum, type, message) {
-            const feedbackEl = document.getElementById(`feedback-${stepNum}`);
-            feedbackEl.className = `feedback ${type}`;
-            feedbackEl.textContent = message;
-            feedbackEl.style.display = 'block';
-            
-            if (type === 'error') {
-                setTimeout(() => {
-                    feedbackEl.style.display = 'none';
-                }, 5000);
-            }
-        }
-        
-        // ============================================
-        // HINT SYSTEM
-        // ============================================
-        
-        function showHint(stepNum) {
-            const level = problemState.hintLevels[stepNum];
-            const hints = getHintsForStep(stepNum);
-            
-            if (level >= hints.length) {
-                return;
-            }
-            
-            const hintContainer = document.getElementById(`hint-${stepNum}`);
-            const hintText = document.createElement('div');
-            hintText.className = 'hint-text';
-            hintText.innerHTML = `<strong>💡 Suggerimento ${level + 1}:</strong> ${hints[level]}`;
-            
-            hintContainer.appendChild(hintText);
-            problemState.hintLevels[stepNum]++;
-        }
-        
-        function getHintsForStep(stepNum) {
-            const data = problemState.data;
-            
-            switch(stepNum) {
-                case 1:
-                    return [
-                        'Cerca tutti i numeri scritti nel problema (anche quelli scritti in lettere come "cento").',
-                        `Nel problema ci sono circa ${data.numeri_attesi.length} numeri. Hai trovato tutti?`,
-                        `I numeri sono: ${data.numeri_attesi.join(', ')}`
-                    ];
-                    
-                case 2:
-                    return [
-                        'La domanda si trova di solito alla fine del problema.',
-                        'Cerca una frase che inizia con parole come "Quanti", "Quanto", "Chi", "Cosa".',
-                        `La domanda è: ${data.domanda}`
-                    ];
-                    
-                case 3:
-                    const step3 = data.steps.step3_personaggi;
-                    return [
-                        'Rileggi con attenzione la prima parte del problema.',
-                        'Cerca i nomi delle persone e guarda cosa hanno all\'inizio.',
-                        `Le risposte sono: ${step3.map(q => q.risposta).join(', ')}`
-                    ];
-                    
-                case 4:
-                    const step4 = data.steps.step4_azioni;
-                    return [
-                        'Guarda cosa succede nel problema: chi dà cosa a chi?',
-                        'Per i calcoli, usa la calcolatrice se hai bisogno!',
-                        `Le risposte sono: ${step4.map(q => q.risposta).join(', ')}`
-                    ];
-                    
-                case 5:
-                    const solution = data.soluzione_finale;
-                    return [
-                        'Ricontrolla tutti i calcoli che hai fatto negli step precedenti.',
-                        'Usa la calcolatrice per verificare!',
-                        `Le risposte finali sono: ${Object.entries(solution).map(([k,v]) => `${k}: ${v}`).join(', ')}`
-                    ];
-                    
-                default:
-                    return ['Rileggi attentamente il problema.'];
-            }
-        }
-        
-        // ============================================
-        // VICTORY SCREEN
-        // ============================================
-        
+
+        // ==================== VICTORY & RESET ====================
         function showVictory() {
-            addXP(STEP_XP.bonus);
-            document.getElementById('steps-container').style.display = 'none';
-            document.getElementById('victory-screen').style.display = 'block';
-            document.getElementById('victory-screen').scrollIntoView({ behavior: 'smooth' });
+            const totalXP = Object.values(STEP_XP).reduce((a, b) => a + b, 0);
+            document.getElementById('victory-xp').textContent = totalXP;
+            document.getElementById('victory-screen').style.display = 'flex';
         }
-        
-        // ============================================
-        // PROGRESS SAVE/LOAD
-        // ============================================
-        
-        function saveProgress() {
-            localStorage.setItem('discover_state', JSON.stringify(problemState));
-        }
-        
-        function loadProgress() {
-            const saved = localStorage.getItem('discover_state');
-            if (saved) {
-                problemState = JSON.parse(saved);
-            }
-        }
-        
-        // ============================================
-        // RESET
-        // ============================================
-        
+
         function resetProblem() {
-            problemState = {
-                text: '',
-                data: null,
-                currentStep: 1,
-                completedSteps: [],
-                totalXP: 0,
-                hintLevels: {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
-                step4Attempts: {}
-            };
-            
-            localStorage.removeItem('discover_state');
-            
             document.getElementById('victory-screen').style.display = 'none';
-            document.getElementById('input-section').style.display = 'block';
-            document.getElementById('problem-header').style.display = 'none';
-            document.getElementById('progress-section').style.display = 'none';
-            document.getElementById('steps-container').style.display = 'none';
+            
+            problemState.originalText = '';
+            problemState.data = null;
+            problemState.completedSteps = [];
+            problemState.step4Attempts = {};
+            
             document.getElementById('problem-input').value = '';
-            document.getElementById('input-step-1').value = ''; 
-            document.getElementById('input-step-2').value = ''; 
+            document.getElementById('numbers-count').value = '';
+            
             for (let i = 1; i <= 5; i++) {
-                const step = document.getElementById(`step-${i}`);
-                step.classList.remove('step-completed', 'step-unlocked');
-                if (i > 1) step.classList.add('step-locked');
-                document.getElementById(`feedback-${i}`).style.display = 'none';
-                document.getElementById(`hint-${i}`).innerHTML = '';
+                const feedback = document.getElementById(`feedback-${i}`);
+                if (feedback) feedback.style.display = 'none';
             }
             
-            document.getElementById('xp-total').textContent = '0';
-            document.getElementById('progress-fill').style.width = '0%';
-            document.getElementById('progress-fill').textContent = '0%';
-            
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            showStep(1);
         }
+
+        // ==================== INITIALIZATION ====================
+        updateXPBar();
     </script>
-    <script src="game-system.js"></script>
 </body>
 </html>
