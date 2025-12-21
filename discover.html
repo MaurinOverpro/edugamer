@@ -1328,18 +1328,29 @@ function checkStep2() {
             let inputFields = '<div style="margin-top: 20px;">';
             inputFields += '<p style="font-weight: bold; font-size: 18px; margin-bottom: 20px;">Ora scrivi tu le risposte finali:</p>';
             
-            if (tipo === 'COMPRAVENDITA') {
-                inputFields += `
-                    <div class="question-block">
-                        <label>Spesa totale (euro):</label>
-                        <input type="text" id="step5-answer-0" autocomplete="off" data-key="totale_spesa" data-expected="${solution.totale_spesa}" placeholder="Euro...">
-                    </div>
-                    <div class="question-block">
-                        <label>Resto (euro):</label>
-                        <input type="text" id="step5-answer-1" autocomplete="off" data-key="resto" data-expected="${solution.resto}" placeholder="Euro...">
-                    </div>
-                `;
-            } else if (tipo === 'COMBINAZIONE') {
+        if (tipo === 'COMPRAVENDITA') {
+    let fieldIndex = 0;
+    
+    // Campo totale spesa (sempre presente)
+    inputFields += `
+        <div class="question-block">
+            <label>Spesa totale (euro):</label>
+            <input type="text" id="step5-answer-${fieldIndex}" autocomplete="off" data-key="totale_spesa" data-expected="${solution.totale_spesa}" placeholder="Euro...">
+        </div>
+    `;
+    fieldIndex++;
+    
+    // Campo resto (solo se presente nel JSON)
+    if (solution.resto !== undefined && solution.resto !== null) {
+        inputFields += `
+            <div class="question-block">
+                <label>Resto (euro):</label>
+                <input type="text" id="step5-answer-${fieldIndex}" autocomplete="off" data-key="resto" data-expected="${solution.resto}" placeholder="Euro...">
+            </div>
+        `;
+        fieldIndex++;
+    }
+}  else if (tipo === 'COMBINAZIONE') {
                 inputFields += `
                     <div class="question-block">
                         <label>Totale:</label>
@@ -1487,6 +1498,7 @@ function checkStep2() {
     </script>
 </body>
 </html>
+
 
 
 
