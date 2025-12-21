@@ -1438,21 +1438,24 @@ function checkStep2() {
         }
 
         function calculateResult() {
-            try {
-                const result = eval(calcExpression);
-                calcExpression = result.toString();
-                document.getElementById('calc-display').textContent = calcExpression;
-            } catch (error) {
-                calcExpression = 'Errore';
-                document.getElementById('calc-display').textContent = 'Errore';
-            }
-        }
+    try {
+        const result = eval(calcExpression);
+        // Arrotonda a 2 decimali per evitare errori floating-point
+        const rounded = Math.round(result * 100) / 100;
+        calcExpression = rounded.toString();
+        document.getElementById('calc-display').textContent = calcExpression;
+    } catch (error) {
+        calcExpression = 'Errore';
+        document.getElementById('calc-display').textContent = 'Errore';
+    }
+}
        	
         // ==================== INITIALIZATION ====================
         updateXPBar();
     </script>
 </body>
 </html>
+
 
 
 
