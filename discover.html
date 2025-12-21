@@ -426,17 +426,6 @@
             color: #10b981;
             font-weight: bold;
         }
-	.problem-header {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            position: sticky;
-            top: 20px;
-            z-index: 50;
-            display: none;
-        }
 		.problem-header {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 15px;
@@ -755,19 +744,7 @@ function addXP(amount) {
 window.addEventListener('load', updateXPBar);
 window.addEventListener('edugamer-xp-added', updateXPBar);
 
-        // ==================== INITIALIZATION ====================
-		updateXPBar();
-    } else {
-        // Fallback al vecchio sistema se game-system.js non è caricato
-        const currentXP = parseInt(localStorage.getItem('edu_xp') || '0');
-        localStorage.setItem('edu_xp', (currentXP + amount).toString());
-        window.dispatchEvent(new Event('xpChanged'));
-    }
-}
-
-// Inizializza la barra XP
-window.addEventListener('load', updateXPBar);
-window.addEventListener('edugamer-xp-added', updateXPBar);
+       
 
         // ==================== STATE MANAGEMENT ====================
         const problemState = {
@@ -1470,15 +1447,13 @@ function checkStep2() {
                 document.getElementById('calc-display').textContent = 'Errore';
             }
         }
-
-        // ==================== INITIALIZATION ====================
-        updateXPBar();
-		
+       	
         // ==================== INITIALIZATION ====================
         updateXPBar();
     </script>
 </body>
 </html>
+
 
 
 
