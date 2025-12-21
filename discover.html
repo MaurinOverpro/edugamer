@@ -662,28 +662,39 @@ window.addEventListener('edugamer-xp-added', updateXPBar);
         }
 
         function validateAnswer(userInput, expected, type = 'text', keywords = []) {
-            const cleaned = userInput.trim().toLowerCase();
-            const expectedCleaned = expected.toString().trim().toLowerCase();
-            
-            if (type === 'number') {
-                const userNum = parseFloat(cleaned.replace(',', '.'));
-                const expectedNum = parseFloat(expectedCleaned.replace(',', '.'));
-                return Math.abs(userNum - expectedNum) < 0.01;
-            }
-            
-            if (type === 'text') {
-                if (cleaned === expectedCleaned) return true;
-                
-                if (keywords && keywords.length > 0) {
-                    return keywords.some(kw => cleaned.includes(kw.toLowerCase()));
-                }
-                
-                const similarity = cleaned.includes(expectedCleaned) || expectedCleaned.includes(cleaned);
-                return similarity;
-            }
-            
+    // Gestisci valori undefined o null
+    if (expected === undefined || expected === null) {
+        console.warn('⚠️ Expected value is undefined/null');
+        return false;
+    }
+    
+    const cleaned = userInput.trim().toLowerCase();
+    const expectedCleaned = expected.toString().trim().toLowerCase();
+    
+    if (type === 'number') {
+        const userNum = parseFloat(cleaned.replace(',', '.'));
+        const expectedNum = parseFloat(expectedCleaned.replace(',', '.'));
+        
+        if (isNaN(userNum) || isNaN(expectedNum)) {
             return false;
         }
+        
+        return Math.abs(userNum - expectedNum) < 0.01;
+    }
+    
+    if (type === 'text') {
+        if (cleaned === expectedCleaned) return true;
+        
+        if (keywords && keywords.length > 0) {
+            return keywords.some(kw => cleaned.includes(kw.toLowerCase()));
+        }
+        
+        const similarity = cleaned.includes(expectedCleaned) || expectedCleaned.includes(cleaned);
+        return similarity;
+    }
+    
+    return false;
+}
 
         // ==================== STEP 1: ANALYZE PROBLEM ====================
         async function analyzeProblem() {
@@ -1188,10 +1199,16 @@ function checkStep2() {
         }
 
         function checkStep5() {
-            const tipo = problemState.data.tipo;
-            const solution = problemState.data.soluzione_finale;
-            let allCorrect = true;
-            let incorrectField = '';
+    const tipo = problemState.data.tipo;
+    const solution = problemState.data.soluzione_finale;
+    
+    // DEBUG
+    console.log('🔍 DEBUG Step 5:');
+    console.log('Tipo problema:', tipo);
+    console.log('Soluzione attesa:', solution);
+    
+    let allCorrect = true;
+    let incorrectField = '';
             
             if (tipo === 'COMPRAVENDITA') {
                 const totaleInput = document.getElementById('step5-answer-0').value;
@@ -1270,6 +1287,7 @@ function checkStep2() {
     </script>
 </body>
 </html>
+
 
 
 
