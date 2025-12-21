@@ -426,6 +426,17 @@
             color: #10b981;
             font-weight: bold;
         }
+	.problem-header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            position: sticky;
+            top: 20px;
+            z-index: 50;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -446,7 +457,15 @@
                 <div class="level-badge">LV <span id="level-display">1</span></div>
             </div>
         </div>
+	</div>
 
+        <!-- PROBLEM HEADER (sticky, mostrato dopo analisi) -->
+        <div id="problem-header" class="problem-header" style="display: none;">
+            <h2 style="color: #667eea; margin-bottom: 15px;">📝 Il Tuo Problema</h2>
+            <div id="problem-display" style="background: white; padding: 15px; border-radius: 10px; color: #1e293b; font-size: 16px; line-height: 1.6; margin-bottom: 	15px;"></div>
+        </div>
+
+        <!-- STEP 1: Input Problema -->
         <!-- STEP 1: Input Problema -->
         <div class="step-container" id="step-1">
             <div class="step-header">
@@ -464,22 +483,22 @@
         </div>
 
         <!-- STEP 2: Identificazione Numeri -->
-<div class="step-container hidden" id="step-2">
-    <div class="step-header">
-        <div class="step-number">2</div>
-        <div class="step-title">Trova i Numeri</div>
-    </div>
-    <div class="step-content">
-        <div id="problem-type-badge"></div>
-        <div class="problem-text" id="problem-text-display"></div>
-        <div class="question-block">
-            <label>Scrivi <strong>TUTTI</strong> i numeri che trovi nel problema, separati da virgola:</label>
-            <input type="text" id="numbers-count" placeholder="Es: 15, 10, 8, 3, 5..." autocomplete="off">
+        <div class="step-container hidden" id="step-2">
+            <div class="step-header">
+                <div class="step-number">2</div>
+                <div class="step-title">Trova i Numeri</div>
+            </div>
+            <div class="step-content">
+                <div id="problem-type-badge"></div>
+                <div class="problem-text" id="problem-text-display"></div>
+                <div class="question-block">
+                    <label>Quanti numeri (scritti come cifre) ci sono nel problema?</label>
+                    <input type="number" id="numbers-count" placeholder="Es: 4" autocomplete="off">
+                </div>
+                <button class="btn" onclick="checkStep2()">Verifica ✓</button>
+                <div class="feedback" id="feedback-2"></div>
+            </div>
         </div>
-        <button class="btn" onclick="checkStep2()">Verifica ✓</button>
-        <div class="feedback" id="feedback-2"></div>
-    </div>
-</div>
 
         <!-- STEP 3: Situazione Iniziale -->
         <div class="step-container hidden" id="step-3">
@@ -840,7 +859,13 @@ Analizza il problema reale, determina il TIPO corretto, e genera il JSON seguend
                 }
                 
                 typeBadge.innerHTML = `<div class="type-badge ${badgeClass}">${badgeText}</div>`;
+                typeBadge.innerHTML = `<div class="type-badge ${badgeClass}">${badgeText}</div>`;
                 
+                // MOSTRA IL PROBLEM HEADER STICKY
+                document.getElementById('problem-display').textContent = problemText;
+                document.getElementById('problem-header').style.display = 'block';
+                
+                showStep(2);
                 showStep(2);
                 showFeedback(1, 'success', `✅ Problema analizzato! Tipo: ${data.tipo} (+${STEP_XP[1]} XP)`);
                 completeStep(1);
@@ -855,20 +880,16 @@ Analizza il problema reale, determina il TIPO corretto, e genera il JSON seguend
 
         // ==================== STEP 2: COUNT NUMBERS ====================
         function checkStep2() {
-    const input = document.getElementById('numbers-count').value;
-    const expected = problemState.data.numeri_attesi;
-    
-    // REGEX per numeri interi e decimali (3, 0.80, 13, etc)
-    const userNumbers = input.match(/\d+(?:\.\d+)?/g) || [];
-    const threshold = Math.ceil(expected.length * 0.7);
-    
-    if (userNumbers.length >= threshold) {
-        showFeedback(2, 'success', `✅ Ottimo! Hai trovato ${userNumbers.length} numeri. (+${STEP_XP[2]} XP)`);
-        completeStep(2);
-    } else {
-        showFeedback(2, 'error', `❌ Cerca ancora! Nel problema ci sono circa ${expected.length} numeri. (Hai trovato: ${userNumbers.length})`);
-    }
-}
+            const userCount = parseInt(document.getElementById('numbers-count').value);
+            const expectedCount = problemState.data.numeri_attesi.length;
+            
+            if (userCount === expectedCount) {
+                showFeedback(2, 'success', `✅ Esatto! Ci sono ${expectedCount} numeri. (+${STEP_XP[2]} XP)`);
+                completeStep(2);
+            } else {
+                showFeedback(2, 'error', `❌ Ricontrolla! Non sono ${userCount}...`);
+            }
+        }
 
         // ==================== STEP 3: INITIAL SITUATION ====================
         function generateStep3Questions() {
