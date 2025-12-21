@@ -437,6 +437,115 @@
             z-index: 50;
             display: none;
         }
+		.problem-header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            position: sticky;
+            top: 20px;
+            z-index: 50;
+            display: none;
+        }
+
+        .calculator-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
+            z-index: 100;
+        }
+
+        .calculator-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .calculator-popup {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 99;
+            min-width: 250px;
+        }
+
+        .calculator-display {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: right;
+            margin-bottom: 15px;
+            color: #1e293b;
+            min-height: 40px;
+        }
+
+        .calculator-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .calc-btn {
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .calc-btn:hover {
+            background: #cbd5e1;
+            transform: scale(1.05);
+        }
+
+        .calc-btn.operator {
+            background: #667eea;
+            color: white;
+        }
+
+        .calc-btn.operator:hover {
+            background: #5568d3;
+        }
+
+        .calc-btn.equals {
+            background: #10b981;
+            color: white;
+            grid-column: span 2;
+        }
+
+        .calc-btn.equals:hover {
+            background: #059669;
+        }
+
+        .calc-btn.clear {
+            background: #ef4444;
+            color: white;
+        }
+
+        .calc-btn.clear:hover {
+            background: #dc2626;
+        }
     </style>
 </head>
 <body>
@@ -547,7 +656,40 @@
             </div>
         </div>
     </div>
+</div>
 
+    <!-- Calculator Button -->
+    <button class="calculator-btn" onclick="toggleCalculator()">🔢</button>
+
+    <!-- Calculator Popup -->
+    <div class="calculator-popup" id="calculator">
+        <div class="calculator-display" id="calc-display">0</div>
+        <div class="calculator-buttons">
+            <button class="calc-btn" onclick="appendToCalc('7')">7</button>
+            <button class="calc-btn" onclick="appendToCalc('8')">8</button>
+            <button class="calc-btn" onclick="appendToCalc('9')">9</button>
+            <button class="calc-btn operator" onclick="appendToCalc('/')">÷</button>
+            
+            <button class="calc-btn" onclick="appendToCalc('4')">4</button>
+            <button class="calc-btn" onclick="appendToCalc('5')">5</button>
+            <button class="calc-btn" onclick="appendToCalc('6')">6</button>
+            <button class="calc-btn operator" onclick="appendToCalc('*')">×</button>
+            
+            <button class="calc-btn" onclick="appendToCalc('1')">1</button>
+            <button class="calc-btn" onclick="appendToCalc('2')">2</button>
+            <button class="calc-btn" onclick="appendToCalc('3')">3</button>
+            <button class="calc-btn operator" onclick="appendToCalc('-')">−</button>
+            
+            <button class="calc-btn" onclick="appendToCalc('0')">0</button>
+            <button class="calc-btn" onclick="appendToCalc('.')">.</button>
+            <button class="calc-btn clear" onclick="clearCalc()">C</button>
+            <button class="calc-btn operator" onclick="appendToCalc('+')">+</button>
+            
+            <button class="calc-btn equals" onclick="calculateResult()">=</button>
+        </div>
+    </div>
+
+    <!-- Victory Screen -->
     <!-- Victory Screen -->
     <div class="victory-screen" id="victory-screen">
         <div class="victory-content">
@@ -573,7 +715,7 @@
             }
         }
 
-        // ==================== GAMIFICATION ====================
+      // ==================== GAMIFICATION ====================
 const STEP_XP = {
     1: 10,
     2: 15,
@@ -599,8 +741,22 @@ function updateXPBar() {
 
 function addXP(amount) {
     if (window.EduGamer) {
-        window.EduGamer.addXP(amount, 'matematica', 'discover');
+        window.EduGamer.addXP(amount, 'matematica', 'discover');  // ← QUESTA RIGA MANCAVA!
         updateXPBar();
+    } else {
+        // Fallback al vecchio sistema se game-system.js non è caricato
+        const currentXP = parseInt(localStorage.getItem('edu_xp') || '0');
+        localStorage.setItem('edu_xp', (currentXP + amount).toString());
+        window.dispatchEvent(new Event('xpChanged'));
+    }
+}
+
+// Inizializza la barra XP
+window.addEventListener('load', updateXPBar);
+window.addEventListener('edugamer-xp-added', updateXPBar);
+
+        // ==================== INITIALIZATION ====================
+		updateXPBar();
     } else {
         // Fallback al vecchio sistema se game-system.js non è caricato
         const currentXP = parseInt(localStorage.getItem('edu_xp') || '0');
@@ -1282,11 +1438,48 @@ function checkStep2() {
             showStep(1);
         }
 
+// ==================== CALCULATOR ====================
+        let calcExpression = '';
+
+        function toggleCalculator() {
+            const calc = document.getElementById('calculator');
+            calc.style.display = calc.style.display === 'none' || calc.style.display === '' ? 'block' : 'none';
+        }
+
+        function appendToCalc(value) {
+            if (calcExpression === '0' || calcExpression === 'Errore') {
+                calcExpression = value;
+            } else {
+                calcExpression += value;
+            }
+            document.getElementById('calc-display').textContent = calcExpression;
+        }
+
+        function clearCalc() {
+            calcExpression = '0';
+            document.getElementById('calc-display').textContent = '0';
+        }
+
+        function calculateResult() {
+            try {
+                const result = eval(calcExpression);
+                calcExpression = result.toString();
+                document.getElementById('calc-display').textContent = calcExpression;
+            } catch (error) {
+                calcExpression = 'Errore';
+                document.getElementById('calc-display').textContent = 'Errore';
+            }
+        }
+
+        // ==================== INITIALIZATION ====================
+        updateXPBar();
+		
         // ==================== INITIALIZATION ====================
         updateXPBar();
     </script>
 </body>
 </html>
+
 
 
 
