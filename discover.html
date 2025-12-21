@@ -904,6 +904,8 @@ STRUTTURA PER TRASFORMAZIONE:
 ====================
 STRUTTURA PER COMPRAVENDITA:
 ====================
+
+CASO A - CON BUDGET SPECIFICATO (problema chiede "le bastano X euro?"):
 {
   "tipo": "COMPRAVENDITA",
   "numeri_attesi": ["3", "0.80", "4", "0.90", "13", "22"],
@@ -918,7 +920,7 @@ STRUTTURA PER COMPRAVENDITA:
     "step3_situazione": [
       {"domanda": "Chi fa la spesa?", "risposta": "Anastasia", "tipo": "text"},
       {"domanda": "Quanto ha a disposizione (euro)?", "risposta": "22", "tipo": "number"},
-      {"domanda": "Quanti tipi di articoli diversi compra?", "risposta": "4", "tipo": "number"}
+      {"domanda": "Quanti tipi di articoli diversi compra?", "risposta": "3", "tipo": "number"}
     ],
     "step4_calcoli": [
       {"domanda": "Quanto costano le 3 penne?", "calcolo": "3 × 0.80", "risposta": "2.40", "tipo": "number"},
@@ -934,6 +936,37 @@ STRUTTURA PER COMPRAVENDITA:
   }
 }
 
+CASO B - SENZA BUDGET (problema chiede solo "quanto spende?"):
+{
+  "tipo": "COMPRAVENDITA",
+  "numeri_attesi": ["3", "0.80", "4", "0.90", "13"],
+  "domanda": "Quanto spende in totale?",
+  "budget": null,
+  "prodotti": [
+    {"nome": "Penne", "quantita": "3", "prezzo_unitario": "0.80"},
+    {"nome": "Matite", "quantita": "4", "prezzo_unitario": "0.90"},
+    {"nome": "Diario", "quantita": "1", "prezzo_unitario": "13"}
+  ],
+  "steps": {
+    "step3_situazione": [
+      {"domanda": "Chi fa la spesa?", "risposta": "Anastasia", "tipo": "text"},
+      {"domanda": "Quanti tipi di articoli diversi compra?", "risposta": "3", "tipo": "number"}
+    ],
+    "step4_calcoli": [
+      {"domanda": "Quanto costano le 3 penne?", "calcolo": "3 × 0.80", "risposta": "2.40", "tipo": "number"},
+      {"domanda": "Quanto costano le 4 matite?", "calcolo": "4 × 0.90", "risposta": "3.60", "tipo": "number"},
+      {"domanda": "Quanto costa il diario?", "calcolo": "", "risposta": "13", "tipo": "number"},
+      {"domanda": "Totale spesa:", "calcolo": "2.40 + 3.60 + 13", "risposta": "19", "tipo": "number"}
+    ]
+  },
+  "soluzione_finale": {
+    "totale_spesa": "19"
+  }
+}
+
+REGOLA IMPORTANTE: 
+- Se il problema NON menziona "ha X euro" o "le bastano Y euro", usa CASO B (budget: null, solo totale_spesa)
+- Se il problema menziona un budget, usa CASO A (con resto e verifica)
 ====================
 STRUTTURA PER COMBINAZIONE:
 ====================
@@ -1455,6 +1488,7 @@ function checkStep2() {
     </script>
 </body>
 </html>
+
 
 
 
