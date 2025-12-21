@@ -729,8 +729,10 @@ ISTRUZIONI CRITICHE:
 1. Rispondi ESCLUSIVAMENTE con un oggetto JSON valido
 2. NON aggiungere testo prima o dopo il JSON
 3. NON usare markdown o backticks
-4. In "numeri_attesi" inserisci SOLO numeri scritti come cifre (non nomi ripetuti)
-5. Conta quante volte un numero appare come CIFRA nel testo
+4. In "numeri_attesi" inserisci TUTTI i numeri che appaiono nel testo come cifre (INCLUSI i decimali con punto o virgola)
+5. Esempi di numeri validi: 3, 0.80, 4, 0.90, 13, 15.5, 100, 2.5
+6. CONTA OGNI NUMERO SEPARATAMENTE: "3 penne a 0.80€" = DUE numeri (3 e 0.80)
+7. NON includere simboli di valuta (€, $) nei numeri_attesi
 
 ====================
 STRUTTURA PER TRASFORMAZIONE:
@@ -814,7 +816,8 @@ STRUTTURA PER COMBINAZIONE:
 REGOLE ADATTIVE:
 - Se 1 solo protagonista → personaggi array con 1 elemento
 - Se problema lineare semplice → step4 anche con 1 sola domanda
-- "numeri_attesi" conta SOLO cifre, non ripetizioni di nomi
+- "numeri_attesi" deve contenere TUTTI i numeri del problema (interi E decimali) come stringhe separate
+- Esempio: "3 penne a 0.80€, 4 matite a 0.90€" → numeri_attesi: ["3", "0.80", "4", "0.90"]
 - Step4 può avere lunghezza variabile in base alla complessità
 
 Analizza il problema reale, determina il TIPO corretto, e genera il JSON seguendo la struttura appropriata.`;
@@ -1256,4 +1259,5 @@ Analizza il problema reale, determina il TIPO corretto, e genera il JSON seguend
     </script>
 </body>
 </html>
+
 
