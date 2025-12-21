@@ -882,17 +882,29 @@ Analizza il problema reale, determina il TIPO corretto, e genera il JSON seguend
         }
 
         // ==================== STEP 2: COUNT NUMBERS ====================
-        function checkStep2() {
-            const userCount = parseInt(document.getElementById('numbers-count').value);
-            const expectedCount = problemState.data.numeri_attesi.length;
-            
-            if (userCount === expectedCount) {
-                showFeedback(2, 'success', `✅ Esatto! Ci sono ${expectedCount} numeri. (+${STEP_XP[2]} XP)`);
-                completeStep(2);
-            } else {
-                showFeedback(2, 'error', `❌ Ricontrolla! Non sono ${userCount}...`);
-            }
-        }
+function checkStep2() {
+    const input = document.getElementById('numbers-count').value;
+    const expected = problemState.data.numeri_attesi;
+    
+    // REGEX per numeri interi e decimali (3, 0.80, 13, etc)
+    const userNumbers = input.match(/\d+(?:\.\d+)?/g) || [];
+    const threshold = Math.ceil(expected.length * 0.7);
+    
+    // DEBUG
+    console.log('🔍 DEBUG Step 2:');
+    console.log('Input utente:', input);
+    console.log('Numeri estratti:', userNumbers);
+    console.log('Numeri attesi AI:', expected);
+    console.log('Threshold (70%):', threshold);
+    
+    if (userNumbers.length >= threshold) {
+        showFeedback(2, 'success', `✅ Ottimo! Hai trovato ${userNumbers.length} numeri. (+${STEP_XP[2]} XP)`);
+        completeStep(2);
+    } else {
+        showFeedback(2, 'error', `❌ Cerca ancora! L'AI si aspetta ${expected.length} numeri. (Tu: ${userNumbers.length})`);
+    }
+}
+```
 
         // ==================== STEP 3: INITIAL SITUATION ====================
         function generateStep3Questions() {
@@ -1259,5 +1271,6 @@ Analizza il problema reale, determina il TIPO corretto, e genera il JSON seguend
     </script>
 </body>
 </html>
+
 
 
