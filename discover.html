@@ -1301,12 +1301,17 @@ function checkStep2() {
             let finalSentence = '<div class="solution-box">';
             finalSentence += '<h4>✅ SOLUZIONE FINALE</h4>';
             
-            if (tipo === 'COMPRAVENDITA') {
-                finalSentence += '<p>Alla fine: ';
-                finalSentence += `Spesa totale <span class="highlight-number">${solution.totale_spesa}€</span>, `;
-                finalSentence += `resto <span class="highlight-success">${solution.resto}€</span>. `;
-                finalSentence += `<span class="highlight-success">${solution.verifica_budget}</span></p>`;
-            } else if (tipo === 'COMBINAZIONE') {
+           if (tipo === 'COMPRAVENDITA') {
+    finalSentence += '<p>Alla fine: ';
+    finalSentence += `Spesa totale <span class="highlight-number">${solution.totale_spesa}€</span>`;
+    
+    // Aggiungi resto solo se presente
+    if (solution.resto !== undefined && solution.resto !== null) {
+        finalSentence += `, resto <span class="highlight-success">${solution.resto}€</span>`;
+    }
+    
+    finalSentence += '.</p>';
+} else if (tipo === 'COMBINAZIONE') {
                 finalSentence += '<p>Alla fine: ';
                 finalSentence += `Totale = <span class="highlight-number">${solution.totale}</span></p>`;
             } else {
@@ -1386,21 +1391,31 @@ function checkStep2() {
     let allCorrect = true;
     let incorrectField = '';
             
-            if (tipo === 'COMPRAVENDITA') {
-                const totaleInput = document.getElementById('step5-answer-0').value;
-                const totaleCorrect = validateAnswer(totaleInput, solution.totale_spesa, 'number');
-                
-                const restoInput = document.getElementById('step5-answer-1').value;
-                const restoCorrect = validateAnswer(restoInput, solution.resto, 'number');
-                
-                if (!totaleCorrect) {
-                    allCorrect = false;
-                    incorrectField = 'Spesa totale';
-                } else if (!restoCorrect) {
-                    allCorrect = false;
-                    incorrectField = 'Resto';
-                }
-            } else if (tipo === 'COMBINAZIONE') {
+           if (tipo === 'COMPRAVENDITA') {
+    let fieldIndex = 0;
+    
+    // Verifica totale spesa
+    const totaleInput = document.getElementById(`step5-answer-${fieldIndex}`)?.value;
+    const totaleCorrect = validateAnswer(totaleInput, solution.totale_spesa, 'number');
+    
+    if (!totaleCorrect) {
+        allCorrect = false;
+        incorrectField = 'Spesa totale';
+    }
+    fieldIndex++;
+    
+    // Verifica resto (solo se il campo esiste)
+    if (solution.resto !== undefined && solution.resto !== null && allCorrect) {
+        const restoInput = document.getElementById(`step5-answer-${fieldIndex}`)?.value;
+        if (restoInput !== undefined) {
+            const restoCorrect = validateAnswer(restoInput, solution.resto, 'number');
+            if (!restoCorrect) {
+                allCorrect = false;
+                incorrectField = 'Resto';
+            }
+        }
+    }
+} else if (tipo === 'COMBINAZIONE') {
                 const input = document.getElementById('step5-answer-0').value;
                 const isCorrect = validateAnswer(input, solution.totale, 'number');
                 
@@ -1498,6 +1513,7 @@ function checkStep2() {
     </script>
 </body>
 </html>
+
 
 
 
