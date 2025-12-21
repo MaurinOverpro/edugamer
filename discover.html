@@ -905,7 +905,9 @@ STRUTTURA PER TRASFORMAZIONE:
 STRUTTURA PER COMPRAVENDITA:
 ====================
 
-CASO A - CON BUDGET SPECIFICATO (problema chiede "le bastano X euro?"):
+IMPORTANTE: Distingui tra due casi:
+
+CASO A - CON BUDGET (problema menziona "ha X euro" o "le bastano Y euro"):
 {
   "tipo": "COMPRAVENDITA",
   "numeri_attesi": ["3", "0.80", "4", "0.90", "13", "22"],
@@ -931,17 +933,15 @@ CASO A - CON BUDGET SPECIFICATO (problema chiede "le bastano X euro?"):
   },
   "soluzione_finale": {
     "totale_spesa": "19",
-    "resto": "3",
-    "verifica_budget": "Sì, le bastano (risparmia 3€)"
+    "resto": "3"
   }
 }
 
-CASO B - SENZA BUDGET (problema chiede solo "quanto spende?"):
+CASO B - SENZA BUDGET (problema chiede solo "quanto spende"):
 {
   "tipo": "COMPRAVENDITA",
   "numeri_attesi": ["3", "0.80", "4", "0.90", "13"],
   "domanda": "Quanto spende in totale?",
-  "budget": null,
   "prodotti": [
     {"nome": "Penne", "quantita": "3", "prezzo_unitario": "0.80"},
     {"nome": "Matite", "quantita": "4", "prezzo_unitario": "0.90"},
@@ -964,9 +964,8 @@ CASO B - SENZA BUDGET (problema chiede solo "quanto spende?"):
   }
 }
 
-REGOLA IMPORTANTE: 
-- Se il problema NON menziona "ha X euro" o "le bastano Y euro", usa CASO B (budget: null, solo totale_spesa)
-- Se il problema menziona un budget, usa CASO A (con resto e verifica)
+REGOLA CRITICA: Se il problema NON menziona un budget specifico, usa CASO B (NO campo resto, NO campo budget).
+
 ====================
 STRUTTURA PER COMBINAZIONE:
 ====================
@@ -1488,6 +1487,7 @@ function checkStep2() {
     </script>
 </body>
 </html>
+
 
 
 
