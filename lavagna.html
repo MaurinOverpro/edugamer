@@ -412,49 +412,102 @@
             };
 
             // NUOVO: Genera testo riepilogo
-            const getSummaryText = () => {
-                if (!mapData) return '';
-                
-                const today = new Date().toLocaleDateString('it-IT', { 
-                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-                });
-                
-                let text = `MAPPA MENTALE: ${mapData.theme}\n`;
-                text += `Data: ${today}\n\n`;
-                text += `${'='.repeat(40)}\n\n`;
-                
-                text += `🎯 TEMA CENTRALE\n${mapData.theme}\n\n`;
-                text += `${'─'.repeat(40)}\n\n`;
-                
-                text += `📌 CONCETTI ESPLORATI (${exploredNodes.length}/${nodes.length - 1})\n\n`;
-                if (exploredNodes.length === 0) {
-                    text += `Nessun concetto ancora esplorato.\n\n`;
-                } else {
-                    exploredNodes.forEach((node, i) => {
-                        text += `${i + 1}. ${node.label}\n   💡 ${node.content}\n\n`;
-                    });
-                }
-                text += `${'─'.repeat(40)}\n\n`;
-                
-                text += `🔗 COLLEGAMENTI SCOPERTI (${connectionExplanations.length})\n\n`;
-                if (connectionExplanations.length === 0) {
-                    text += `Nessun collegamento ancora creato.\n\n`;
-                } else {
-                    connectionExplanations.forEach((conn, i) => {
-                        text += `${i + 1}. ${conn.from} ↔ ${conn.to}\n   🤖 "${conn.explanation}"\n\n`;
-                    });
-                }
-                text += `${'─'.repeat(40)}\n\n`;
-                
-                const totalNodes = nodes.length - 1;
-                text += `⭐ STATISTICHE\n`;
-                text += `• Concetti esplorati: ${exploredNodes.length}/${totalNodes}\n`;
-                text += `• Collegamenti trovati: ${connectionExplanations.length}\n`;
-                text += `• XP guadagnati: ${50 + (connectionExplanations.length * 20)}\n\n`;
-                text += `${'='.repeat(40)}\nCreato con EduGamer 🎮\n`;
-                
-                return text;
-            };
+            // NUOVO: Genera testo riepilogo PULITO (senza emoji e caratteri speciali)
+const getSummaryText = (cleanVersion = false) => {
+    if (!mapData) return '';
+    
+    const today = new Date().toLocaleDateString('it-IT', { 
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+    });
+    
+    // Funzione per pulire caratteri speciali
+    const cleanText = (text) => {
+        if (!cleanVersion) return text;
+        return text
+            // Rimuovi emoji
+            .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+            .replace(/[\u{2600}-\u{26FF}]/gu, '')
+            .replace(/[\u{2700}-\u{27BF}]/gu, '')
+            .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
+            .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')
+            .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')
+            .replace(/[\u{2300}-\u{23FF}]/gu, '')
+            .replace(/[\u{2B50}]/gu, '')
+            .replace(/[\u{1F4D0}-\u{1F4FF}]/gu, '')
+            .replace(/[\u{270F}-\u{2712}]/gu, '')
+            .replace(/[\u{2705}]/gu, '')
+            .replace(/[\u{1F9E0}]/gu, '')
+            .replace(/[\u{1F50D}]/gu, '')
+            .replace(/[\u{1F3AF}]/gu, '')
+            .replace(/[\u{1F4CC}]/gu, '')
+            .replace(/[\u{1F517}]/gu, '')
+            .replace(/[\u{2B50}]/gu, '')
+            .replace(/[\u{1F916}]/gu, '')
+            // Rimuovi caratteri box-drawing
+            .replace(/[━═│║┌┐└┘├┤┬┴┼─]/g, '')
+            // Normalizza spazi
+            .replace(/\s+/g, ' ')
+            .trim();
+    };
+    
+    // Separatori per versione pulita
+    const sep1 = cleanVersion ? '=' : '═';
+    const sep2 = cleanVersion ? '-' : '─';
+    const bullet = cleanVersion ? '*' : '•';
+    const arrow = cleanVersion ? '<->' : '↔';
+    
+    let text = '';
+    
+    // INTESTAZIONE
+    text += cleanText(`MAPPA MENTALE: ${mapData.theme}`) + '\n';
+    text += `Data: ${today}\n`;
+    text += '\n' + sep1.repeat(50) + '\n\n';
+    
+    // TEMA CENTRALE
+    text += cleanText('TEMA CENTRALE') + '\n';
+    text += cleanText(mapData.theme) + '\n\n';
+    text += sep2.repeat(50) + '\n\n';
+    
+    // CONCETTI ESPLORATI
+    text += cleanText(`CONCETTI ESPLORATI (${exploredNodes.length}/${nodes.length - 1})`) + '\n\n';
+    
+    if (exploredNodes.length === 0) {
+        text += 'Nessun concetto ancora esplorato.\n\n';
+    } else {
+        exploredNodes.forEach((node, i) => {
+            text += `${i + 1}. ${cleanText(node.label)}\n`;
+            text += `   ${cleanText(node.content)}\n\n`;
+        });
+    }
+    
+    text += sep2.repeat(50) + '\n\n';
+    
+    // COLLEGAMENTI SCOPERTI
+    text += cleanText(`COLLEGAMENTI SCOPERTI (${connectionExplanations.length})`) + '\n\n';
+    
+    if (connectionExplanations.length === 0) {
+        text += 'Nessun collegamento ancora creato.\n\n';
+    } else {
+        connectionExplanations.forEach((conn, i) => {
+            text += `${i + 1}. ${cleanText(conn.from)} ${arrow} ${cleanText(conn.to)}\n`;
+            text += `   "${cleanText(conn.explanation)}"\n\n`;
+        });
+    }
+    
+    text += sep2.repeat(50) + '\n\n';
+    
+    // STATISTICHE
+    const totalNodes = nodes.length - 1;
+    text += cleanText('STATISTICHE') + '\n';
+    text += `${bullet} Concetti esplorati: ${exploredNodes.length}/${totalNodes}\n`;
+    text += `${bullet} Collegamenti trovati: ${connectionExplanations.length}\n`;
+    text += `${bullet} XP guadagnati: ${50 + (connectionExplanations.length * 20)}\n\n`;
+    
+    text += sep1.repeat(50) + '\n';
+    text += 'Creato con EduGamer\n';
+    
+    return text;
+};
 
             // NUOVO: Condivisione WhatsApp
             const shareViaWhatsApp = () => {
@@ -464,29 +517,47 @@
                 setShowShareMenu(false);
             };
 
-            // NUOVO: Condivisione Email
-            const shareViaEmail = () => {
-                const text = getSummaryText();
-                const subject = encodeURIComponent(`Mappa Mentale: ${mapData?.theme || 'EduGamer'}`);
-                const body = encodeURIComponent(text);
-                window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
-                setShowShareMenu(false);
-            };
+           // NUOVO: Condivisione Email con testo pulito
+const shareViaEmail = () => {
+    const text = getSummaryText(true); // true = versione pulita
+    const subject = encodeURIComponent(`Mappa Mentale: ${mapData?.theme || 'EduGamer'}`);
+    const body = encodeURIComponent(text);
+    
+    // Controlla lunghezza URL (limite ~2000 caratteri)
+    const mailtoUrl = `mailto:?subject=${subject}&body=${body}`;
+    
+    if (mailtoUrl.length > 2000) {
+        alert('⚠️ Il testo è troppo lungo per l\'email!\n\nUsa "Salva File" e allega il file .txt manualmente.');
+        return;
+    }
+    
+    window.location.href = mailtoUrl;
+    setShowShareMenu(false);
+    };
 
-            // NUOVO: Salva come file
-            const saveAsFile = () => {
-                const text = getSummaryText();
-                const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `mappa_${mapData?.theme?.replace(/\s+/g, '_') || 'mentale'}_${new Date().toISOString().slice(0,10)}.txt`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                setShowShareMenu(false);
-            };
+           // NUOVO: Salva file .txt PULITO
+const saveAsFile = () => {
+    const text = getSummaryText(true); // true = versione pulita
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    
+    // Nome file senza caratteri speciali
+    const cleanTheme = mapData?.theme
+        ?.replace(/[^\w\s]/g, '')
+        ?.replace(/\s+/g, '_')
+        ?.substring(0, 30) || 'mappa_mentale';
+    
+    const dateStr = new Date().toISOString().slice(0,10);
+    a.download = `${cleanTheme}_${dateStr}.txt`;
+    
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setShowShareMenu(false);
+    };
 
             // NUOVO: Menu condivisione (identico a matematica.html)
             const renderShareMenu = () => {
@@ -636,4 +707,5 @@
     </script>
     <script src="game-system.js"></script>
 </body>
+
 </html>
