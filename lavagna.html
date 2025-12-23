@@ -217,11 +217,11 @@ ESEMPIO:
                 return JSON.parse(text);
             },
 
-            explainConnection: async (label1, label2) => {
-                const key = DB.getKey();
-                if(!key) return `Hai collegato ${label1} con ${label2}!`;
+           explainConnection: async (label1, label2) => {
+    const key = DB.getKey();
+    if(!key) return `Hai collegato ${label1} con ${label2}!`;
 
-                const prompt = `Spiega in UNA frase chiara e diretta la relazione tra "${label1}" e "${label2}".
+    const prompt = `Spiega in UNA frase chiara e diretta la relazione tra "${label1}" e "${label2}".
 
 REQUISITI:
 - Tono: informativo e naturale, adatto a uno studente delle medie/superiori
@@ -234,31 +234,19 @@ Rispondi SOLO con la frase di collegamento, senza preamble.
 ESEMPI:
 - "La clorofilla cattura la luce necessaria per produrre glucosio tramite fotosintesi"
 - "Il DNA contiene le istruzioni genetiche che determinano le caratteristiche delle proteine"`;
-```
 
----
-
-## 📝 **CONFRONTO TONI:**
-
-### **PRIMA (tono bambino):**
-```
-🤖 "Wow! La clorofilla è super importante perché aiuta la piantina 
-    a fare il suo dolcissimo cibo usando la luce del sole! 🌞"
-```
-
-### **DOPO (tono giovane):**
-```
-🤖 "La clorofilla cattura l'energia solare necessaria alla pianta 
-    per produrre glucosio tramite fotosintesi."
-                try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                    });
-                    const data = await res.json();
-                    return data.candidates[0].content.parts[0].text;
-                } catch(e) { return `Ottimo! ${label1} e ${label2} sono collegati.`; }
-            }
+    try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        const data = await res.json();
+        return data.candidates[0].text;
+    } catch(e) { 
+        return `Ottimo! ${label1} e ${label2} sono collegati.`; 
+    }
+}
         };
 
         // --- MODIFICA 2: Funzione Pulizia Emoji ---
@@ -755,5 +743,6 @@ const saveAsFile = () => {
 </body>
 
 </html>
+
 
 
