@@ -184,13 +184,27 @@
                 
                 const parts = images.map(img => ({ inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] } }));
                 
-                const prompt = `Analizza queste pagine per un bambino.
-                Crea una MAPPA MENTALE.
-                1. TEMA PRINCIPALE.
-                2. 6-8 CONCETTI CHIAVE.
-                3. SPIEGAZIONE BREVISSIMA (max 15 parole) per ogni concetto.
-                Rispondi SOLO JSON: 
-                { "theme": "Titolo", "nodes": [{ "id": 1, "label": "Nome", "content": "Spiegazione" }] }`;
+                const prompt = `Analizza queste pagine per uno studente delle medie/superiori.
+Crea una MAPPA MENTALE chiara e concisa.
+
+ISTRUZIONI:
+1. Identifica il TEMA PRINCIPALE
+2. Estrai 6-8 CONCETTI CHIAVE fondamentali
+3. Per ogni concetto scrivi una DEFINIZIONE SINTETICA (max 15 parole) con tono informativo e diretto, senza infantilismi
+
+TONO: Professionale ma accessibile, come un libro di testo moderno. Evita diminutivi, vezzeggiativi e tono da bambino piccolo.
+
+Rispondi SOLO con JSON (senza markdown):
+{ "theme": "Titolo", "nodes": [{ "id": 1, "label": "Nome Concetto", "content": "Definizione chiara" }] }
+
+ESEMPIO:
+{ 
+  "theme": "Fotosintesi", 
+  "nodes": [
+    { "id": 1, "label": "Clorofilla", "content": "Pigmento verde che cattura la luce solare nelle foglie" },
+    { "id": 2, "label": "Glucosio", "content": "Zucchero prodotto dalla pianta come fonte di energia" }
+  ]
+}`;
 
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -207,8 +221,35 @@
                 const key = DB.getKey();
                 if(!key) return `Hai collegato ${label1} con ${label2}!`;
 
-                const prompt = `Spiega in una frase semplice per un bambino di 9 anni qual è il legame tra "${label1}" e "${label2}". Usa tono allegro.`;
-                
+                const prompt = `Spiega in UNA frase chiara e diretta la relazione tra "${label1}" e "${label2}".
+
+REQUISITI:
+- Tono: informativo e naturale, adatto a uno studente delle medie/superiori
+- Lunghezza: massimo 20 parole
+- Stile: conciso ma completo, evita tono infantile o eccessivamente semplificato
+- NON usare diminutivi, vezzeggiativi o espressioni come "carino", "bellissimo", "magico"
+
+Rispondi SOLO con la frase di collegamento, senza preamble.
+
+ESEMPI:
+- "La clorofilla cattura la luce necessaria per produrre glucosio tramite fotosintesi"
+- "Il DNA contiene le istruzioni genetiche che determinano le caratteristiche delle proteine"`;
+```
+
+---
+
+## 📝 **CONFRONTO TONI:**
+
+### **PRIMA (tono bambino):**
+```
+🤖 "Wow! La clorofilla è super importante perché aiuta la piantina 
+    a fare il suo dolcissimo cibo usando la luce del sole! 🌞"
+```
+
+### **DOPO (tono giovane):**
+```
+🤖 "La clorofilla cattura l'energia solare necessaria alla pianta 
+    per produrre glucosio tramite fotosintesi."
                 try {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -714,4 +755,5 @@ const saveAsFile = () => {
 </body>
 
 </html>
+
 
