@@ -919,6 +919,18 @@ ISTRUZIONI CRITICHE:
 ====================
 STRUTTURA PER TRASFORMAZIONE:
 ====================
+
+⚠️ REGOLA CRITICA PER STEP4_AZIONI:
+- OGNI DOMANDA deve richiedere UN CALCOLO o UNA RISPOSTA INTERMEDIA
+- Se il problema chiede "quanto ha X alla fine", step4 deve includere:
+  1. Valore iniziale di X
+  2. OGNI azione che modifica il valore (con calcolo)
+  3. Risultato finale dopo ogni azione
+- NON saltare passaggi anche se sembrano ovvi
+
+ESEMPIO BASE:
+"Marco ha 10 caramelle, ne riceve 5 dalla mamma, ne dà 3 a Luca. Quante ne ha alla fine?"
+
 {
   "tipo": "TRASFORMAZIONE",
   "numeri_attesi": ["10", "5", "3"],
@@ -932,17 +944,16 @@ STRUTTURA PER TRASFORMAZIONE:
       {"domanda": "Quante caramelle ha all'inizio?", "risposta": "10", "tipo": "number"}
     ],
     "step4_azioni": [
+      {"domanda": "Caramelle iniziali di Marco:", "calcolo": "", "risposta": "10", "tipo": "number"},
       {"domanda": "Quante ne riceve dalla mamma?", "calcolo": "10 + 5", "risposta": "15", "tipo": "number"},
       {"domanda": "Quante ne dà a Luca?", "calcolo": "15 - 3", "risposta": "12", "tipo": "number"}
     ]
   },
   "soluzione_finale": {"Marco": "12"}
 }
-====================
-TRASFORMAZIONE CON DOMANDE MULTIPLE:
-====================
 
-ESEMPIO 1: "Marco ha 3 penne. Anna ne ha 4. Marco regala 1 penna ad Anna. Quante ne ha Anna? Quante ne ha Marco?"
+ESEMPIO MULTI-PERSONAGGIO:
+"Marco ha 3 penne. Anna ne ha 4. Marco regala 1 penna ad Anna. Quante ne ha Anna? Quante ne ha Marco?"
 
 {
   "tipo": "TRASFORMAZIONE",
@@ -954,16 +965,16 @@ ESEMPIO 1: "Marco ha 3 penne. Anna ne ha 4. Marco regala 1 penna ad Anna. Quante
   ],
   "steps": {
     "step3_personaggi": [
-      {"domanda": "Penne iniziali di Marco?", "risposta": "3", "tipo": "number"},
-      {"domanda": "Penne iniziali di Anna?", "risposta": "4", "tipo": "number"}
+      {"domanda": "Quante penne ha Marco all'inizio?", "risposta": "3", "tipo": "number"},
+      {"domanda": "Quante penne ha Anna all'inizio?", "risposta": "4", "tipo": "number"}
     ],
     "step4_azioni": [
-      {"domanda": "Penne iniziali Anna:", "calcolo": "", "risposta": "4", "tipo": "number"},
-      {"domanda": "Penne ricevute da Marco:", "calcolo": "", "risposta": "1", "tipo": "number"},
-      {"domanda": "Totale Anna:", "calcolo": "4 + 1", "risposta": "5", "tipo": "number"},
-      {"domanda": "Penne iniziali Marco:", "calcolo": "", "risposta": "3", "tipo": "number"},
-      {"domanda": "Penne regalate:", "calcolo": "", "risposta": "1", "tipo": "number"},
-      {"domanda": "Totale Marco:", "calcolo": "3 - 1", "risposta": "2", "tipo": "number"}
+      {"domanda": "Penne iniziali di Anna:", "calcolo": "", "risposta": "4", "tipo": "number"},
+      {"domanda": "Penne che riceve da Marco:", "calcolo": "", "risposta": "1", "tipo": "number"},
+      {"domanda": "Totale penne di Anna:", "calcolo": "4 + 1", "risposta": "5", "tipo": "number"},
+      {"domanda": "Penne iniziali di Marco:", "calcolo": "", "risposta": "3", "tipo": "number"},
+      {"domanda": "Penne che regala ad Anna:", "calcolo": "", "risposta": "1", "tipo": "number"},
+      {"domanda": "Totale penne di Marco:", "calcolo": "3 - 1", "risposta": "2", "tipo": "number"}
     ]
   },
   "soluzione_finale": {
@@ -972,33 +983,37 @@ ESEMPIO 1: "Marco ha 3 penne. Anna ne ha 4. Marco regala 1 penna ad Anna. Quante
   }
 }
 
-ESEMPIO 2: "Luca ha 12 caramelle. Ne mangia 3, poi ne riceve 5. Quante ne ha alla fine? Quante ne ha mangiate?"
+⚠️ CONTEGGIO MINIMO step4_azioni:
+- Se 1 azione → minimo 2 domande (valore iniziale + risultato dopo azione)
+- Se 2 azioni → minimo 3 domande (valore iniziale + risultato dopo azione 1 + risultato dopo azione 2)
+- Se 2 personaggi coinvolti → raddoppia le domande (calcola per CIASCUN personaggio)
 
-{
-  "tipo": "TRASFORMAZIONE",
-  "numeri_attesi": ["12", "3", "5"],
-  "domanda": "Quante ne ha alla fine? Quante ne ha mangiate?",
-  "personaggi": [
-    {"nome": "Luca", "valore_iniziale": "12"}
-  ],
-  "steps": {
-    "step3_personaggi": [
-      {"domanda": "Chi è il protagonista?", "risposta": "Luca", "tipo": "text"},
-      {"domanda": "Quante caramelle ha all'inizio?", "risposta": "12", "tipo": "number"}
-    ],
-    "step4_azioni": [
-      {"domanda": "Caramelle iniziali:", "calcolo": "", "risposta": "12", "tipo": "number"},
-      {"domanda": "Quante ne mangia?", "calcolo": "12 - 3", "risposta": "9", "tipo": "number"},
-      {"domanda": "Quante ne riceve?", "calcolo": "9 + 5", "risposta": "14", "tipo": "number"}
-    ]
-  },
-  "soluzione_finale": {
-    "totale_finale": "14",
-    "mangiate": "3"
-  }
-}
+⚠️ FORMATTAZIONE step4_azioni:
+- Prima domanda per ogni personaggio: "Valore iniziale di X:" (calcolo vuoto)
+- Domande successive: "Azione Y" (con calcolo se necessario)
+- Ultima domanda: "Totale di X:" (sempre con calcolo della somma/sottrazione finale)
+```
 
-REGOLA: Se ci sono N domande, step4_azioni e soluzione_finale devono rispondere a TUTTE le N domande.
+---
+
+## 🧪 **DOPO QUESTA MODIFICA:**
+
+1. **Salva** discover.html
+2. **Commit**: "Fix TRASFORMAZIONE - force intermediate steps"
+3. **Aspetta 30 secondi**
+4. **Ricarica** discover.html
+5. **Riprova** il problema Marco-Anna
+
+---
+
+## ✅ **RISULTATO ATTESO Step 4:**
+```
+1. Penne iniziali di Anna: 4
+2. Penne che riceve da Marco: 1
+3. Totale penne di Anna: 4 + 1 = 5
+4. Penne iniziali di Marco: 3
+5. Penne che regala ad Anna: 1
+6. Totale penne di Marco: 3 - 1 = 2
 ====================
 STRUTTURA PER COMPRAVENDITA:
 ====================
@@ -1642,6 +1657,7 @@ function checkStep2() {
     </script>
 </body>
 </html>
+
 
 
 
