@@ -251,26 +251,32 @@ ESEMPI:
 
         // --- MODIFICA 2: Funzione Pulizia Emoji ---
         const cleanTextForSpeech = (text) => {
-            return text
-                .replace(/[*#_`~]/g, '')
-                .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
-                .replace(/[\u{2600}-\u{26FF}]/gu, '')
-                .replace(/[\u{2700}-\u{27BF}]/gu, '')
-                .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
-                .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')
-                .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')
-                .replace(/[\u{2300}-\u{23FF}]/gu, '')
-                .replace(/[\u{2B50}]/gu, '')
-                .replace(/[\u{1F4D0}-\u{1F4FF}]/gu, '')
-                .replace(/[\u{270F}-\u{2712}]/gu, '')
-                .replace(/[\u{2705}]/gu, '')
-                .replace(/[\u{1F9E0}]/gu, '')
-                .replace(/[\u{1F50D}]/gu, '')
-                .replace(/\n+/g, '. ')
-                .replace(/\.+/g, '.')
-                .replace(/\s+/g, ' ')
-                .trim();
-        };
+    // Se text è undefined/null, ritorna stringa vuota
+    if (!text) return '';
+    
+    // Converti a stringa per sicurezza
+    const str = String(text);
+    
+    return str
+        .replace(/[*#_`~]/g, '')
+        .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+        .replace(/[\u{2600}-\u{26FF}]/gu, '')
+        .replace(/[\u{2700}-\u{27BF}]/gu, '')
+        .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
+        .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')
+        .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')
+        .replace(/[\u{2300}-\u{23FF}]/gu, '')
+        .replace(/[\u{2B50}]/gu, '')
+        .replace(/[\u{1F4D0}-\u{1F4FF}]/gu, '')
+        .replace(/[\u{270F}-\u{2712}]/gu, '')
+        .replace(/[\u{2705}]/gu, '')
+        .replace(/[\u{1F9E0}]/gu, '')
+        .replace(/[\u{1F50D}]/gu, '')
+        .replace(/\n+/g, '. ')
+        .replace(/\.+/g, '.')
+        .replace(/\s+/g, ' ')
+        .trim();
+};
 
         const App = () => {
             const [stage, setStage] = useState('upload');
@@ -743,6 +749,7 @@ const saveAsFile = () => {
 </body>
 
 </html>
+
 
 
 
