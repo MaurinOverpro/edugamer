@@ -848,6 +848,44 @@ window.addEventListener('edugamer-xp-added', updateXPBar);
 PROBLEMA DA ANALIZZARE:
 "${problemText}"
 
+🚨 GESTIONE DOMANDE MULTIPLE:
+Se il problema contiene PIÙ DOMANDE (es: "Quante ne ha Anna? Quante ne ha Marco?"):
+- Identifica TUTTE le domande nel testo
+- Crea step4 che risponda a TUTTE le domande in sequenza
+- La soluzione_finale deve contenere TUTTE le risposte come oggetto con chiavi separate
+
+ESEMPIO MULTI-DOMANDA:
+"Marco ha 3 penne. Anna ne ha 4. Marco regala 1 penna ad Anna. Quante ne ha Anna? Quante ne ha Marco?"
+
+RISPOSTA CORRETTA:
+{
+  "tipo": "TRASFORMAZIONE",
+  "numeri_attesi": ["3", "4", "1"],
+  "domanda": "Quante ne ha Anna? Quante ne ha Marco?",
+  "personaggi": [
+    {"nome": "Marco", "valore_iniziale": "3"},
+    {"nome": "Anna", "valore_iniziale": "4"}
+  ],
+  "steps": {
+    "step3_personaggi": [
+      {"domanda": "Penne iniziali di Marco?", "risposta": "3", "tipo": "number"},
+      {"domanda": "Penne iniziali di Anna?", "risposta": "4", "tipo": "number"}
+    ],
+    "step4_azioni": [
+      {"domanda": "Penne iniziali Anna:", "calcolo": "", "risposta": "4", "tipo": "number"},
+      {"domanda": "Penne ricevute da Marco:", "calcolo": "", "risposta": "1", "tipo": "number"},
+      {"domanda": "Totale Anna:", "calcolo": "4 + 1", "risposta": "5", "tipo": "number"},
+      {"domanda": "Penne iniziali Marco:", "calcolo": "", "risposta": "3", "tipo": "number"},
+      {"domanda": "Penne regalate:", "calcolo": "", "risposta": "1", "tipo": "number"},
+      {"domanda": "Totale Marco:", "calcolo": "3 - 1", "risposta": "2", "tipo": "number"}
+    ]
+  },
+  "soluzione_finale": {
+    "Anna": "5",
+    "Marco": "2"
+  }
+}
+
 PASSO 1 - CLASSIFICA IL TIPO DI PROBLEMA:
 
 TIPI DISPONIBILI:
@@ -900,7 +938,67 @@ STRUTTURA PER TRASFORMAZIONE:
   },
   "soluzione_finale": {"Marco": "12"}
 }
+====================
+TRASFORMAZIONE CON DOMANDE MULTIPLE:
+====================
 
+ESEMPIO 1: "Marco ha 3 penne. Anna ne ha 4. Marco regala 1 penna ad Anna. Quante ne ha Anna? Quante ne ha Marco?"
+
+{
+  "tipo": "TRASFORMAZIONE",
+  "numeri_attesi": ["3", "4", "1"],
+  "domanda": "Quante ne ha Anna? Quante ne ha Marco?",
+  "personaggi": [
+    {"nome": "Marco", "valore_iniziale": "3"},
+    {"nome": "Anna", "valore_iniziale": "4"}
+  ],
+  "steps": {
+    "step3_personaggi": [
+      {"domanda": "Penne iniziali di Marco?", "risposta": "3", "tipo": "number"},
+      {"domanda": "Penne iniziali di Anna?", "risposta": "4", "tipo": "number"}
+    ],
+    "step4_azioni": [
+      {"domanda": "Penne iniziali Anna:", "calcolo": "", "risposta": "4", "tipo": "number"},
+      {"domanda": "Penne ricevute da Marco:", "calcolo": "", "risposta": "1", "tipo": "number"},
+      {"domanda": "Totale Anna:", "calcolo": "4 + 1", "risposta": "5", "tipo": "number"},
+      {"domanda": "Penne iniziali Marco:", "calcolo": "", "risposta": "3", "tipo": "number"},
+      {"domanda": "Penne regalate:", "calcolo": "", "risposta": "1", "tipo": "number"},
+      {"domanda": "Totale Marco:", "calcolo": "3 - 1", "risposta": "2", "tipo": "number"}
+    ]
+  },
+  "soluzione_finale": {
+    "Anna": "5",
+    "Marco": "2"
+  }
+}
+
+ESEMPIO 2: "Luca ha 12 caramelle. Ne mangia 3, poi ne riceve 5. Quante ne ha alla fine? Quante ne ha mangiate?"
+
+{
+  "tipo": "TRASFORMAZIONE",
+  "numeri_attesi": ["12", "3", "5"],
+  "domanda": "Quante ne ha alla fine? Quante ne ha mangiate?",
+  "personaggi": [
+    {"nome": "Luca", "valore_iniziale": "12"}
+  ],
+  "steps": {
+    "step3_personaggi": [
+      {"domanda": "Chi è il protagonista?", "risposta": "Luca", "tipo": "text"},
+      {"domanda": "Quante caramelle ha all'inizio?", "risposta": "12", "tipo": "number"}
+    ],
+    "step4_azioni": [
+      {"domanda": "Caramelle iniziali:", "calcolo": "", "risposta": "12", "tipo": "number"},
+      {"domanda": "Quante ne mangia?", "calcolo": "12 - 3", "risposta": "9", "tipo": "number"},
+      {"domanda": "Quante ne riceve?", "calcolo": "9 + 5", "risposta": "14", "tipo": "number"}
+    ]
+  },
+  "soluzione_finale": {
+    "totale_finale": "14",
+    "mangiate": "3"
+  }
+}
+
+REGOLA: Se ci sono N domande, step4_azioni e soluzione_finale devono rispondere a TUTTE le N domande.
 ====================
 STRUTTURA PER COMPRAVENDITA:
 ====================
@@ -963,7 +1061,35 @@ CASO B - SENZA BUDGET (problema chiede solo "quanto spende"):
     "totale_spesa": "19"
   }
 }
+COMPRAVENDITA CON DOMANDE MULTIPLE:
 
+ESEMPIO: "Anna compra 3 penne a 0.80€ e un diario da 5€. Quanto spende? Quanto costa una penna?"
+
+{
+  "tipo": "COMPRAVENDITA",
+  "numeri_attesi": ["3", "0.80", "5"],
+  "domande": ["Quanto spende?", "Quanto costa una penna?"],
+  "prodotti": [
+    {"nome": "Penne", "quantita": "3", "prezzo_unitario": "0.80"},
+    {"nome": "Diario", "quantita": "1", "prezzo_unitario": "5"}
+  ],
+  "steps": {
+    "step3_situazione": [
+      {"domanda": "Chi fa la spesa?", "risposta": "Anna", "tipo": "text"},
+      {"domanda": "Quanti tipi di articoli compra?", "risposta": "2", "tipo": "number"}
+    ],
+    "step4_calcoli": [
+      {"domanda": "Costo 3 penne:", "calcolo": "3 × 0.80", "risposta": "2.40", "tipo": "number"},
+      {"domanda": "Costo diario:", "calcolo": "", "risposta": "5", "tipo": "number"},
+      {"domanda": "Totale spesa:", "calcolo": "2.40 + 5", "risposta": "7.40", "tipo": "number"},
+      {"domanda": "Risposta domanda 2 - Costo una penna:", "calcolo": "", "risposta": "0.80", "tipo": "number"}
+    ]
+  },
+  "soluzione_finale": {
+    "totale_spesa": "7.40",
+    "costo_penna": "0.80"
+  }
+}
 REGOLA CRITICA: Se il problema NON menziona un budget specifico, usa CASO B (NO campo resto, NO campo budget).
 
 ====================
@@ -1363,16 +1489,19 @@ function checkStep2() {
                     </div>
                 `;
             } else {
-                // TRASFORMAZIONE
-                Object.entries(solution).forEach(([name, value], index) => {
-                    inputFields += `
-                        <div class="question-block">
-                            <label>${name} ha alla fine:</label>
-                            <input type="text" id="step5-answer-${index}" autocomplete="off" data-name="${name}" data-expected="${value}" placeholder="Scrivi il numero...">
-                        </div>
-                    `;
-                });
-            }
+    // TRASFORMAZIONE (supporta nomi e chiavi generiche)
+    Object.entries(solution).forEach(([name, value], index) => {
+        // Converti chiavi snake_case in testo leggibile
+        const label = name.charAt(0).toUpperCase() + name.slice(1).replace(/_/g, ' ');
+        
+        inputFields += `
+            <div class="question-block">
+                <label>${label}:</label>
+                <input type="text" id="step5-answer-${index}" autocomplete="off" data-name="${name}" data-expected="${value}" placeholder="Scrivi il numero...">
+            </div>
+        `;
+    });
+}
             
             inputFields += '</div>';
             
@@ -1513,6 +1642,7 @@ function checkStep2() {
     </script>
 </body>
 </html>
+
 
 
 
