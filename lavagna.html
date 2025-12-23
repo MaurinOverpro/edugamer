@@ -428,14 +428,22 @@ const cleanLabel1 = cleanTextForSpeech(selectedNode.label);
 const cleanLabel2 = cleanTextForSpeech(node.label);
 const explanation = await AI.explainConnection(cleanLabel1, cleanLabel2);
 
-// NUOVO: Salva la spiegazione del collegamento
-setConnectionExplanations(prev => [...prev, {
-    from: selectedNode.label,
-    to: node.label,
-    explanation: explanation
-}]);
+console.log('🔍 Explanation ricevuta:', explanation, typeof explanation);
 
-speak(explanation);  // explanation è già pulito perché viene dall'AI
+// Verifica che explanation sia valido
+if (explanation && typeof explanation === 'string') {
+    // NUOVO: Salva la spiegazione del collegamento
+    setConnectionExplanations(prev => [...prev, {
+        from: selectedNode.label,
+        to: node.label,
+        explanation: explanation
+    }]);
+
+    speak(explanation);
+} else {
+    console.error('❌ Explanation non valida:', explanation);
+    speak(`${selectedNode.label} e ${node.label} sono collegati!`);
+}  // explanation è già pulito perché viene dall'AI
                 } else {
                     speak("Sono già collegati!");
                 }
@@ -749,6 +757,7 @@ const saveAsFile = () => {
 </body>
 
 </html>
+
 
 
 
