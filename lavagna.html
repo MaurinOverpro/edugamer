@@ -242,7 +242,7 @@ ESEMPI:
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
         const data = await res.json();
-        return data.candidates[0].text;
+        return data.candidates[0].content.parts[0].text;
     } catch(e) { 
         return `Ottimo! ${label1} e ${label2} sono collegati.`; 
     }
@@ -743,6 +743,7 @@ const saveAsFile = () => {
 </body>
 
 </html>
+
 
 
 
