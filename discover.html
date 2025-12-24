@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DISCOVER v3.5 - Total Precision</title>
+    <title>DISCOVER v3.5 - Debug Panel</title>
     <style>
         :root { --primary: #667eea; --secondary: #764ba2; --success: #10b981; --error: #ef4444; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
@@ -13,44 +13,278 @@
         /* Header & Navigation */
         .header { text-align: center; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 20px; backdrop-filter: blur(10px); margin-bottom: 20px; position: relative; }
         .back-btn { position: absolute; left: 15px; top: 20px; background: white; color: var(--primary); border: none; padding: 8px 15px; border-radius: 10px; cursor: pointer; text-decoration: none; font-size: 14px; font-weight: bold; transition: 0.3s; }
+        .back-btn:hover { transform: scale(1.05); }
         .xp-bar-bg { background: rgba(0,0,0,0.2); height: 12px; border-radius: 6px; overflow: hidden; margin-top: 15px; }
         .xp-bar-fill { background: linear-gradient(90deg, #f093fb, #f5576c); height: 100%; width: 0%; transition: width 0.5s; }
 
-        /* Sticky Problem Box */
+        /* Sticky Problem Box - MIGLIORATO */
         #sticky-problem { 
-            background: white; color: #1e293b; border-radius: 15px; padding: 20px; margin-bottom: 20px; 
-            border-left: 6px solid var(--primary); display: none; position: sticky; top: 10px; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
+            background: white; 
+            color: #1e293b; 
+            border-radius: 15px; 
+            padding: 20px; 
+            margin-bottom: 20px; 
+            border-left: 6px solid var(--primary); 
+            display: none; 
+            position: sticky; 
+            top: 10px; 
+            z-index: 100; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
         }
-        #sticky-problem h4 { color: var(--primary); font-size: 11px; text-transform: uppercase; margin-bottom: 5px; opacity: 0.8; }
+        #sticky-problem h4 { 
+            color: var(--primary); 
+            font-size: 11px; 
+            text-transform: uppercase; 
+            margin-bottom: 5px; 
+            opacity: 0.8; 
+        }
         
-        .type-badge { display: inline-block; padding: 6px 14px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-bottom: 10px; }
+        /* Problem Type Badges - COLORI DINAMICI */
+        .type-badge { 
+            display: inline-block; 
+            padding: 6px 14px; 
+            border-radius: 12px; 
+            font-size: 12px; 
+            font-weight: bold; 
+            margin-bottom: 10px; 
+        }
         .type-trasformazione { background: #dbeafe; color: #1e40af; }
         .type-compravendita { background: #fef3c7; color: #92400e; }
         .type-combinazione { background: #d1fae5; color: #065f46; }
+        .type-generico { background: #f3e8ff; color: #6b21a8; }
 
         /* Cards */
-        .card { background: white; color: #1e293b; border-radius: 20px; padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); margin-bottom: 20px; display: none; animation: slideUp 0.4s ease; }
+        .card { 
+            background: white; 
+            color: #1e293b; 
+            border-radius: 20px; 
+            padding: 30px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); 
+            margin-bottom: 20px; 
+            display: none; 
+            animation: slideUp 0.4s ease; 
+        }
         .active { display: block; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { 
+            from { opacity: 0; transform: translateY(20px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
 
-        .step-header { display: flex; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
-        .step-num { background: var(--primary); color: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; }
+        .step-header { 
+            display: flex; 
+            align-items: center; 
+            margin-bottom: 20px; 
+            border-bottom: 2px solid #f1f5f9; 
+            padding-bottom: 10px; 
+        }
+        .step-num { 
+            background: var(--primary); 
+            color: white; 
+            width: 35px; 
+            height: 35px; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-weight: bold; 
+            margin-right: 12px; 
+        }
         
-        textarea, input { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; margin-top: 8px; font-size: 16px; }
-        .btn { background: var(--primary); color: white; border: none; padding: 15px 30px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 20px; }
+        /* Form Elements */
+        textarea, input { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 12px; 
+            margin-top: 8px; 
+            font-size: 16px; 
+            transition: 0.3s; 
+        }
+        textarea:focus, input:focus { 
+            border-color: var(--primary); 
+            outline: none; 
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1); 
+        }
+        .btn { 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            border-radius: 12px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            width: 100%; 
+            margin-top: 20px; 
+            transition: 0.3s; 
+        }
+        .btn:hover { 
+            transform: translateY(-2px); 
+            filter: brightness(1.1); 
+        }
         
-        .feedback { padding: 15px; border-radius: 10px; margin-top: 15px; font-weight: bold; display: none; }
-        .hint { background: #fffbeb; color: #92400e; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 14px; border-left: 4px solid #f59e0b; display: none; }
+        .feedback { 
+            padding: 15px; 
+            border-radius: 10px; 
+            margin-top: 15px; 
+            font-weight: bold; 
+            display: none; 
+        }
+        .hint { 
+            background: #fffbeb; 
+            color: #92400e; 
+            padding: 10px; 
+            border-radius: 8px; 
+            margin-top: 10px; 
+            font-size: 14px; 
+            border-left: 4px solid #f59e0b; 
+            display: none; 
+        }
 
-        .question-block { margin-bottom: 20px; padding: 15px; background: #f8fafc; border-radius: 10px; border-left: 3px solid var(--primary); }
+        /* Question Blocks - STILE PULITO */
+        .question-block { 
+            margin-bottom: 20px; 
+            padding: 15px; 
+            background: #f8fafc; 
+            border-radius: 10px; 
+            border-left: 3px solid var(--primary); 
+        }
+        .question-block label { 
+            display: block; 
+            font-weight: bold; 
+            margin-bottom: 8px; 
+            color: #334155; 
+        }
 
         /* Calculator */
-        .calc-toggle { position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px; background: white; color: var(--primary); border: none; border-radius: 50%; cursor: pointer; box-shadow: 0 5px 20px rgba(0,0,0,0.3); font-size: 24px; z-index: 1000; }
-        .calc-popup { position: fixed; bottom: 95px; right: 25px; width: 260px; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); display: none; z-index: 1000; color: #1e293b; }
-        .calc-screen { background: #1e293b; color: #00ff88; padding: 10px; text-align: right; font-size: 22px; border-radius: 10px; margin-bottom: 10px; min-height: 50px; font-family: monospace; }
-        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-        .c-btn { padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; background: #f1f5f9; }
-        .c-btn.op { background: var(--primary); color: white; }
+        .calc-toggle { 
+            position: fixed; 
+            bottom: 25px; 
+            right: 25px; 
+            width: 60px; 
+            height: 60px; 
+            background: white; 
+            color: var(--primary); 
+            border: none; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3); 
+            font-size: 24px; 
+            z-index: 1000; 
+            transition: 0.3s; 
+        }
+        .calc-toggle:hover { 
+            transform: scale(1.1); 
+        }
+        .calc-popup { 
+            position: fixed; 
+            bottom: 95px; 
+            right: 25px; 
+            width: 260px; 
+            background: white; 
+            padding: 15px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4); 
+            display: none; 
+            z-index: 1000; 
+            color: #1e293b; 
+        }
+        .calc-screen { 
+            background: #1e293b; 
+            color: #00ff88; 
+            padding: 10px; 
+            text-align: right; 
+            font-size: 22px; 
+            border-radius: 10px; 
+            margin-bottom: 10px; 
+            min-height: 50px; 
+            font-family: monospace; 
+        }
+        .calc-grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 6px; 
+        }
+        .c-btn { 
+            padding: 12px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            background: #f1f5f9; 
+            transition: 0.2s; 
+        }
+        .c-btn:hover { 
+            background: #cbd5e1; 
+            transform: scale(1.05); 
+        }
+        .c-btn.op { 
+            background: var(--primary); 
+            color: white; 
+        }
+        
+        /* Debug Button */
+        .debug-btn {
+            position: fixed;
+            bottom: 100px;
+            right: 25px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+            z-index: 1000;
+            transition: 0.3s;
+        }
+        .debug-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Debug Panel */
+        .debug-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            color: #1e293b;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            max-width: 90%;
+            max-height: 80%;
+            overflow: auto;
+            z-index: 2000;
+            display: none;
+        }
+        .debug-panel h3 {
+            color: #ef4444;
+            margin-bottom: 20px;
+        }
+        .debug-panel pre {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 10px;
+            overflow: auto;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .debug-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -77,13 +311,14 @@
 
     <div id="loader" style="display:none; text-align:center; padding:30px;">
         <div style="border:4px solid white; border-top:4px solid transparent; border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite; margin:0 auto;"></div>
-        <p style="color:white; margin-top:15px;">Scomponendo il problema per ogni personaggio...</p>
+        <p style="color:white; margin-top:15px;">L'AI sta scomponendo i passaggi per ogni personaggio...</p>
     </div>
+    <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
 
     <div class="card" id="step2">
         <div class="step-header"><div class="step-num">2</div><h2>I Numeri</h2></div>
-        <p>Elenca i numeri del testo separati da virgola:</p>
-        <input type="text" id="ans2" placeholder="Es: 6, 8, 2, 3">
+        <p>Scrivi <strong>TUTTI</strong> i numeri che trovi nel testo (anche decimali), separati da virgola:</p>
+        <input type="text" id="ans2" placeholder="Es: 6, 8, 2  oppure  3, 0.80, 4, 0.90">
         <button class="btn" onclick="check2()">Verifica ✓</button>
         <div class="feedback" id="f2"></div>
     </div>
@@ -96,7 +331,7 @@
     </div>
 
     <div class="card" id="step4">
-        <div class="step-header"><div class="step-num">4</div><h2>Passaggi di Calcolo</h2></div>
+        <div class="step-header"><div class="step-num">4</div><h2>Calcoli Sequenziali</h2></div>
         <div id="q4-list"></div>
         <button class="btn" onclick="check4()">Verifica Calcoli ✓</button>
         <div class="feedback" id="f4"></div>
@@ -105,15 +340,23 @@
     <div class="card" id="step5">
         <div class="step-header"><div class="step-num">5</div><h2>Risposte Finali</h2></div>
         <div id="q5-list"></div>
-        <button class="btn" onclick="check5()">Concludi 🎯</button>
+        <button class="btn" onclick="check5()">Fine 🎯</button>
         <div class="feedback" id="f5"></div>
     </div>
 </div>
 
 <button class="calc-toggle" onclick="toggleCalc()">🔢</button>
+<button class="debug-btn" onclick="showDebugPanel()">🐛 DEBUG</button>
+
 <div class="calc-popup" id="calc-box">
     <div class="calc-screen" id="c-screen">0</div>
     <div class="calc-grid" id="c-btns"></div>
+</div>
+
+<div class="debug-panel" id="debug-panel">
+    <button class="debug-close" onclick="closeDebugPanel()">✕</button>
+    <h3>🐛 INFORMAZIONI DEBUG</h3>
+    <div id="debug-content"></div>
 </div>
 
 <script>
@@ -123,58 +366,137 @@ let cVal = "";
 const API_KEY = localStorage.getItem('gemini_api_key') || prompt("Inserisci la tua API Key Gemini:");
 if(API_KEY) localStorage.setItem('gemini_api_key', API_KEY);
 
-function toggleCalc() { const b = document.getElementById('calc-box'); b.style.display = b.style.display === 'block' ? 'none' : 'block'; }
+// Calculator functions
+function toggleCalc() { 
+    const b = document.getElementById('calc-box'); 
+    b.style.display = b.style.display === 'block' ? 'none' : 'block'; 
+}
+
 function buildCalc() { 
     const g = document.getElementById('c-btns'); 
     const keys = ['C','/','*','-','7','8','9','+','4','5','6','=','1','2','3','0','.']; 
     g.innerHTML = keys.map(k => `<button class="c-btn ${isNaN(k)&&k!=='.'?'op':''}" onclick="doCalc('${k}')">${k}</button>`).join(''); 
 }
+
 function doCalc(k) { 
     const s = document.getElementById('c-screen'); 
-    if(k === 'C') cVal = ""; 
-    else if(k === '=') { try { cVal = eval(cVal).toString(); } catch { cVal = "Error"; } } 
-    else cVal += k; 
+    if(k === 'C') {
+        cVal = ""; 
+    } else if(k === '=') { 
+        try { 
+            const result = eval(cVal);
+            // Arrotonda a 2 decimali per evitare errori floating-point
+            cVal = (Math.round(result * 100) / 100).toString(); 
+        } catch { 
+            cVal = "Error"; 
+        } 
+    } else {
+        cVal += k; 
+    }
     s.textContent = cVal || "0"; 
 }
 
+// Main analysis function
 async function analizza() {
     state.testo = document.getElementById('p-input').value.trim();
-    if(!state.testo) return;
+    if(!state.testo) {
+        alert("⚠️ Scrivi prima un problema!");
+        return;
+    }
+    
     document.getElementById('step1').classList.remove('active');
     document.getElementById('loader').style.display = 'block';
 
-    const prompt = `Analizza questo problema matematico per bambini: "${state.testo}". 
-    REGOLE CRITICHE:
-    - Se ci sono più personaggi (es. Marco, Anna, Carlo), crea domande separate per ognuno.
-    - Se un personaggio regala e riceve, dividi in due calcoli nello step "calcoli".
-    - In "numeri" metti tutti i numeri (es. 0.80, 15, 3).
-    - Rispondi SOLO in formato JSON valido, senza testo aggiuntivo.
-    
-    {
-      "tipo": "TRASFORMAZIONE|COMPRAVENDITA|COMBINAZIONE",
-      "numeri": ["6", "8", "2", "3"],
-      "logica": [{"q": "Chi sono i protagonisti?", "a": "Marco, Anna e Carlo", "t": "text"}],
-      "calcoli": [{"q": "Mele di Marco dopo il regalo:", "a": "4", "t": "number"}],
-      "risposte": [{"q": "Mele finali di Marco:", "a": "7", "t": "number"}]
-    }`;
+    // PROMPT OTTIMIZZATO - Via di mezzo tra lungo e corto
+    const prompt = `Analizza questo problema matematico per bambini delle elementari: "${state.testo}".
+
+CLASSIFICAZIONE TIPO:
+- TRASFORMAZIONE: situazione iniziale → azioni sequenziali → risultato finale
+- COMPRAVENDITA: acquisti con calcolo totale/resto
+- COMBINAZIONE: somma di insiemi già formati
+- GENERICO: altri tipi di problema
+
+REGOLE MULTI-PERSONAGGIO:
+- Se ci sono più personaggi (es. Marco, Anna, Carlo), crea domande separate per ognuno
+- Se un personaggio regala E riceve, separa in due calcoli nello step "calcoli"
+- Se il problema chiede più domande (es: "Quante ne ha Anna? Quante ne ha Marco?"), includi tutte le risposte
+
+REGOLE NUMERI:
+- In "numeri" inserisci TUTTI i numeri del testo come stringhe separate
+- Includi decimali (es: "0.80", "15.5")
+- Conta ogni numero separatamente: "3 penne a 0.80€" = DUE numeri ["3", "0.80"]
+- NON includere simboli (€, $, ecc.)
+
+ESEMPIO MINIMO:
+{
+  "tipo": "TRASFORMAZIONE",
+  "numeri": ["6", "8", "2"],
+  "logica": [{"q": "Chi è il protagonista?", "a": "Marco", "t": "text"}],
+  "calcoli": [{"q": "Mele dopo aver ricevuto:", "a": "8", "t": "number"}],
+  "risposte": [{"q": "Mele finali di Marco:", "a": "8", "t": "number"}]
+}
+
+Rispondi ESCLUSIVAMENTE con JSON valido (NO markdown, NO backticks).
+STRUTTURA OBBLIGATORIA:
+{
+  "tipo": "TRASFORMAZIONE|COMPRAVENDITA|COMBINAZIONE|GENERICO",
+  "numeri": ["array", "di", "stringhe"],
+  "logica": [{"q": "domanda", "a": "risposta", "t": "text|number"}],
+  "calcoli": [{"q": "domanda", "a": "risposta", "t": "number"}],
+  "risposte": [{"q": "domanda", "a": "risposta", "t": "number"}]
+}`;
 
     try {
         const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${API_KEY}`, {
-            method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            method: 'POST', 
+            body: JSON.stringify({ 
+                contents: [{ 
+                    parts: [{ text: prompt }] 
+                }] 
+            })
         });
+        
+        if (!resp.ok) {
+            throw new Error(`API Error: ${resp.status}`);
+        }
+        
         const res = await resp.json();
+        
+        if (!res.candidates || !res.candidates[0]) {
+            throw new Error("Risposta API non valida");
+        }
+        
         let raw = res.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
         state.data = JSON.parse(raw);
+        state.tipo = state.data.tipo || "GENERICO";
         
+        // Update sticky problem with DYNAMIC COLORED BADGE
         document.getElementById('sticky-text').textContent = state.testo;
-        document.getElementById('problem-type-container').innerHTML = `<div class="type-badge type-trasformazione">${state.data.tipo || 'PROBLEMA'}</div>`;
+        
+        const badgeMap = {
+            "TRASFORMAZIONE": { class: "type-trasformazione", icon: "🔄" },
+            "COMPRAVENDITA": { class: "type-compravendita", icon: "🛒" },
+            "COMBINAZIONE": { class: "type-combinazione", icon: "➕" },
+            "GENERICO": { class: "type-generico", icon: "📝" }
+        };
+        
+        const badge = badgeMap[state.tipo] || badgeMap["GENERICO"];
+        document.getElementById('problem-type-container').innerHTML = 
+            `<div class="type-badge ${badge.class}">${badge.icon} ${state.tipo}</div>`;
+        
         document.getElementById('sticky-problem').style.display = 'block';
         document.getElementById('loader').style.display = 'none';
         showStep(2);
         updateXP(10);
-    } catch(e) { console.error(e); alert("Errore AI. Riprova."); location.reload(); }
+        
+    } catch(e) { 
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('step1').classList.add('active');
+        alert("❌ Errore AI: " + e.message + "\n\nControlla:\n- La tua API Key\n- La connessione internet\n- Il formato del problema"); 
+    }
 }
 
+// Step navigation
 function showStep(n) {
     document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
     document.getElementById(`step${n}`).classList.add('active');
@@ -183,65 +505,192 @@ function showStep(n) {
     if(n === 5) renderQs('q5-list', state.data.risposte, 's5');
 }
 
+// Render questions
 function renderQs(id, list, prefix) {
     document.getElementById(id).innerHTML = list.map((item, i) => `
         <div class="question-block">
             <label>${item.q}</label>
-            <input type="text" id="${prefix}-${i}" autocomplete="off">
-            <div id="hint-${prefix}-${i}" class="hint">💡 Riguarda bene il testo del problema.</div>
+            <input type="text" id="${prefix}-${i}" autocomplete="off" placeholder="Scrivi la risposta...">
+            <div id="hint-${prefix}-${i}" class="hint">💡 Riguarda il testo del problema in alto!</div>
         </div>
     `).join('');
 }
 
+// Validation function - NO CONSOLE VERSION (compatible with all environments)
 function validate(val, exp, type) {
     if(!val) return false;
-    let v = val.toLowerCase().trim();
+    
+    // Normalizza input e expected
+    let v = val.toString().toLowerCase().trim();
     let e = exp.toString().toLowerCase().trim();
+    
     if(type === 'number') {
-        // Estrae solo il valore numerico ignorando testo extra (es. "7 mele" -> 7)
-        let nVMatch = v.replace(',', '.').match(/[\d.]+/);
-        let nEMatch = e.replace(',', '.').match(/[\d.]+/);
-        if(!nVMatch || !nEMatch) return false;
-        return Math.abs(parseFloat(nVMatch[0]) - parseFloat(nEMatch[0])) < 0.01;
+        // Rimuovi unità comuni prima del parsing
+        const cleanV = v.replace(/euro|€|\$|cent|centesimi/gi, '').trim();
+        const cleanE = e.replace(/euro|€|\$|cent|centesimi/gi, '').trim();
+        
+        // Sostituisci virgola con punto
+        const normalizedV = cleanV.replace(',', '.');
+        const normalizedE = cleanE.replace(',', '.');
+        
+        // Estrai SOLO numeri con decimali
+        const vMatch = normalizedV.match(/\d+\.?\d*/);
+        const eMatch = normalizedE.match(/\d+\.?\d*/);
+        
+        if(!vMatch || !eMatch) {
+            return false;
+        }
+        
+        let nV = parseFloat(vMatch[0]);
+        let nE = parseFloat(eMatch[0]);
+        
+        // Tolleranza per gestire 1.6 vs 1.60 e piccoli errori floating-point
+        const isValid = Math.abs(nV - nE) < 0.02;
+        
+        // DEBUG VISIVO: mostra nella pagina invece che in console
+        if(!isValid && window.debugMode) {
+            showDebugInfo(`❌ ${val} ≠ ${exp} (diff: ${Math.abs(nV - nE).toFixed(4)})`);
+        }
+        
+        return isValid;
     }
+    
+    // Per il testo: validazione flessibile
     return v.includes(e) || e.includes(v);
 }
 
+// Funzione per mostrare debug info nella pagina
+function showDebugInfo(msg) {
+    const debugDiv = document.getElementById('debug-info');
+    if(debugDiv) {
+        debugDiv.innerHTML += `<p style="font-size:12px; color:#dc2626;">${msg}</p>`;
+        debugDiv.style.display = 'block';
+    }
+}
+
+// Step 2: Check numbers (70% threshold)
 function check2() {
     let input = document.getElementById('ans2').value;
+    // Estrae numeri interi e decimali
     let found = input.match(/\d+(?:\.\d+)?/g) || [];
-    if(found.length >= Math.ceil(state.data.numeri.length * 0.7)) { 
-        showFeedback('f2', true, "Numeri trovati!"); 
+    let expected = state.data.numeri || [];
+    
+    // VALIDAZIONE PERMISSIVA: 70% dei numeri
+    const threshold = Math.ceil(expected.length * 0.7);
+    
+    if(found.length >= threshold) { 
+        showFeedback('f2', true, `✅ Ottimo! Hai trovato ${found.length} numeri su ${expected.length} attesi.`); 
         setTimeout(() => showStep(3), 800); 
         updateXP(20); 
-    } else showFeedback('f2', false, "Rileggi bene il testo!");
+    } else { 
+        showFeedback('f2', false, `❌ Cerca ancora! Dovresti trovarne almeno ${threshold}. (Hai trovato: ${found.length})`); 
+    }
 }
 
+// Generic step handler
 function handleStep(list, prefix, next, fId) {
     let ok = true;
+    let firstError = -1;
+    
     list.forEach((it, i) => {
-        if(!validate(document.getElementById(`${prefix}-${i}`).value, it.a, it.t)) {
+        const userAnswer = document.getElementById(`${prefix}-${i}`).value;
+        
+        if(!validate(userAnswer, it.a, it.t)) {
             ok = false;
+            if(firstError === -1) firstError = i;
+            
+            // Increment attempts and show hint after 2 tries
             state.attempts[prefix+i] = (state.attempts[prefix+i] || 0) + 1;
-            if(state.attempts[prefix+i] >= 2) document.getElementById(`hint-${prefix}-${i}`).style.display = 'block';
+            if(state.attempts[prefix+i] >= 2) {
+                document.getElementById(`hint-${prefix}-${i}`).style.display = 'block';
+            }
         }
     });
-    if(ok) { showFeedback(fId, true, "Esatto!"); updateXP(30); setTimeout(() => next ? showStep(next) : fine(), 800); }
-    else showFeedback(fId, false, "Qualcosa non è corretto!");
+    
+    if(ok) { 
+        showFeedback(fId, true, "✅ Esatto! Tutte le risposte sono corrette!"); 
+        updateXP(30); 
+        setTimeout(() => next ? showStep(next) : fine(), 800); 
+    } else { 
+        showFeedback(fId, false, `❌ Controlla la risposta numero ${firstError + 1}!`); 
+    }
 }
 
+// Step handlers
 function check3() { handleStep(state.data.logica, 's3', 4, 'f3'); }
 function check4() { handleStep(state.data.calcoli, 's4', 5, 'f4'); }
 function check5() { handleStep(state.data.risposte, 's5', null, 'f5'); }
-function fine() { alert("Ottimo lavoro! Hai risolto il problema."); location.reload(); }
 
-function showFeedback(id, ok, msg) {
-    const f = document.getElementById(id); f.style.display = 'block';
-    f.style.background = ok ? '#d1fae5' : '#fee2e2'; f.style.color = ok ? '#065f46' : '#991b1b'; f.textContent = msg;
+function fine() { 
+    alert(`🎉 COMPLIMENTI!\n\nHai risolto il problema!\nTipo: ${state.tipo}\nXP totali guadagnati: ${state.xp}`); 
+    location.reload(); 
 }
 
-function updateXP(n) { state.xp += n; document.getElementById('xp-bar').style.width = (state.xp % 100) + '%'; document.getElementById('xp').textContent = state.xp; document.getElementById('lvl').textContent = Math.floor(state.xp/100)+1; }
+// Feedback display
+function showFeedback(id, ok, msg) {
+    const f = document.getElementById(id); 
+    f.style.display = 'block';
+    f.style.background = ok ? '#d1fae5' : '#fee2e2'; 
+    f.style.color = ok ? '#065f46' : '#991b1b'; 
+    f.textContent = msg;
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        if(!ok) f.style.display = 'none';
+    }, 5000);
+}
+
+// XP system
+function updateXP(n) { 
+    state.xp += n; 
+    document.getElementById('xp-bar').style.width = (state.xp % 100) + '%'; 
+    document.getElementById('xp').textContent = state.xp; 
+    document.getElementById('lvl').textContent = Math.floor(state.xp/100) + 1; 
+}
+
+// Initialize
 buildCalc();
+
+// Debug Panel Functions
+function showDebugPanel() {
+    const panel = document.getElementById('debug-panel');
+    const content = document.getElementById('debug-content');
+    
+    let html = '<h4>📊 State Globale:</h4>';
+    html += '<pre>' + JSON.stringify({
+        xp: state.xp,
+        tipo: state.tipo,
+        testo: state.testo,
+        attempts: state.attempts
+    }, null, 2) + '</pre>';
+    
+    if(state.data) {
+        html += '<h4>📝 Dati AI - Numeri Attesi:</h4>';
+        html += '<pre>' + JSON.stringify(state.data.numeri, null, 2) + '</pre>';
+        
+        html += '<h4>🧠 Dati AI - Logica (Step 3):</h4>';
+        html += '<pre>' + JSON.stringify(state.data.logica, null, 2) + '</pre>';
+        
+        html += '<h4>🔢 Dati AI - Calcoli (Step 4):</h4>';
+        html += '<pre>' + JSON.stringify(state.data.calcoli, null, 2) + '</pre>';
+        
+        html += '<h4>✅ Dati AI - Risposte (Step 5):</h4>';
+        html += '<pre>' + JSON.stringify(state.data.risposte, null, 2) + '</pre>';
+        
+        html += '<h4>📌 Tipo Problema:</h4>';
+        html += '<pre>' + (state.data.tipo || 'Non specificato') + '</pre>';
+    } else {
+        html += '<p style="color:#ef4444;">⚠️ Nessun dato AI caricato. Analizza prima un problema!</p>';
+    }
+    
+    content.innerHTML = html;
+    panel.style.display = 'block';
+}
+
+function closeDebugPanel() {
+    document.getElementById('debug-panel').style.display = 'none';
+}
 </script>
 </body>
 </html>
+
