@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DISCOVER v3.3 - Fix Decimali + Unità</title>
+    <title>DISCOVER v3.4 - No Console Version</title>
     <style>
         :root { --primary: #667eea; --secondary: #764ba2; --success: #10b981; --error: #ef4444; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
@@ -228,7 +228,7 @@
 <div class="container">
     <div class="header">
         <a href="matematica.html" class="back-btn">← Home</a>
-        <h1>🔍 DISCOVER v3.3</h1>
+        <h1>🔍 DISCOVER v3.4</h1>
         <div class="xp-bar-bg"><div class="xp-bar-fill" id="xp-bar"></div></div>
         <p style="margin-top:8px; font-size: 12px;">LIVELLO <span id="lvl">1</span> • <span id="xp">0</span> XP</p>
     </div>
@@ -418,7 +418,6 @@ STRUTTURA OBBLIGATORIA:
         updateXP(10);
         
     } catch(e) { 
-        console.error("Errore completo:", e);
         document.getElementById('loader').style.display = 'none';
         document.getElementById('step1').classList.add('active');
         alert("❌ Errore AI: " + e.message + "\n\nControlla:\n- La tua API Key\n- La connessione internet\n- Il formato del problema"); 
@@ -445,7 +444,7 @@ function renderQs(id, list, prefix) {
     `).join('');
 }
 
-// Validation function - ULTRA FIXED for units (euro, €, etc)
+// Validation function - NO CONSOLE VERSION (compatible with all environments)
 function validate(val, exp, type) {
     if(!val) return false;
     
@@ -467,30 +466,34 @@ function validate(val, exp, type) {
         const eMatch = normalizedE.match(/\d+\.?\d*/);
         
         if(!vMatch || !eMatch) {
-            console.warn('⚠️ Parsing fallito:', { val, exp, cleanV, cleanE });
             return false;
         }
         
         let nV = parseFloat(vMatch[0]);
         let nE = parseFloat(eMatch[0]);
         
-        // Debug per troubleshooting
-        console.log('🔍 Validate:', { 
-            original: { val, exp },
-            cleaned: { cleanV, cleanE },
-            parsed: { nV, nE }, 
-            diff: Math.abs(nV - nE),
-            result: Math.abs(nV - nE) < 0.02
-        });
-        
         // Tolleranza per gestire 1.6 vs 1.60 e piccoli errori floating-point
-        return Math.abs(nV - nE) < 0.02;
+        const isValid = Math.abs(nV - nE) < 0.02;
+        
+        // DEBUG VISIVO: mostra nella pagina invece che in console
+        if(!isValid && window.debugMode) {
+            showDebugInfo(`❌ ${val} ≠ ${exp} (diff: ${Math.abs(nV - nE).toFixed(4)})`);
+        }
+        
+        return isValid;
     }
     
     // Per il testo: validazione flessibile
-    const match = v.includes(e) || e.includes(v);
-    console.log('🔍 Validate TEXT:', { val, exp, match });
-    return match;
+    return v.includes(e) || e.includes(v);
+}
+
+// Funzione per mostrare debug info nella pagina
+function showDebugInfo(msg) {
+    const debugDiv = document.getElementById('debug-info');
+    if(debugDiv) {
+        debugDiv.innerHTML += `<p style="font-size:12px; color:#dc2626;">${msg}</p>`;
+        debugDiv.style.display = 'block';
+    }
 }
 
 // Step 2: Check numbers (70% threshold)
@@ -502,14 +505,6 @@ function check2() {
     
     // VALIDAZIONE PERMISSIVA: 70% dei numeri
     const threshold = Math.ceil(expected.length * 0.7);
-    
-    console.log('🔍 DEBUG Step 2:', {
-        input: input,
-        found: found,
-        expected: expected,
-        threshold: threshold,
-        foundCount: found.length
-    });
     
     if(found.length >= threshold) { 
         showFeedback('f2', true, `✅ Ottimo! Hai trovato ${found.length} numeri su ${expected.length} attesi.`); 
@@ -586,5 +581,3 @@ buildCalc();
 </script>
 </body>
 </html>
-
-
