@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DISCOVER v3.6 - Fix Prompt AI</title>
+    <title>DISCOVER v3.7 - No Autocomplete</title>
     <style>
         :root { --primary: #667eea; --secondary: #764ba2; --success: #10b981; --error: #ef4444; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
@@ -292,7 +292,7 @@
 <div class="container">
     <div class="header">
         <a href="matematica.html" class="back-btn">← Home</a>
-        <h1>🔍 DISCOVER v3.6</h1>
+        <h1>🔍 DISCOVER v3.7</h1>
         <div class="xp-bar-bg"><div class="xp-bar-fill" id="xp-bar"></div></div>
         <p style="margin-top:8px; font-size: 12px;">LIVELLO <span id="lvl">1</span> • <span id="xp">0</span> XP</p>
     </div>
@@ -305,7 +305,7 @@
 
     <div class="card active" id="step1">
         <div class="step-header"><div class="step-num">1</div><h2>Analisi Problema</h2></div>
-        <textarea id="p-input" rows="5" placeholder="Marco ha 6 mele, Anna ne ha 8..."></textarea>
+        <textarea id="p-input" rows="5" placeholder="Marco ha 6 mele, Anna ne ha 8..." autocomplete="off"></textarea>
         <button class="btn" onclick="analizza()">Analizza con AI ✨</button>
     </div>
 
@@ -318,7 +318,7 @@
     <div class="card" id="step2">
         <div class="step-header"><div class="step-num">2</div><h2>I Numeri</h2></div>
         <p>Scrivi <strong>TUTTI</strong> i numeri che trovi nel testo (anche decimali), separati da virgola:</p>
-        <input type="text" id="ans2" placeholder="Es: 6, 8, 2  oppure  3, 0.80, 4, 0.90">
+        <input type="text" id="ans2" placeholder="Es: 6, 8, 2  oppure  3, 0.80, 4, 0.90" autocomplete="off">
         <button class="btn" onclick="check2()">Verifica ✓</button>
         <div class="feedback" id="f2"></div>
     </div>
