@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DISCOVER v3.5 - Debug Panel</title>
+    <title>DISCOVER v3.6 - Fix Prompt AI</title>
     <style>
         :root { --primary: #667eea; --secondary: #764ba2; --success: #10b981; --error: #ef4444; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
@@ -292,7 +292,7 @@
 <div class="container">
     <div class="header">
         <a href="matematica.html" class="back-btn">← Home</a>
-        <h1>🔍 DISCOVER v3.5</h1>
+        <h1>🔍 DISCOVER v3.6</h1>
         <div class="xp-bar-bg"><div class="xp-bar-fill" id="xp-bar"></div></div>
         <p style="margin-top:8px; font-size: 12px;">LIVELLO <span id="lvl">1</span> • <span id="xp">0</span> XP</p>
     </div>
@@ -416,10 +416,34 @@ CLASSIFICAZIONE TIPO:
 - COMBINAZIONE: somma di insiemi già formati
 - GENERICO: altri tipi di problema
 
+REGOLE CRITICHE PER "calcoli":
+⚠️ IMPORTANTE: In "calcoli" inserisci SOLO domande che chiedono il RISULTATO NUMERICO FINALE.
+❌ NON chiedere l'espressione matematica (es: "2 * 0.80")
+✅ Chiedi direttamente il risultato (es: "Quanto spende Marco?")
+❌ NON creare domande duplicate per lo stesso calcolo
+✅ Una domanda = un risultato numerico
+
+ESEMPIO SBAGLIATO (da evitare):
+{
+  "calcoli": [
+    {"q": "Spesa Marco:", "a": "2 * 0.80", "t": "number"},  ← NO! Espressione
+    {"q": "Spesa Marco:", "a": "1.60", "t": "number"}       ← Duplicato!
+  ]
+}
+
+ESEMPIO CORRETTO:
+{
+  "calcoli": [
+    {"q": "Quanto spende Marco per le penne?", "a": "1.60", "t": "number"},
+    {"q": "Quanto spende Anna per le matite?", "a": "4", "t": "number"},
+    {"q": "Quanto spendono in tutto?", "a": "5.60", "t": "number"}
+  ]
+}
+
 REGOLE MULTI-PERSONAGGIO:
 - Se ci sono più personaggi (es. Marco, Anna, Carlo), crea domande separate per ognuno
-- Se un personaggio regala E riceve, separa in due calcoli nello step "calcoli"
-- Se il problema chiede più domande (es: "Quante ne ha Anna? Quante ne ha Marco?"), includi tutte le risposte
+- Se un personaggio regala E riceve, separa in due calcoli
+- Se il problema chiede più domande, includi tutte le risposte
 
 REGOLE NUMERI:
 - In "numeri" inserisci TUTTI i numeri del testo come stringhe separate
@@ -427,22 +451,13 @@ REGOLE NUMERI:
 - Conta ogni numero separatamente: "3 penne a 0.80€" = DUE numeri ["3", "0.80"]
 - NON includere simboli (€, $, ecc.)
 
-ESEMPIO MINIMO:
-{
-  "tipo": "TRASFORMAZIONE",
-  "numeri": ["6", "8", "2"],
-  "logica": [{"q": "Chi è il protagonista?", "a": "Marco", "t": "text"}],
-  "calcoli": [{"q": "Mele dopo aver ricevuto:", "a": "8", "t": "number"}],
-  "risposte": [{"q": "Mele finali di Marco:", "a": "8", "t": "number"}]
-}
-
 Rispondi ESCLUSIVAMENTE con JSON valido (NO markdown, NO backticks).
 STRUTTURA OBBLIGATORIA:
 {
   "tipo": "TRASFORMAZIONE|COMPRAVENDITA|COMBINAZIONE|GENERICO",
   "numeri": ["array", "di", "stringhe"],
   "logica": [{"q": "domanda", "a": "risposta", "t": "text|number"}],
-  "calcoli": [{"q": "domanda", "a": "risposta", "t": "number"}],
+  "calcoli": [{"q": "domanda CHE RICHIEDE RISULTATO", "a": "SOLO_NUMERO", "t": "number"}],
   "risposte": [{"q": "domanda", "a": "risposta", "t": "number"}]
 }`;
 
@@ -693,4 +708,3 @@ function closeDebugPanel() {
 </script>
 </body>
 </html>
-
