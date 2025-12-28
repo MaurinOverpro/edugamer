@@ -3,708 +3,1093 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DISCOVER v3.7 - No Autocomplete</title>
+    <title>DISCOVER v4.0 - Metodo Guidato DSA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.cdnfonts.com/css/opendyslexic" rel="stylesheet">
+
     <style>
-        :root { --primary: #667eea; --secondary: #764ba2; --success: #10b981; --error: #ef4444; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); min-height: 100vh; padding: 20px; color: white; }
-        .container { max-width: 800px; margin: 0 auto; padding-bottom: 100px; }
+        * { letter-spacing: 0.02em; }
         
-        /* Header & Navigation */
-        .header { text-align: center; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 20px; backdrop-filter: blur(10px); margin-bottom: 20px; position: relative; }
-        .back-btn { position: absolute; left: 15px; top: 20px; background: white; color: var(--primary); border: none; padding: 8px 15px; border-radius: 10px; cursor: pointer; text-decoration: none; font-size: 14px; font-weight: bold; transition: 0.3s; }
-        .back-btn:hover { transform: scale(1.05); }
-        .xp-bar-bg { background: rgba(0,0,0,0.2); height: 12px; border-radius: 6px; overflow: hidden; margin-top: 15px; }
-        .xp-bar-fill { background: linear-gradient(90deg, #f093fb, #f5576c); height: 100%; width: 0%; transition: width 0.5s; }
-
-        /* Sticky Problem Box - MIGLIORATO */
-        #sticky-problem { 
-            background: white; 
-            color: #1e293b; 
-            border-radius: 15px; 
-            padding: 20px; 
-            margin-bottom: 20px; 
-            border-left: 6px solid var(--primary); 
-            display: none; 
-            position: sticky; 
-            top: 10px; 
-            z-index: 100; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
-        }
-        #sticky-problem h4 { 
-            color: var(--primary); 
-            font-size: 11px; 
-            text-transform: uppercase; 
-            margin-bottom: 5px; 
-            opacity: 0.8; 
-        }
-        
-        /* Problem Type Badges - COLORI DINAMICI */
-        .type-badge { 
-            display: inline-block; 
-            padding: 6px 14px; 
-            border-radius: 12px; 
-            font-size: 12px; 
-            font-weight: bold; 
-            margin-bottom: 10px; 
-        }
-        .type-trasformazione { background: #dbeafe; color: #1e40af; }
-        .type-compravendita { background: #fef3c7; color: #92400e; }
-        .type-combinazione { background: #d1fae5; color: #065f46; }
-        .type-generico { background: #f3e8ff; color: #6b21a8; }
-
-        /* Cards */
-        .card { 
-            background: white; 
-            color: #1e293b; 
-            border-radius: 20px; 
-            padding: 30px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2); 
-            margin-bottom: 20px; 
-            display: none; 
-            animation: slideUp 0.4s ease; 
-        }
-        .active { display: block; }
-        @keyframes slideUp { 
-            from { opacity: 0; transform: translateY(20px); } 
-            to { opacity: 1; transform: translateY(0); } 
+        html, body, #root {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
         }
 
-        .step-header { 
-            display: flex; 
-            align-items: center; 
-            margin-bottom: 20px; 
-            border-bottom: 2px solid #f1f5f9; 
-            padding-bottom: 10px; 
-        }
-        .step-num { 
-            background: var(--primary); 
+        body { 
+            background: linear-gradient(135deg, #0a0e17 0%, #1a1f2e 100%);
             color: white; 
-            width: 35px; 
-            height: 35px; 
-            border-radius: 50%; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-weight: bold; 
-            margin-right: 12px; 
-        }
-        
-        /* Form Elements */
-        textarea, input { 
-            width: 100%; 
-            padding: 12px; 
-            border: 2px solid #e2e8f0; 
-            border-radius: 12px; 
-            margin-top: 8px; 
-            font-size: 16px; 
-            transition: 0.3s; 
-        }
-        textarea:focus, input:focus { 
-            border-color: var(--primary); 
-            outline: none; 
-            box-shadow: 0 0 0 3px rgba(102,126,234,0.1); 
-        }
-        .btn { 
-            background: var(--primary); 
-            color: white; 
-            border: none; 
-            padding: 15px 30px; 
-            border-radius: 12px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            width: 100%; 
-            margin-top: 20px; 
-            transition: 0.3s; 
-        }
-        .btn:hover { 
-            transform: translateY(-2px); 
-            filter: brightness(1.1); 
-        }
-        
-        .feedback { 
-            padding: 15px; 
-            border-radius: 10px; 
-            margin-top: 15px; 
-            font-weight: bold; 
-            display: none; 
-        }
-        .hint { 
-            background: #fffbeb; 
-            color: #92400e; 
-            padding: 10px; 
-            border-radius: 8px; 
-            margin-top: 10px; 
-            font-size: 14px; 
-            border-left: 4px solid #f59e0b; 
-            display: none; 
+            font-family: 'OpenDyslexic', Verdana, sans-serif;
         }
 
-        /* Question Blocks - STILE PULITO */
-        .question-block { 
-            margin-bottom: 20px; 
-            padding: 15px; 
-            background: #f8fafc; 
-            border-radius: 10px; 
-            border-left: 3px solid var(--primary); 
+        /* SCROLLBAR */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        /* PROGRESS BAR ANIMATA */
+        @keyframes progress-fill {
+            from { width: 0%; }
         }
-        .question-block label { 
-            display: block; 
-            font-weight: bold; 
-            margin-bottom: 8px; 
-            color: #334155; 
+        .progress-fill {
+            animation: progress-fill 0.8s ease-out;
+            transition: width 0.5s ease;
         }
 
-        /* Calculator */
-        .calc-toggle { 
-            position: fixed; 
-            bottom: 25px; 
-            right: 25px; 
-            width: 60px; 
-            height: 60px; 
-            background: white; 
-            color: var(--primary); 
-            border: none; 
-            border-radius: 50%; 
-            cursor: pointer; 
-            box-shadow: 0 5px 20px rgba(0,0,0,0.3); 
-            font-size: 24px; 
-            z-index: 1000; 
-            transition: 0.3s; 
+        /* FADE IN ANIMATION */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .calc-toggle:hover { 
-            transform: scale(1.1); 
+        .animate-fade { animation: fadeIn 0.4s ease-out; }
+
+        /* PULSE ANIMATION */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
         }
-        .calc-popup { 
-            position: fixed; 
-            bottom: 95px; 
-            right: 25px; 
-            width: 260px; 
-            background: white; 
-            padding: 15px; 
-            border-radius: 20px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4); 
-            display: none; 
-            z-index: 1000; 
-            color: #1e293b; 
+        .animate-pulse { animation: pulse 2s infinite; }
+
+        /* GLOW EFFECT */
+        .glow-green {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5),
+                        0 0 40px rgba(16, 185, 129, 0.3);
         }
-        .calc-screen { 
-            background: #1e293b; 
-            color: #00ff88; 
-            padding: 10px; 
-            text-align: right; 
-            font-size: 22px; 
-            border-radius: 10px; 
-            margin-bottom: 10px; 
-            min-height: 50px; 
-            font-family: monospace; 
+        .glow-blue {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5),
+                        0 0 40px rgba(59, 130, 246, 0.3);
         }
-        .calc-grid { 
-            display: grid; 
-            grid-template-columns: repeat(4, 1fr); 
-            gap: 6px; 
+        .glow-yellow {
+            box-shadow: 0 0 20px rgba(250, 204, 21, 0.5),
+                        0 0 40px rgba(250, 204, 21, 0.3);
         }
-        .c-btn { 
-            padding: 12px; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            background: #f1f5f9; 
-            transition: 0.2s; 
-        }
-        .c-btn:hover { 
-            background: #cbd5e1; 
-            transform: scale(1.05); 
-        }
-        .c-btn.op { 
-            background: var(--primary); 
-            color: white; 
-        }
-        
-        /* Debug Button */
-        .debug-btn {
-            position: fixed;
-            bottom: 100px;
-            right: 25px;
-            background: #ef4444;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-            z-index: 1000;
-            transition: 0.3s;
-        }
-        .debug-btn:hover {
-            transform: scale(1.05);
-        }
-        
-        /* Debug Panel */
-        .debug-panel {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            color: #1e293b;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-            max-width: 90%;
-            max-height: 80%;
-            overflow: auto;
-            z-index: 2000;
-            display: none;
-        }
-        .debug-panel h3 {
-            color: #ef4444;
-            margin-bottom: 20px;
-        }
-        .debug-panel pre {
-            background: #f1f5f9;
-            padding: 15px;
-            border-radius: 10px;
-            overflow: auto;
-            font-size: 12px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-        .debug-close {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            background: #ef4444;
-            color: white;
-            border: none;
-            padding: 8px 15px;
+
+        /* CALCULATOR BUTTONS */
+        .calc-btn {
+            width: 100%;
+            height: 48px;
             border-radius: 8px;
-            cursor: pointer;
             font-weight: bold;
+            font-size: 1.2rem;
+            transition: all 0.1s;
+            box-shadow: 0 2px 0 #1e293b;
+        }
+        .calc-btn:active {
+            transform: translateY(2px);
+            box-shadow: none;
+        }
+
+        /* INPUT FIELDS */
+        .answer-input {
+            background: rgba(30, 41, 59, 0.8);
+            border: 3px solid #475569;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-align: center;
+            color: white;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        .answer-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+        }
+        .answer-input.correct {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        .answer-input.incorrect {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        /* HINT BOX */
+        .hint-box {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2));
+            border: 2px solid #fbbf24;
+            border-radius: 12px;
+            padding: 16px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* STEP CARD */
+        .step-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(10px);
+            border: 2px solid #334155;
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s;
+        }
+        .step-card.active {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        /* PROBLEM BOX */
+        .problem-box {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+            border: 2px solid rgba(99, 102, 241, 0.5);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.2);
+        }
+
+        /* BADGES */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        .badge-success { background: #10b981; color: white; }
+        .badge-warning { background: #f59e0b; color: white; }
+        .badge-info { background: #3b82f6; color: white; }
+
+        /* SCROLL AREA */
+        .scroll-area {
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .calc-btn { height: 42px; font-size: 1rem; }
+            .answer-input { font-size: 1.1rem; padding: 12px; }
         }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <div class="header">
-        <a href="matematica.html" class="back-btn">← Home</a>
-        <h1>🔍 DISCOVER v3.7</h1>
-        <div class="xp-bar-bg"><div class="xp-bar-fill" id="xp-bar"></div></div>
-        <p style="margin-top:8px; font-size: 12px;">LIVELLO <span id="lvl">1</span> • <span id="xp">0</span> XP</p>
-    </div>
-
-    <div id="sticky-problem">
-        <h4>PROBLEMA ATTIVO</h4>
-        <div id="problem-type-container"></div>
-        <div id="sticky-text" style="font-weight: 500; font-size: 15px;"></div>
-    </div>
-
-    <div class="card active" id="step1">
-        <div class="step-header"><div class="step-num">1</div><h2>Analisi Problema</h2></div>
-        <textarea id="p-input" rows="5" placeholder="Marco ha 6 mele, Anna ne ha 8..." autocomplete="off"></textarea>
-        <button class="btn" onclick="analizza()">Analizza con AI ✨</button>
-    </div>
-
-    <div id="loader" style="display:none; text-align:center; padding:30px;">
-        <div style="border:4px solid white; border-top:4px solid transparent; border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite; margin:0 auto;"></div>
-        <p style="color:white; margin-top:15px;">L'AI sta scomponendo i passaggi per ogni personaggio...</p>
-    </div>
-    <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
-
-    <div class="card" id="step2">
-        <div class="step-header"><div class="step-num">2</div><h2>I Numeri</h2></div>
-        <p>Scrivi <strong>TUTTI</strong> i numeri che trovi nel testo (anche decimali), separati da virgola:</p>
-        <input type="text" id="ans2" placeholder="Es: 6, 8, 2  oppure  3, 0.80, 4, 0.90" autocomplete="off">
-        <button class="btn" onclick="check2()">Verifica ✓</button>
-        <div class="feedback" id="f2"></div>
-    </div>
-
-    <div class="card" id="step3">
-        <div class="step-header"><div class="step-num">3</div><h2>Comprensione</h2></div>
-        <div id="q3-list"></div>
-        <button class="btn" onclick="check3()">Avanti ✓</button>
-        <div class="feedback" id="f3"></div>
-    </div>
-
-    <div class="card" id="step4">
-        <div class="step-header"><div class="step-num">4</div><h2>Calcoli Sequenziali</h2></div>
-        <div id="q4-list"></div>
-        <button class="btn" onclick="check4()">Verifica Calcoli ✓</button>
-        <div class="feedback" id="f4"></div>
-    </div>
-
-    <div class="card" id="step5">
-        <div class="step-header"><div class="step-num">5</div><h2>Risposte Finali</h2></div>
-        <div id="q5-list"></div>
-        <button class="btn" onclick="check5()">Fine 🎯</button>
-        <div class="feedback" id="f5"></div>
-    </div>
-</div>
-
-<button class="calc-toggle" onclick="toggleCalc()">🔢</button>
-<button class="debug-btn" onclick="showDebugPanel()">🐛 DEBUG</button>
-
-<div class="calc-popup" id="calc-box">
-    <div class="calc-screen" id="c-screen">0</div>
-    <div class="calc-grid" id="c-btns"></div>
-</div>
-
-<div class="debug-panel" id="debug-panel">
-    <button class="debug-close" onclick="closeDebugPanel()">✕</button>
-    <h3>🐛 INFORMAZIONI DEBUG</h3>
-    <div id="debug-content"></div>
-</div>
-
-<script>
-let state = { data: null, xp: 0, attempts: {}, testo: "", tipo: "" };
-let cVal = "";
-
-const API_KEY = localStorage.getItem('gemini_api_key') || prompt("Inserisci la tua API Key Gemini:");
-if(API_KEY) localStorage.setItem('gemini_api_key', API_KEY);
-
-// Calculator functions
-function toggleCalc() { 
-    const b = document.getElementById('calc-box'); 
-    b.style.display = b.style.display === 'block' ? 'none' : 'block'; 
-}
-
-function buildCalc() { 
-    const g = document.getElementById('c-btns'); 
-    const keys = ['C','/','*','-','7','8','9','+','4','5','6','=','1','2','3','0','.']; 
-    g.innerHTML = keys.map(k => `<button class="c-btn ${isNaN(k)&&k!=='.'?'op':''}" onclick="doCalc('${k}')">${k}</button>`).join(''); 
-}
-
-function doCalc(k) { 
-    const s = document.getElementById('c-screen'); 
-    if(k === 'C') {
-        cVal = ""; 
-    } else if(k === '=') { 
-        try { 
-            const result = eval(cVal);
-            // Arrotonda a 2 decimali per evitare errori floating-point
-            cVal = (Math.round(result * 100) / 100).toString(); 
-        } catch { 
-            cVal = "Error"; 
-        } 
-    } else {
-        cVal += k; 
-    }
-    s.textContent = cVal || "0"; 
-}
-
-// Main analysis function
-async function analizza() {
-    state.testo = document.getElementById('p-input').value.trim();
-    if(!state.testo) {
-        alert("⚠️ Scrivi prima un problema!");
-        return;
-    }
+    <div id="root"></div>
     
-    document.getElementById('step1').classList.remove('active');
-    document.getElementById('loader').style.display = 'block';
-
-    // PROMPT OTTIMIZZATO - Via di mezzo tra lungo e corto
-    const prompt = `Analizza questo problema matematico per bambini delle elementari: "${state.testo}".
-
-CLASSIFICAZIONE TIPO:
-- TRASFORMAZIONE: situazione iniziale → azioni sequenziali → risultato finale
-- COMPRAVENDITA: acquisti con calcolo totale/resto
-- COMBINAZIONE: somma di insiemi già formati
-- GENERICO: altri tipi di problema
-
-REGOLE CRITICHE PER "calcoli":
-⚠️ IMPORTANTE: In "calcoli" inserisci SOLO domande che chiedono il RISULTATO NUMERICO FINALE.
-❌ NON chiedere l'espressione matematica (es: "2 * 0.80")
-✅ Chiedi direttamente il risultato (es: "Quanto spende Marco?")
-❌ NON creare domande duplicate per lo stesso calcolo
-✅ Una domanda = un risultato numerico
-
-ESEMPIO SBAGLIATO (da evitare):
-{
-  "calcoli": [
-    {"q": "Spesa Marco:", "a": "2 * 0.80", "t": "number"},  ← NO! Espressione
-    {"q": "Spesa Marco:", "a": "1.60", "t": "number"}       ← Duplicato!
-  ]
-}
-
-ESEMPIO CORRETTO:
-{
-  "calcoli": [
-    {"q": "Quanto spende Marco per le penne?", "a": "1.60", "t": "number"},
-    {"q": "Quanto spende Anna per le matite?", "a": "4", "t": "number"},
-    {"q": "Quanto spendono in tutto?", "a": "5.60", "t": "number"}
-  ]
-}
-
-REGOLE MULTI-PERSONAGGIO:
-- Se ci sono più personaggi (es. Marco, Anna, Carlo), crea domande separate per ognuno
-- Se un personaggio regala E riceve, separa in due calcoli
-- Se il problema chiede più domande, includi tutte le risposte
-
-REGOLE NUMERI:
-- In "numeri" inserisci TUTTI i numeri del testo come stringhe separate
-- Includi decimali (es: "0.80", "15.5")
-- Conta ogni numero separatamente: "3 penne a 0.80€" = DUE numeri ["3", "0.80"]
-- NON includere simboli (€, $, ecc.)
-
-Rispondi ESCLUSIVAMENTE con JSON valido (NO markdown, NO backticks).
-STRUTTURA OBBLIGATORIA:
-{
-  "tipo": "TRASFORMAZIONE|COMPRAVENDITA|COMBINAZIONE|GENERICO",
-  "numeri": ["array", "di", "stringhe"],
-  "logica": [{"q": "domanda", "a": "risposta", "t": "text|number"}],
-  "calcoli": [{"q": "domanda CHE RICHIEDE RISULTATO", "a": "SOLO_NUMERO", "t": "number"}],
-  "risposte": [{"q": "domanda", "a": "risposta", "t": "number"}]
-}`;
-
-    try {
-        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${API_KEY}`, {
-            method: 'POST', 
-            body: JSON.stringify({ 
-                contents: [{ 
-                    parts: [{ text: prompt }] 
-                }] 
-            })
-        });
+    <script type="text/babel">
+        const MODEL = "gemini-2.0-flash-exp";
         
-        if (!resp.ok) {
-            throw new Error(`API Error: ${resp.status}`);
-        }
-        
-        const res = await resp.json();
-        
-        if (!res.candidates || !res.candidates[0]) {
-            throw new Error("Risposta API non valida");
-        }
-        
-        let raw = res.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
-        state.data = JSON.parse(raw);
-        state.tipo = state.data.tipo || "GENERICO";
-        
-        // Update sticky problem with DYNAMIC COLORED BADGE
-        document.getElementById('sticky-text').textContent = state.testo;
-        
-        const badgeMap = {
-            "TRASFORMAZIONE": { class: "type-trasformazione", icon: "🔄" },
-            "COMPRAVENDITA": { class: "type-compravendita", icon: "🛒" },
-            "COMBINAZIONE": { class: "type-combinazione", icon: "➕" },
-            "GENERICO": { class: "type-generico", icon: "📝" }
+        // DATABASE & UTILITY
+        const DB = {
+            getKey: () => localStorage.getItem('gemini_api_key'),
+            getXP: () => parseInt(localStorage.getItem('edu_xp') || '0'),
+            addXP: (amount) => {
+                const next = DB.getXP() + amount;
+                localStorage.setItem('edu_xp', next.toString());
+                window.dispatchEvent(new Event('xpChanged'));
+                return next;
+            }
         };
-        
-        const badge = badgeMap[state.tipo] || badgeMap["GENERICO"];
-        document.getElementById('problem-type-container').innerHTML = 
-            `<div class="type-badge ${badge.class}">${badge.icon} ${state.tipo}</div>`;
-        
-        document.getElementById('sticky-problem').style.display = 'block';
-        document.getElementById('loader').style.display = 'none';
-        showStep(2);
-        updateXP(10);
-        
-    } catch(e) { 
-        document.getElementById('loader').style.display = 'none';
-        document.getElementById('step1').classList.add('active');
-        alert("❌ Errore AI: " + e.message + "\n\nControlla:\n- La tua API Key\n- La connessione internet\n- Il formato del problema"); 
+
+        // MASTER PROMPT per Gemini
+        const MASTER_PROMPT = `Sei un tutor esperto per studenti con DSA (discalculia, dislessia) di età 9-12 anni.
+
+TIPI DI PROBLEMI CHE POTRESTI INCONTRARE:
+1. SEMPLICI: 1 operazione diretta (es: "5 mele + 3 mele")
+2. COMPRAVENDITA: quantità × prezzo (es: "5 penne a 2€")
+3. PROPORZIONI: doppio/triplo/metà/quadruplo (es: "Davide ha il quadruplo")
+4. FRAZIONI: parte di quantità (es: "3/4 del percorso")
+5. MULTI-STEP: operazioni in sequenza (es: "compra X, poi vende Y")
+6. DOMANDE NASCOSTE: devi calcolare prima un dato intermedio non chiesto esplicitamente
+7. INVERSI: dato il risultato, trova l'inizio (es: "restano 7, ne ha mangiati 3, quante ne aveva?")
+8. PESO LORDO/NETTO/TARA: contenitore + contenuto
+9. DISTANZE/PERCORSI: totale - fatto = mancano
+10. CONFRONTO: "più di", "meno di", "differenza"
+
+GENERA UN JSON COSÌ (SOLO JSON, NESSUN TESTO EXTRA):
+
+{
+  "testo_problema": "testo completo trascritto dall'immagine",
+  "tipo_problema": "uno dei tipi sopra",
+  "complessita": 1-5,
+  "dati": {
+    "numeri": [lista numeri trovati],
+    "personaggi": [lista nomi],
+    "oggetti_misure": [lista oggetti o unità],
+    "domande": ["domanda principale del problema"]
+  },
+  "workflow": [
+    {
+      "step": 1,
+      "tipo": "estrazione_dati",
+      "titolo": "TROVA I DATI",
+      "domanda": "Quali sono i numeri importanti nel problema?",
+      "risposta_corretta": "16, 2, 3, 4",
+      "accetta_anche": ["16 2 3 4", "16km, 2ore, 3/4"],
+      "hint_1": "Guida ragionamento: 'Rileggi il problema con attenzione. Cerca tutti i numeri che vedi scritti'",
+      "hint_2": "Guida ragionamento: 'Ci sono numeri che indicano distanze? E numeri che formano una frazione?'",
+      "hint_3": "Risposta diretta: 'I numeri sono: 16 (distanza totale in km), 2 (ore), 3 e 4 (formano la frazione 3/4)'"
+    },
+    {
+      "step": 2,
+      "tipo": "calcolo",
+      "titolo": "RAGIONA SUL CALCOLO",
+      "domanda": "Marco ha fatto 3/4 del percorso di 16 km. Quanti km ha camminato?",
+      "risposta_corretta": "12",
+      "accetta_anche": ["12 km", "12km", "dodici"],
+      "hint_1": "Guida ragionamento: 'Quando devi trovare una frazione di un numero, devi pensare a come dividere quel numero in parti'",
+      "hint_2": "Guida ragionamento: 'Se devi trovare 3/4 di 16, puoi prima pensare: quanto è 1/4 di 16? Poi moltiplichi per 3'",
+      "hint_3": "Risposta diretta con operazione: 'Devi fare: 16 × 3 ÷ 4. Cioè: 16 × 3 = 48, poi 48 ÷ 4 = 12 km'"
     }
+  ],
+  "risposta_finale": "Mancano 4 km per arrivare da Matteo",
+  "xp_guadagnati": 60
 }
 
-// Step navigation
-function showStep(n) {
-    document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
-    document.getElementById(`step${n}`).classList.add('active');
-    if(n === 3) renderQs('q3-list', state.data.logica, 's3');
-    if(n === 4) renderQs('q4-list', state.data.calcoli, 's4');
-    if(n === 5) renderQs('q5-list', state.data.risposte, 's5');
-}
+REGOLE IMPORTANTISSIME:
 
-// Render questions
-function renderQs(id, list, prefix) {
-    document.getElementById(id).innerHTML = list.map((item, i) => `
-        <div class="question-block">
-            <label>${item.q}</label>
-            <input type="text" id="${prefix}-${i}" autocomplete="off" placeholder="Scrivi la risposta...">
-            <div id="hint-${prefix}-${i}" class="hint">💡 Riguarda il testo del problema in alto!</div>
-        </div>
-    `).join('');
-}
+**HINTS PROGRESSIVI (FONDAMENTALE - LEGGI CON ATTENZIONE!):**
 
-// Validation function - NO CONSOLE VERSION (compatible with all environments)
-function validate(val, exp, type) {
-    if(!val) return false;
-    
-    // Normalizza input e expected
-    let v = val.toString().toLowerCase().trim();
-    let e = exp.toString().toLowerCase().trim();
-    
-    if(type === 'number') {
-        // Rimuovi unità comuni prima del parsing
-        const cleanV = v.replace(/euro|€|\$|cent|centesimi/gi, '').trim();
-        const cleanE = e.replace(/euro|€|\$|cent|centesimi/gi, '').trim();
-        
-        // Sostituisci virgola con punto
-        const normalizedV = cleanV.replace(',', '.');
-        const normalizedE = cleanE.replace(',', '.');
-        
-        // Estrai SOLO numeri con decimali
-        const vMatch = normalizedV.match(/\d+\.?\d*/);
-        const eMatch = normalizedE.match(/\d+\.?\d*/);
-        
-        if(!vMatch || !eMatch) {
-            return false;
-        }
-        
-        let nV = parseFloat(vMatch[0]);
-        let nE = parseFloat(eMatch[0]);
-        
-        // Tolleranza per gestire 1.6 vs 1.60 e piccoli errori floating-point
-        const isValid = Math.abs(nV - nE) < 0.02;
-        
-        // DEBUG VISIVO: mostra nella pagina invece che in console
-        if(!isValid && window.debugMode) {
-            showDebugInfo(`❌ ${val} ≠ ${exp} (diff: ${Math.abs(nV - nE).toFixed(4)})`);
-        }
-        
-        return isValid;
-    }
-    
-    // Per il testo: validazione flessibile
-    return v.includes(e) || e.includes(v);
-}
+**hint_1** - Aiuto al RAGIONAMENTO (NO formule, NO operazioni):
+  - Fai domande che stimolano il pensiero
+  - Guida a capire COSA fare, non COME fare matematicamente
+  - Usa metafore, esempi concreti, visualizzazioni
+  
+  ✅ ESEMPI CORRETTI:
+  "Pensa: se dividi 16 km in 4 parti uguali, quanto è grande ogni parte?"
+  "Ragiona: cosa significa 'il quadruplo'? Se Paolo ha 7, quante volte 7 deve avere Davide?"
+  "Immagina di dividere una torta in 4 pezzi uguali. Se ne prendi 3, quanta torta hai?"
+  
+  ❌ ESEMPI SBAGLIATI:
+  "Devi moltiplicare 16 per 3 e dividere per 4"
+  "L'operazione è: 16 × 3 ÷ 4"
+  "Fai 16 per 3 diviso 4"
 
-// Funzione per mostrare debug info nella pagina
-function showDebugInfo(msg) {
-    const debugDiv = document.getElementById('debug-info');
-    if(debugDiv) {
-        debugDiv.innerHTML += `<p style="font-size:12px; color:#dc2626;">${msg}</p>`;
-        debugDiv.style.display = 'block';
-    }
-}
+**hint_2** - Guida al PROCESSO LOGICO (ancora NO operazioni esatte):
+  - Spiega i PASSI da seguire senza dare la formula
+  - Aiuta a scomporre il problema in sotto-problemi
+  - Suggerisci la sequenza di ragionamento
+  
+  ✅ ESEMPI CORRETTI:
+  "Prima trova quanto vale una sola parte (1/4). Poi moltiplica per 3 quella parte"
+  "Step 1: Scopri quanto è un quarto. Step 2: Prendi quel valore e moltiplicalo per tre"
+  "Dividi il totale per 4 per trovare una parte. Poi prendi 3 di quelle parti"
+  
+  ❌ ESEMPI SBAGLIATI:
+  "Fai 16 ÷ 4 = 4, poi 4 × 3 = 12"
+  "16 × 3 ÷ 4"
+  "Calcola: 16 per 3 diviso 4"
 
-// Step 2: Check numbers (70% threshold)
-function check2() {
-    let input = document.getElementById('ans2').value;
-    // Estrae numeri interi e decimali
-    let found = input.match(/\d+(?:\.\d+)?/g) || [];
-    let expected = state.data.numeri || [];
-    
-    // VALIDAZIONE PERMISSIVA: 70% dei numeri
-    const threshold = Math.ceil(expected.length * 0.7);
-    
-    if(found.length >= threshold) { 
-        showFeedback('f2', true, `✅ Ottimo! Hai trovato ${found.length} numeri su ${expected.length} attesi.`); 
-        setTimeout(() => showStep(3), 800); 
-        updateXP(20); 
-    } else { 
-        showFeedback('f2', false, `❌ Cerca ancora! Dovresti trovarne almeno ${threshold}. (Hai trovato: ${found.length})`); 
-    }
-}
+**hint_3** - RISPOSTA COMPLETA (QUI sì che dai tutto):
+  - Fornisci l'operazione matematica esatta
+  - Mostra i calcoli passo per passo
+  - Spiega il PERCHÉ di ogni passaggio
+  
+  ✅ ESEMPIO CORRETTO:
+  "Ecco come si risolve: Devi calcolare 3/4 di 16 km. L'operazione è: 16 × 3 ÷ 4. Facciamo i calcoli: 16 × 3 = 48 km (questo è 3 volte il percorso intero). Poi 48 ÷ 4 = 12 km (dividiamo in 4 parti). Quindi Marco ha camminato 12 km."
 
-// Generic step handler
-function handleStep(list, prefix, next, fId) {
-    let ok = true;
-    let firstError = -1;
-    
-    list.forEach((it, i) => {
-        const userAnswer = document.getElementById(`${prefix}-${i}`).value;
-        
-        if(!validate(userAnswer, it.a, it.t)) {
-            ok = false;
-            if(firstError === -1) firstError = i;
+**CRUCIALE:** NON includere MAI il campo "operazione" come proprietà separata nello step JSON! 
+L'operazione matematica deve apparire SOLO nell'hint_3, mai come campo "operazione": "16 × 3 ÷ 4"
+
+Altre regole: Domande SEMPRE concrete e chiare (MAI vaghe come "cosa cerchi?")
+- Ogni step = 1 domanda + 1 risposta inequivocabile
+- Minimo 2 step, massimo 6 step
+- SEMPRE includere unità di misura nelle risposte
+- Per problemi complessi: spezzali in micro-step semplici
+- Se c'è domanda nascosta: crea step apposito prima della domanda finale
+- "accetta_anche" deve includere varianti ragionevoli (con/senza spazi, con/senza unità)
+- XP: 30-50 per semplici, 60-80 per medi, 90-120 per complessi
+
+ESEMPI DOMANDE CONCRETE (BUONE):
+✅ "Qual è la distanza totale in km?"
+✅ "Quanti km ha già camminato Marco?"
+✅ "Quanto costa 1 penna?"
+✅ "Quante mele aveva Marco all'inizio?"
+
+ESEMPI DOMANDE VAGHE (CATTIVE - NON USARE):
+❌ "Cosa devi trovare?"
+❌ "Quale strategia usi?"
+❌ "Come lo risolvi?"
+❌ "Ragiona sul problema"
+
+Rispondi SOLO con il JSON, senza markdown, senza prefissi.`;
+
+        // CHIAMATA GEMINI con immagine
+        async function analyzeImage(imageData) {
+            const key = DB.getKey();
+            if (!key) throw new Error("Manca API Key Gemini!");
             
-            // Increment attempts and show hint after 2 tries
-            state.attempts[prefix+i] = (state.attempts[prefix+i] || 0) + 1;
-            if(state.attempts[prefix+i] >= 2) {
-                document.getElementById(`hint-${prefix}-${i}`).style.display = 'block';
+            const body = {
+                contents: [{
+                    parts: [
+                        { text: MASTER_PROMPT },
+                        { 
+                            inlineData: { 
+                                mimeType: "image/jpeg", 
+                                data: imageData.split(',')[1] 
+                            } 
+                        }
+                    ]
+                }]
+            };
+            
+            const res = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                }
+            );
+            
+            if (!res.ok) throw new Error("Errore chiamata Gemini");
+            
+            const data = await res.json();
+            let text = data.candidates[0].content.parts[0].text;
+            
+            // Pulisci JSON da eventuali markdown
+            text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            
+            return JSON.parse(text);
+        }
+
+        // CHIAMATA GEMINI per hint dinamico
+        async function generateDynamicHint(problemText, stepData, userAnswer, attemptCount) {
+            const key = DB.getKey();
+            if (!key) return null;
+            
+            const prompt = `Problema: ${problemText}
+Domanda: ${stepData.domanda}
+Risposta corretta: ${stepData.risposta_corretta}
+Risposta studente: ${userAnswer}
+Tentativo numero: ${attemptCount}
+
+Genera un hint di livello ${attemptCount}:
+- Livello 1: suggerimento generico per orientarlo
+- Livello 2: suggerimento specifico con procedura
+- Livello 3: risposta diretta + spiegazione completa
+
+Rispondi SOLO con il testo dell'hint, senza prefissi.`;
+            
+            try {
+                const body = {
+                    contents: [{ parts: [{ text: prompt }] }]
+                };
+                
+                const res = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
+                    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+                );
+                
+                const data = await res.json();
+                return data.candidates[0].content.parts[0].text.trim();
+            } catch {
+                return null;
             }
         }
-    });
-    
-    if(ok) { 
-        showFeedback(fId, true, "✅ Esatto! Tutte le risposte sono corrette!"); 
-        updateXP(30); 
-        setTimeout(() => next ? showStep(next) : fine(), 800); 
-    } else { 
-        showFeedback(fId, false, `❌ Controlla la risposta numero ${firstError + 1}!`); 
-    }
-}
 
-// Step handlers
-function check3() { handleStep(state.data.logica, 's3', 4, 'f3'); }
-function check4() { handleStep(state.data.calcoli, 's4', 5, 'f4'); }
-function check5() { handleStep(state.data.risposte, 's5', null, 'f5'); }
+        // VALIDAZIONE RISPOSTA
+        function validateAnswer(userAnswer, correctAnswer, acceptVariants = []) {
+            const clean = (s) => String(s).toLowerCase().trim()
+                .replace(/\s+/g, ' ')
+                .replace(/[.,!?;:]/g, '');
+            
+            const userClean = clean(userAnswer);
+            const correctClean = clean(correctAnswer);
+            
+            // Match esatto
+            if (userClean === correctClean) return true;
+            
+            // Match con varianti
+            for (const variant of acceptVariants) {
+                if (userClean === clean(variant)) return true;
+                
+                // Match parziale (contiene)
+                if (userClean.includes(clean(variant)) || clean(variant).includes(userClean)) {
+                    return true;
+                }
+            }
+            
+            // Match numerico (estrae numeri e confronta)
+            const userNum = userClean.match(/\d+([.,]\d+)?/);
+            const correctNum = correctClean.match(/\d+([.,]\d+)?/);
+            if (userNum && correctNum) {
+                const uNum = parseFloat(userNum[0].replace(',', '.'));
+                const cNum = parseFloat(correctNum[0].replace(',', '.'));
+                if (Math.abs(uNum - cNum) < 0.01) return true;
+            }
+            
+            return false;
+        }
 
-function fine() { 
-    alert(`🎉 COMPLIMENTI!\n\nHai risolto il problema!\nTipo: ${state.tipo}\nXP totali guadagnati: ${state.xp}`); 
-    location.reload(); 
-}
+        // ESTRAE OPERAZIONE DA HINT_3
+        function extractOperationFromHint(hint3) {
+            if (!hint3) return null;
+            
+            // Cerca pattern tipo "16 × 3 ÷ 4" o "16 + 12" etc
+            const patterns = [
+                /(\d+\s*[×\*]\s*\d+\s*[÷\/]\s*\d+)/,  // 16 × 3 ÷ 4
+                /(\d+\s*[+\-×\*÷\/]\s*\d+)/,          // 16 + 12, 16 - 4, etc
+                /(\d+\s*[+\-×\*÷\/]\s*\d+\s*[+\-×\*÷\/]\s*\d+)/  // operazioni multiple
+            ];
+            
+            for (const pattern of patterns) {
+                const match = hint3.match(pattern);
+                if (match) {
+                    return match[1].trim();
+                }
+            }
+            
+            return null;
+        }
 
-// Feedback display
-function showFeedback(id, ok, msg) {
-    const f = document.getElementById(id); 
-    f.style.display = 'block';
-    f.style.background = ok ? '#d1fae5' : '#fee2e2'; 
-    f.style.color = ok ? '#065f46' : '#991b1b'; 
-    f.textContent = msg;
-    
-    // Auto-hide after 5 seconds
-    setTimeout(() => {
-        if(!ok) f.style.display = 'none';
-    }, 5000);
-}
+        // ============ REACT APP ============
+        const { useState, useEffect, useRef } = React;
 
-// XP system
-function updateXP(n) { 
-    state.xp += n; 
-    document.getElementById('xp-bar').style.width = (state.xp % 100) + '%'; 
-    document.getElementById('xp').textContent = state.xp; 
-    document.getElementById('lvl').textContent = Math.floor(state.xp/100) + 1; 
-}
+        // COMPONENTE MODAL API KEY
+        const APIKeyModal = ({ onSave }) => {
+            const [apiKey, setApiKey] = useState('');
+            const [error, setError] = useState('');
 
-// Initialize
-buildCalc();
+            const handleSave = () => {
+                if (!apiKey.trim()) {
+                    setError('Inserisci una chiave API!');
+                    return;
+                }
+                
+                if (!apiKey.startsWith('AIza')) {
+                    setError('La chiave API deve iniziare con "AIza"');
+                    return;
+                }
+                
+                if (apiKey.length < 30) {
+                    setError('La chiave sembra troppo corta');
+                    return;
+                }
+                
+                localStorage.setItem('gemini_api_key', apiKey.trim());
+                onSave();
+            };
 
-// Debug Panel Functions
-function showDebugPanel() {
-    const panel = document.getElementById('debug-panel');
-    const content = document.getElementById('debug-content');
-    
-    let html = '<h4>📊 State Globale:</h4>';
-    html += '<pre>' + JSON.stringify({
-        xp: state.xp,
-        tipo: state.tipo,
-        testo: state.testo,
-        attempts: state.attempts
-    }, null, 2) + '</pre>';
-    
-    if(state.data) {
-        html += '<h4>📝 Dati AI - Numeri Attesi:</h4>';
-        html += '<pre>' + JSON.stringify(state.data.numeri, null, 2) + '</pre>';
-        
-        html += '<h4>🧠 Dati AI - Logica (Step 3):</h4>';
-        html += '<pre>' + JSON.stringify(state.data.logica, null, 2) + '</pre>';
-        
-        html += '<h4>🔢 Dati AI - Calcoli (Step 4):</h4>';
-        html += '<pre>' + JSON.stringify(state.data.calcoli, null, 2) + '</pre>';
-        
-        html += '<h4>✅ Dati AI - Risposte (Step 5):</h4>';
-        html += '<pre>' + JSON.stringify(state.data.risposte, null, 2) + '</pre>';
-        
-        html += '<h4>📌 Tipo Problema:</h4>';
-        html += '<pre>' + (state.data.tipo || 'Non specificato') + '</pre>';
-    } else {
-        html += '<p style="color:#ef4444;">⚠️ Nessun dato AI caricato. Analizza prima un problema!</p>';
-    }
-    
-    content.innerHTML = html;
-    panel.style.display = 'block';
-}
+            return (
+                <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+                    <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-8 max-w-lg w-full border-2 border-blue-500 shadow-2xl animate-fade">
+                        <div className="text-center mb-6">
+                            <div className="text-6xl mb-4">🔑</div>
+                            <h2 className="text-3xl font-bold text-blue-400 mb-2">API Key Richiesta</h2>
+                            <p className="text-slate-400">Inserisci la tua chiave API Gemini per continuare</p>
+                        </div>
 
-function closeDebugPanel() {
-    document.getElementById('debug-panel').style.display = 'none';
-}
-</script>
+                        <div className="bg-yellow-900/30 border-2 border-yellow-600 rounded-xl p-4 mb-6">
+                            <div className="flex items-start gap-3">
+                                <span className="text-2xl">💡</span>
+                                <div className="text-sm">
+                                    <div className="font-bold text-yellow-400 mb-1">Come ottenere la chiave:</div>
+                                    <ol className="list-decimal list-inside space-y-1 text-yellow-200">
+                                        <li>Vai su: <a href="https://aistudio.google.com/apikey" target="_blank" className="underline text-blue-400">aistudio.google.com/apikey</a></li>
+                                        <li>Fai login con Google</li>
+                                        <li>Clicca "Create API Key"</li>
+                                        <li>Copia la chiave e incollala qui sotto</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="block text-sm font-bold text-slate-300 mb-2">
+                                🔑 Chiave API Gemini:
+                            </label>
+                            <input
+                                type="text"
+                                value={apiKey}
+                                onChange={(e) => {
+                                    setApiKey(e.target.value);
+                                    setError('');
+                                }}
+                                placeholder="AIzaSy..."
+                                className="w-full bg-slate-950 border-2 border-slate-600 rounded-xl p-4 text-white font-mono text-sm focus:border-blue-500 focus:outline-none"
+                                autoFocus
+                            />
+                            {error && (
+                                <div className="mt-2 text-red-400 text-sm flex items-center gap-2">
+                                    <span>⚠️</span>
+                                    <span>{error}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <button
+                            onClick={handleSave}
+                            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 rounded-xl text-lg active:scale-95 glow-blue transition-all"
+                        >
+                            💾 SALVA E CONTINUA
+                        </button>
+
+                        <div className="mt-4 text-xs text-slate-500 text-center">
+                            La chiave verrà salvata solo nel tuo browser locale
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [showAPIKeyModal, setShowAPIKeyModal] = useState(false);
+            const [screen, setScreen] = useState('upload'); // upload | workflow | victory
+            const [imageData, setImageData] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [problemData, setProblemData] = useState(null);
+            const [currentStep, setCurrentStep] = useState(0);
+            const [stepAnswers, setStepAnswers] = useState({});
+            const [stepAttempts, setStepAttempts] = useState({});
+            const [stepHints, setStepHints] = useState({});
+            const [userXP, setUserXP] = useState(DB.getXP());
+            const [calcDisplay, setCalcDisplay] = useState('');
+            const [showCalc, setShowCalc] = useState(false);
+            const [showSuccessMessage, setShowSuccessMessage] = useState(null); // { type: 'success' | 'continue', message: '...' }
+
+            // Controlla API key all'avvio
+            useEffect(() => {
+                const key = DB.getKey();
+                if (!key) {
+                    setShowAPIKeyModal(true);
+                }
+            }, []);
+
+            useEffect(() => {
+                const handler = () => setUserXP(DB.getXP());
+                window.addEventListener('xpChanged', handler);
+                return () => window.removeEventListener('xpChanged', handler);
+            }, []);
+
+            // UPLOAD SCREENSHOT
+            const handleUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    setImageData(evt.target.result);
+                };
+                reader.readAsDataURL(file);
+            };
+
+            // ANALIZZA PROBLEMA
+            const analyzeProblem = async () => {
+                if (!imageData) return;
+                
+                setLoading(true);
+                try {
+                    const data = await analyzeImage(imageData);
+                    setProblemData(data);
+                    setScreen('workflow');
+                    setCurrentStep(0);
+                    setStepAnswers({});
+                    setStepAttempts({});
+                    setStepHints({});
+                } catch (err) {
+                    alert("Errore: " + err.message);
+                }
+                setLoading(false);
+            };
+
+            // VALIDA STEP
+            const validateStep = async () => {
+                const step = problemData.workflow[currentStep];
+                const userAnswer = stepAnswers[currentStep] || '';
+                
+                if (!userAnswer.trim()) {
+                    alert("Scrivi una risposta prima di continuare!");
+                    return;
+                }
+                
+                const isCorrect = validateAnswer(
+                    userAnswer, 
+                    step.risposta_corretta, 
+                    step.accetta_anche || []
+                );
+                
+                if (isCorrect) {
+                    // RISPOSTA CORRETTA
+                    const attempts = stepAttempts[currentStep] || 0;
+                    const bonusXP = attempts === 0 ? 10 : attempts === 1 ? 5 : 0;
+                    DB.addXP(bonusXP);
+                    
+                    // MOSTRA MESSAGGIO DI SUCCESSO
+                    const messages = [
+                        '🎉 Esatto! Ben fatto!',
+                        '✅ Corretto! Ottimo lavoro!',
+                        '🌟 Perfetto! Continua così!',
+                        '💪 Giusto! Sei bravissimo!',
+                        '🎯 Risposta corretta!'
+                    ];
+                    const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+                    
+                    setShowSuccessMessage({ 
+                        type: 'success', 
+                        message: randomMsg,
+                        xp: bonusXP
+                    });
+                    
+                    // Dopo 2 secondi, passa allo step successivo
+                    setTimeout(() => {
+                        setShowSuccessMessage(null);
+                        
+                        if (currentStep < problemData.workflow.length - 1) {
+                            // Vai al prossimo step
+                            setCurrentStep(currentStep + 1);
+                            setStepHints({});
+                        } else {
+                            // PROBLEMA COMPLETATO
+                            const totalXP = problemData.xp_guadagnati || 50;
+                            DB.addXP(totalXP);
+                            setScreen('victory');
+                        }
+                    }, 2000);
+                } else {
+                    // RISPOSTA ERRATA
+                    const attempts = (stepAttempts[currentStep] || 0) + 1;
+                    setStepAttempts({ ...stepAttempts, [currentStep]: attempts });
+                    
+                    // Mostra hint progressivo
+                    let hint = '';
+                    if (attempts === 1) hint = step.hint_1;
+                    else if (attempts === 2) hint = step.hint_2;
+                    else if (attempts >= 3) hint = step.hint_3;
+                    
+                    // Prova hint dinamico da Gemini se disponibile
+                    if (!hint && attempts <= 3) {
+                        const dynamicHint = await generateDynamicHint(
+                            problemData.testo_problema,
+                            step,
+                            userAnswer,
+                            attempts
+                        );
+                        if (dynamicHint) hint = dynamicHint;
+                    }
+                    
+                    setStepHints({ ...stepHints, [currentStep]: hint });
+                    
+                    // Dopo 3 errori, passa comunque avanti (con penalità)
+                    if (attempts >= 3) {
+                        DB.addXP(-5);
+                        
+                        // MOSTRA MESSAGGIO "PASSIAMO AVANTI"
+                        setShowSuccessMessage({
+                            type: 'continue',
+                            message: '⏭️ Nessun problema! Passiamo al prossimo step',
+                            xp: -5
+                        });
+                        
+                        setTimeout(() => {
+                            setShowSuccessMessage(null);
+                            
+                            if (currentStep < problemData.workflow.length - 1) {
+                                setCurrentStep(currentStep + 1);
+                                setStepHints({});
+                            } else {
+                                const totalXP = Math.max(10, (problemData.xp_guadagnati || 50) - 20);
+                                DB.addXP(totalXP);
+                                setScreen('victory');
+                            }
+                        }, 2500);
+                    }
+                }
+            };
+
+            // CALCOLATRICE
+            const handleCalc = (val) => {
+                if (val === 'C') setCalcDisplay('');
+                else if (val === '⌫') setCalcDisplay(p => p.slice(0, -1));
+                else if (val === '=') {
+                    try {
+                        const result = eval(calcDisplay.replace('×', '*').replace('÷', '/'));
+                        setCalcDisplay(String(Math.round(result * 100) / 100));
+                    } catch {
+                        setCalcDisplay('Err');
+                    }
+                } else {
+                    setCalcDisplay(p => p + val);
+                }
+            };
+
+            // RENDER API KEY MODAL
+            if (showAPIKeyModal) {
+                return <APIKeyModal onSave={() => setShowAPIKeyModal(false)} />;
+            }
+
+            // RENDER UPLOAD SCREEN
+            if (screen === 'upload') {
+                return (
+                    <div className="h-screen flex flex-col p-4 gap-4">
+                        {/* HEADER */}
+                        <div className="flex items-center justify-between bg-slate-800/50 backdrop-blur rounded-2xl p-4 border-2 border-slate-700">
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    onClick={() => {
+                                        if (imageData || problemData) {
+                                            if (window.confirm('Ricominciare da capo? (Il progresso attuale andrà perso)')) {
+                                                setImageData(null);
+                                                setProblemData(null);
+                                                setScreen('upload');
+                                            }
+                                        }
+                                    }}
+                                    className="text-3xl active:scale-95 cursor-pointer"
+                                    title="Ricomincia"
+                                >
+                                    🏠
+                                </button>
+                                <div>
+                                    <h1 className="text-2xl font-bold text-blue-400">🎯 DISCOVER v4.0</h1>
+                                    <p className="text-sm text-slate-400">Metodo Guidato DSA</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setShowAPIKeyModal(true)}
+                                    className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm active:scale-95 transition-all"
+                                    title="Modifica API Key"
+                                >
+                                    🔑
+                                </button>
+                                <div className="text-right">
+                                    <div className="text-sm text-slate-400">XP Totali</div>
+                                    <div className="text-2xl font-bold text-yellow-400">{userXP}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* UPLOAD AREA */}
+                        <div className="flex-1 flex flex-col items-center justify-center gap-6">
+                            {!imageData ? (
+                                <>
+                                    <div className="text-8xl animate-bounce">📐</div>
+                                    <h2 className="text-3xl font-bold text-center">SCATTA FOTO AL PROBLEMA</h2>
+                                    <p className="text-slate-400 text-center max-w-md">
+                                        Fotografa il problema di matematica e ti guiderò passo-passo alla soluzione!
+                                    </p>
+                                    <label className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 px-8 rounded-2xl cursor-pointer shadow-lg flex items-center gap-3 active:scale-95 text-xl glow-blue">
+                                        <input type="file" onChange={handleUpload} className="hidden" accept="image/*" capture="environment" />
+                                        📷 SCATTA FOTO
+                                    </label>
+                                </>
+                            ) : (
+                                <div className="w-full max-w-2xl space-y-4 animate-fade">
+                                    <img src={imageData} className="w-full rounded-2xl border-4 border-blue-500 shadow-2xl" />
+                                    <div className="flex gap-3">
+                                        <button 
+                                            onClick={analyzeProblem} 
+                                            disabled={loading}
+                                            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold py-4 rounded-xl text-xl active:scale-95 glow-green disabled:opacity-50"
+                                        >
+                                            {loading ? '⏳ Analizzo...' : '🚀 INIZIA RISOLUZIONE'}
+                                        </button>
+                                        <button 
+                                            onClick={() => setImageData(null)}
+                                            className="bg-red-600 text-white font-bold py-4 px-6 rounded-xl text-xl active:scale-95"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+
+            // RENDER WORKFLOW SCREEN
+            if (screen === 'workflow' && problemData) {
+                const step = problemData.workflow[currentStep];
+                const progress = ((currentStep + 1) / problemData.workflow.length) * 100;
+                const attempts = stepAttempts[currentStep] || 0;
+                const hint = stepHints[currentStep];
+
+                return (
+                    <div className="h-screen flex flex-col p-3 gap-3">
+                        {/* HEADER */}
+                        <div className="flex items-center justify-between bg-slate-800/50 backdrop-blur rounded-xl p-3 border-2 border-slate-700 shrink-0">
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => {
+                                        if (window.confirm('Tornare all\'inizio? Il progresso attuale andrà perso.')) {
+                                            setScreen('upload');
+                                            setImageData(null);
+                                            setProblemData(null);
+                                        }
+                                    }}
+                                    className="text-2xl active:scale-95"
+                                    title="Torna all'inizio"
+                                >
+                                    🏠
+                                </button>
+                                <div>
+                                    <h1 className="text-xl font-bold text-blue-400">🎯 DISCOVER</h1>
+                                    <div className="text-xs text-slate-400">
+                                        <span className="badge badge-info text-xs">{problemData.tipo_problema}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setShowAPIKeyModal(true)}
+                                    className="bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded text-xs active:scale-95 transition-all"
+                                    title="Modifica API Key"
+                                >
+                                    🔑
+                                </button>
+                                <div className="text-right">
+                                    <div className="text-xs text-slate-400">XP</div>
+                                    <div className="text-xl font-bold text-yellow-400">{userXP}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* PROBLEM BOX (sempre visibile) */}
+                        <div className="problem-box shrink-0">
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="text-2xl">📝</span>
+                                <span className="font-bold text-purple-300">PROBLEMA:</span>
+                            </div>
+                            <p className="text-base leading-relaxed">{problemData.testo_problema}</p>
+                        </div>
+
+                        {/* PROGRESS BAR */}
+                        <div className="bg-slate-800/50 rounded-xl p-3 shrink-0">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-bold">STEP {currentStep + 1}/{problemData.workflow.length}</span>
+                                <span className="text-sm text-slate-400">{Math.round(progress)}%</span>
+                            </div>
+                            <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+                                <div 
+                                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500 progress-fill"
+                                    style={{ width: `${progress}%` }}
+                                ></div>
+                            </div>
+                        </div>
+
+                        {/* MAIN CONTENT */}
+                        <div className="flex-1 flex gap-3 overflow-hidden">
+                            {/* WORKFLOW AREA */}
+                            <div className="flex-1 scroll-area">
+                                <div className="step-card active">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-2xl font-bold">
+                                            {currentStep + 1}
+                                        </div>
+                                        <div>
+                                            <div className="text-sm text-blue-400 font-bold">{step.titolo}</div>
+                                            <div className="text-xs text-slate-400">{step.tipo.replace('_', ' ')}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-4">
+                                        <div className="text-lg font-bold mb-2 text-white">{step.domanda}</div>
+                                        
+                                        {/* MOSTRA OPERAZIONE SOLO DOPO 3 ERRORI - estratta da hint_3 */}
+                                        {attempts >= 3 && step.hint_3 && (
+                                            (() => {
+                                                const operation = extractOperationFromHint(step.hint_3);
+                                                return operation ? (
+                                                    <div className="bg-slate-900/50 p-3 rounded-lg border-2 border-yellow-500 mb-3 animate-fade">
+                                                        <div className="text-sm text-yellow-400 mb-1">📊 Operazione suggerita:</div>
+                                                        <div className="text-2xl font-bold text-center font-mono text-yellow-300">
+                                                            {operation}
+                                                        </div>
+                                                        <div className="text-xs text-slate-400 text-center mt-1">
+                                                            (Puoi usare la calcolatrice →)
+                                                        </div>
+                                                    </div>
+                                                ) : null;
+                                            })()
+                                        )}
+                                    </div>
+
+                                    <input
+                                        type="text"
+                                        value={stepAnswers[currentStep] || ''}
+                                        onChange={(e) => setStepAnswers({ ...stepAnswers, [currentStep]: e.target.value })}
+                                        placeholder="Scrivi la risposta..."
+                                        className={`answer-input mb-4 ${
+                                            hint && attempts >= 3 ? 'incorrect' : ''
+                                        }`}
+                                        onKeyPress={(e) => e.key === 'Enter' && validateStep()}
+                                    />
+
+                                    {hint && (
+                                        <div className="hint-box mb-4">
+                                            <div className="flex items-start gap-2">
+                                                <span className="text-2xl">💡</span>
+                                                <div>
+                                                    <div className="font-bold text-yellow-300 mb-1">
+                                                        SUGGERIMENTO ({attempts}/3):
+                                                    </div>
+                                                    <div className="text-sm">{hint}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={validateStep}
+                                            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold py-3 rounded-xl active:scale-95"
+                                        >
+                                            ✅ VERIFICA RISPOSTA
+                                        </button>
+                                        <button
+                                            onClick={() => setShowCalc(!showCalc)}
+                                            className="bg-blue-600 text-white font-bold py-3 px-5 rounded-xl active:scale-95 md:hidden"
+                                        >
+                                            🧮
+                                        </button>
+                                    </div>
+
+                                    <div className="mt-4 text-xs text-slate-500 text-center">
+                                        Premi INVIO o clicca VERIFICA per controllare la risposta
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* CALCULATOR (desktop always, mobile toggle) */}
+                            <div className={`${showCalc ? 'block' : 'hidden md:block'} w-64 shrink-0`}>
+                                <div className="bg-slate-800/80 backdrop-blur rounded-xl p-3 border-2 border-slate-700 sticky top-0">
+                                    <div className="text-center font-bold text-yellow-400 mb-2 text-sm">🧮 CALCOLATRICE</div>
+                                    
+                                    <div className="bg-slate-950 rounded-lg p-3 mb-2 text-right text-xl font-mono text-yellow-400 h-14 flex items-center justify-end overflow-hidden border-2 border-slate-600">
+                                        {calcDisplay || '0'}
+                                    </div>
+
+                                    <div className="grid grid-cols-4 gap-1">
+                                        {['7','8','9','÷','4','5','6','×','1','2','3','-','0','.','=','+'].map(btn => (
+                                            <button
+                                                key={btn}
+                                                onClick={() => handleCalc(btn)}
+                                                className={`calc-btn ${
+                                                    btn === '=' ? 'bg-green-600' :
+                                                    ['÷','×','-','+'].includes(btn) ? 'bg-blue-600' :
+                                                    'bg-slate-700'
+                                                } text-white`}
+                                            >
+                                                {btn}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-1 mt-1">
+                                        <button onClick={() => handleCalc('⌫')} className="calc-btn bg-orange-600 text-white text-sm">⌫</button>
+                                        <button onClick={() => handleCalc('C')} className="calc-btn bg-red-600 text-white text-sm">C</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* SUCCESS MESSAGE OVERLAY */}
+                        {showSuccessMessage && (
+                            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 animate-fade">
+                                <div className={`max-w-md w-full mx-4 p-8 rounded-2xl text-center ${
+                                    showSuccessMessage.type === 'success' 
+                                        ? 'bg-gradient-to-br from-green-600 to-emerald-600' 
+                                        : 'bg-gradient-to-br from-blue-600 to-purple-600'
+                                }`}>
+                                    <div className="text-7xl mb-4 animate-bounce">
+                                        {showSuccessMessage.type === 'success' ? '🎉' : '⏭️'}
+                                    </div>
+                                    <div className="text-3xl font-bold text-white mb-4">
+                                        {showSuccessMessage.message}
+                                    </div>
+                                    {showSuccessMessage.xp && showSuccessMessage.xp !== 0 && (
+                                        <div className="text-xl text-yellow-300 font-bold">
+                                            {showSuccessMessage.xp > 0 ? '+' : ''}{showSuccessMessage.xp} XP
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+
+            // RENDER VICTORY SCREEN
+            if (screen === 'victory' && problemData) {
+                const totalXP = problemData.xp_guadagnati || 50;
+                
+                return (
+                    <div className="h-screen flex items-center justify-center p-4">
+                        <div className="max-w-2xl w-full animate-fade">
+                            <div className="text-center mb-8">
+                                <div className="text-9xl mb-4 animate-pulse">🎉</div>
+                                <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-4">
+                                    PROBLEMA RISOLTO!
+                                </h1>
+                                <p className="text-2xl text-green-400 font-bold">
+                                    Hai guadagnato +{totalXP} XP!
+                                </p>
+                            </div>
+
+                            <div className="bg-slate-800/50 backdrop-blur rounded-2xl p-6 border-2 border-green-500 mb-6">
+                                <div className="text-center mb-4">
+                                    <div className="text-sm text-slate-400 mb-1">XP TOTALI</div>
+                                    <div className="text-5xl font-bold text-yellow-400">{userXP}</div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-4 mb-4">
+                                    <div className="text-center">
+                                        <div className="text-3xl mb-1">📊</div>
+                                        <div className="text-sm text-slate-400">Complessità</div>
+                                        <div className="font-bold">{problemData.complessita}/5</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-3xl mb-1">🎯</div>
+                                        <div className="text-sm text-slate-400">Step Completati</div>
+                                        <div className="font-bold">{problemData.workflow.length}</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-3xl mb-1">💡</div>
+                                        <div className="text-sm text-slate-400">Hint Usati</div>
+                                        <div className="font-bold">{Object.keys(stepHints).length}</div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-green-900/30 border-2 border-green-500 rounded-xl p-4">
+                                    <div className="font-bold text-green-400 mb-2">✅ RISPOSTA FINALE:</div>
+                                    <div className="text-xl">{problemData.risposta_finale}</div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => {
+                                        setScreen('upload');
+                                        setImageData(null);
+                                        setProblemData(null);
+                                    }}
+                                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 rounded-xl text-xl active:scale-95"
+                                >
+                                    🔄 NUOVO PROBLEMA
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        window.location.href = 'index.html';
+                                    }}
+                                    className="bg-slate-700 text-white font-bold py-4 px-6 rounded-xl text-xl active:scale-95 flex items-center"
+                                    title="Torna alla home di EduGamer"
+                                >
+                                    🏠
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return null;
+        };
+
+        // RENDER
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
 </body>
 </html>
