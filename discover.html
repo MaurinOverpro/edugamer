@@ -17,7 +17,6 @@
             height: 100%;
             margin: 0;
             padding: 0;
-            overflow: hidden;
         }
 
         body { 
@@ -674,10 +673,14 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
                     if (attempts >= 3) {
                         DB.addXP(-5);
                         
-                        // MOSTRA MESSAGGIO "PASSIAMO AVANTI"
+                        // MOSTRA MESSAGGIO COMPLETO CON SPIEGAZIONE
+                        const operation = extractOperationFromHint(step.hint_3);
                         setShowSuccessMessage({
                             type: 'continue',
-                            message: '⏭️ Nessun problema! Passiamo al prossimo step',
+                            message: '⏭️ Vediamo la soluzione',
+                            correctAnswer: step.risposta_corretta,
+                            operation: operation,
+                            explanation: step.hint_3,
                             xp: -5
                         });
                         
@@ -692,7 +695,7 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
                                 DB.addXP(totalXP);
                                 setScreen('victory');
                             }
-                        }, 2500);
+                        }, 5000); // 5 secondi per leggere la spiegazione
                     }
                 }
             };
@@ -721,10 +724,10 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
             // RENDER UPLOAD SCREEN
             if (screen === 'upload') {
                 return (
-                    <div className="h-screen flex flex-col p-4 gap-4">
+                    <div className="min-h-screen flex flex-col p-3 md:p-4 gap-3 md:gap-4">
                         {/* HEADER */}
-                        <div className="flex items-center justify-between bg-slate-800/50 backdrop-blur rounded-2xl p-4 border-2 border-slate-700">
-                            <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-between bg-slate-800/50 backdrop-blur rounded-xl md:rounded-2xl p-3 md:p-4 border-2 border-slate-700">
+                            <div className="flex items-center gap-2 md:gap-3">
                                 <button 
                                     onClick={() => {
                                         if (imageData || problemData) {
@@ -735,65 +738,65 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
                                             }
                                         }
                                     }}
-                                    className="text-3xl active:scale-95 cursor-pointer"
+                                    className="text-2xl md:text-3xl active:scale-95 cursor-pointer"
                                     title="Ricomincia"
                                 >
                                     🏠
                                 </button>
                                 <div>
-                                    <h1 className="text-2xl font-bold text-blue-400">🎯 DISCOVER v4.0</h1>
-                                    <p className="text-sm text-slate-400">Metodo Guidato DSA</p>
+                                    <h1 className="text-lg md:text-2xl font-bold text-blue-400">🎯 DISCOVER v4.0</h1>
+                                    <p className="text-xs md:text-sm text-slate-400">Metodo Guidato DSA</p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 md:gap-3">
                                 <button
                                     onClick={() => setShowAPIKeyModal(true)}
-                                    className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm active:scale-95 transition-all"
+                                    className="bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded text-xs active:scale-95 transition-all"
                                     title="Modifica API Key"
                                 >
                                     🔑
                                 </button>
                                 <div className="text-right">
-                                    <div className="text-sm text-slate-400">XP Totali</div>
-                                    <div className="text-2xl font-bold text-yellow-400">{userXP}</div>
+                                    <div className="text-xs text-slate-400">XP</div>
+                                    <div className="text-lg md:text-2xl font-bold text-yellow-400">{userXP}</div>
                                 </div>
                             </div>
                         </div>
 
                         {/* UPLOAD AREA */}
-                        <div className="flex-1 flex flex-col items-center justify-center gap-6">
+                        <div className="flex-1 flex flex-col items-center justify-center gap-4 md:gap-6 py-4 px-4">
                             {!imageData ? (
                                 <>
-                                    <div className="text-8xl animate-bounce">📐</div>
-                                    <h2 className="text-3xl font-bold text-center">CARICA IL PROBLEMA</h2>
-                                    <p className="text-slate-400 text-center max-w-md">
+                                    <div className="text-6xl md:text-8xl animate-bounce">📐</div>
+                                    <h2 className="text-2xl md:text-3xl font-bold text-center">CARICA IL PROBLEMA</h2>
+                                    <p className="text-slate-400 text-center max-w-md text-sm md:text-base">
                                         Scatta una foto o scegli uno screenshot dalla galleria
                                     </p>
-                                    <div className="flex flex-col md:flex-row gap-4">
-                                        <label className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 px-8 rounded-2xl cursor-pointer shadow-lg flex items-center gap-3 active:scale-95 text-xl glow-blue">
+                                    <div className="flex flex-col md:flex-row gap-3 md:gap-4 w-full max-w-lg">
+                                        <label className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 md:py-4 px-4 md:px-8 rounded-xl md:rounded-2xl cursor-pointer shadow-lg flex items-center justify-center gap-2 md:gap-3 active:scale-95 text-base md:text-xl glow-blue">
                                             <input type="file" onChange={handleUpload} className="hidden" accept="image/*" capture="environment" />
                                             📷 SCATTA FOTO
                                         </label>
-                                        <label className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-4 px-8 rounded-2xl cursor-pointer shadow-lg flex items-center gap-3 active:scale-95 text-xl glow-green">
+                                        <label className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-3 md:py-4 px-4 md:px-8 rounded-xl md:rounded-2xl cursor-pointer shadow-lg flex items-center justify-center gap-2 md:gap-3 active:scale-95 text-base md:text-xl glow-green">
                                             <input type="file" onChange={handleUpload} className="hidden" accept="image/*" />
                                             🖼️ SCEGLI DA GALLERIA
                                         </label>
                                     </div>
                                 </>
                             ) : (
-                                <div className="w-full max-w-2xl space-y-4 animate-fade">
-                                    <img src={imageData} className="w-full rounded-2xl border-4 border-blue-500 shadow-2xl" />
+                                <div className="w-full max-w-2xl space-y-3 md:space-y-4 animate-fade">
+                                    <img src={imageData} className="w-full rounded-xl md:rounded-2xl border-4 border-blue-500 shadow-2xl" />
                                     <div className="flex gap-3">
                                         <button 
                                             onClick={analyzeProblem} 
                                             disabled={loading}
-                                            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold py-4 rounded-xl text-xl active:scale-95 glow-green disabled:opacity-50"
+                                            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold py-3 md:py-4 rounded-xl text-lg md:text-xl active:scale-95 glow-green disabled:opacity-50"
                                         >
                                             {loading ? '⏳ Analizzo...' : '🚀 INIZIA RISOLUZIONE'}
                                         </button>
                                         <button 
                                             onClick={() => setImageData(null)}
-                                            className="bg-red-600 text-white font-bold py-4 px-6 rounded-xl text-xl active:scale-95"
+                                            className="bg-red-600 text-white font-bold py-3 md:py-4 px-4 md:px-6 rounded-xl text-lg md:text-xl active:scale-95"
                                         >
                                             🗑️
                                         </button>
@@ -813,7 +816,7 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
                 const hint = stepHints[currentStep];
 
                 return (
-                    <div className="h-screen flex flex-col p-3 gap-3">
+                    <div className="min-h-screen flex flex-col p-2 md:p-3 gap-2 md:gap-3 overflow-y-auto">
                         {/* HEADER */}
                         <div className="flex items-center justify-between bg-slate-800/50 backdrop-blur rounded-xl p-3 border-2 border-slate-700 shrink-0">
                             <div className="flex items-center gap-2">
@@ -993,22 +996,69 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
                         
                         {/* SUCCESS MESSAGE OVERLAY */}
                         {showSuccessMessage && (
-                            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 animate-fade">
-                                <div className={`max-w-md w-full mx-4 p-8 rounded-2xl text-center ${
+                            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 animate-fade p-4 overflow-y-auto">
+                                <div className={`max-w-2xl w-full my-8 p-6 md:p-8 rounded-2xl ${
                                     showSuccessMessage.type === 'success' 
                                         ? 'bg-gradient-to-br from-green-600 to-emerald-600' 
                                         : 'bg-gradient-to-br from-blue-600 to-purple-600'
                                 }`}>
-                                    <div className="text-7xl mb-4 animate-bounce">
-                                        {showSuccessMessage.type === 'success' ? '🎉' : '⏭️'}
-                                    </div>
-                                    <div className="text-3xl font-bold text-white mb-4">
-                                        {showSuccessMessage.message}
-                                    </div>
-                                    {showSuccessMessage.xp && showSuccessMessage.xp !== 0 && (
-                                        <div className="text-xl text-yellow-300 font-bold">
-                                            {showSuccessMessage.xp > 0 ? '+' : ''}{showSuccessMessage.xp} XP
-                                        </div>
+                                    {showSuccessMessage.type === 'success' ? (
+                                        // MESSAGGIO SUCCESSO SEMPLICE
+                                        <>
+                                            <div className="text-6xl md:text-7xl mb-4 animate-bounce text-center">🎉</div>
+                                            <div className="text-2xl md:text-3xl font-bold text-white mb-4 text-center">
+                                                {showSuccessMessage.message}
+                                            </div>
+                                            {showSuccessMessage.xp && showSuccessMessage.xp !== 0 && (
+                                                <div className="text-xl text-yellow-300 font-bold text-center">
+                                                    {showSuccessMessage.xp > 0 ? '+' : ''}{showSuccessMessage.xp} XP
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        // MESSAGGIO CONTINUE CON SPIEGAZIONE COMPLETA
+                                        <>
+                                            <div className="text-5xl md:text-6xl mb-4 text-center">📖</div>
+                                            <div className="text-xl md:text-2xl font-bold text-white mb-6 text-center">
+                                                {showSuccessMessage.message}
+                                            </div>
+                                            
+                                            {/* RISPOSTA CORRETTA */}
+                                            <div className="bg-white/20 rounded-xl p-4 mb-4">
+                                                <div className="text-sm md:text-base text-yellow-200 font-bold mb-2">✅ RISPOSTA CORRETTA:</div>
+                                                <div className="text-xl md:text-2xl font-bold text-white text-center">
+                                                    {showSuccessMessage.correctAnswer}
+                                                </div>
+                                            </div>
+                                            
+                                            {/* OPERAZIONE */}
+                                            {showSuccessMessage.operation && (
+                                                <div className="bg-white/20 rounded-xl p-4 mb-4">
+                                                    <div className="text-sm md:text-base text-yellow-200 font-bold mb-2">📊 OPERAZIONE:</div>
+                                                    <div className="text-xl md:text-2xl font-mono font-bold text-white text-center">
+                                                        {showSuccessMessage.operation}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {/* SPIEGAZIONE */}
+                                            <div className="bg-white/20 rounded-xl p-4 mb-4">
+                                                <div className="text-sm md:text-base text-yellow-200 font-bold mb-2">💡 SPIEGAZIONE:</div>
+                                                <div className="text-sm md:text-base text-white leading-relaxed">
+                                                    {showSuccessMessage.explanation}
+                                                </div>
+                                            </div>
+                                            
+                                            {showSuccessMessage.xp && showSuccessMessage.xp !== 0 && (
+                                                <div className="text-lg text-yellow-300 font-bold text-center">
+                                                    {showSuccessMessage.xp > 0 ? '+' : ''}{showSuccessMessage.xp} XP
+                                                </div>
+                                            )}
+                                            
+                                            <div className="text-xs md:text-sm text-white/70 text-center mt-4">
+                                                ⏭️ Passeremo al prossimo step tra qualche secondo...
+                                            </div>
+                                        </>
                                     )}
                                 </div>
                             </div>
