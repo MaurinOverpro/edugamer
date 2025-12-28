@@ -765,14 +765,20 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
                             {!imageData ? (
                                 <>
                                     <div className="text-8xl animate-bounce">📐</div>
-                                    <h2 className="text-3xl font-bold text-center">SCATTA FOTO AL PROBLEMA</h2>
+                                    <h2 className="text-3xl font-bold text-center">CARICA IL PROBLEMA</h2>
                                     <p className="text-slate-400 text-center max-w-md">
-                                        Fotografa il problema di matematica e ti guiderò passo-passo alla soluzione!
+                                        Scatta una foto o scegli uno screenshot dalla galleria
                                     </p>
-                                    <label className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 px-8 rounded-2xl cursor-pointer shadow-lg flex items-center gap-3 active:scale-95 text-xl glow-blue">
-                                        <input type="file" onChange={handleUpload} className="hidden" accept="image/*" capture="environment" />
-                                        📷 SCATTA FOTO
-                                    </label>
+                                    <div className="flex flex-col md:flex-row gap-4">
+                                        <label className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 px-8 rounded-2xl cursor-pointer shadow-lg flex items-center gap-3 active:scale-95 text-xl glow-blue">
+                                            <input type="file" onChange={handleUpload} className="hidden" accept="image/*" capture="environment" />
+                                            📷 SCATTA FOTO
+                                        </label>
+                                        <label className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-4 px-8 rounded-2xl cursor-pointer shadow-lg flex items-center gap-3 active:scale-95 text-xl glow-green">
+                                            <input type="file" onChange={handleUpload} className="hidden" accept="image/*" />
+                                            🖼️ SCEGLI DA GALLERIA
+                                        </label>
+                                    </div>
                                 </>
                             ) : (
                                 <div className="w-full max-w-2xl space-y-4 animate-fade">
