@@ -592,6 +592,20 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
                 setLoading(false);
             };
 
+            // FUNZIONE PER CONTINUARE DOPO LA SCHERMATA DI SPIEGAZIONE
+            const handleContinueAfterExplanation = () => {
+                setShowSuccessMessage(null);
+                
+                if (currentStep < problemData.workflow.length - 1) {
+                    setCurrentStep(currentStep + 1);
+                    setStepHints({});
+                } else {
+                    const totalXP = Math.max(10, (problemData.xp_guadagnati || 50) - 20);
+                    DB.addXP(totalXP);
+                    setScreen('victory');
+                }
+            };
+
             // VALIDA STEP
             const validateStep = async () => {
                 const step = problemData.workflow[currentStep];
@@ -669,11 +683,10 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
                     
                     setStepHints({ ...stepHints, [currentStep]: hint });
                     
-                    // Dopo 3 errori, passa comunque avanti (con penalità)
+                    // Dopo 3 errori, mostra messaggio completo (rimane finché non si preme il pulsante)
                     if (attempts >= 3) {
                         DB.addXP(-5);
                         
-                        // MOSTRA MESSAGGIO COMPLETO CON SPIEGAZIONE
                         const operation = extractOperationFromHint(step.hint_3);
                         setShowSuccessMessage({
                             type: 'continue',
@@ -683,19 +696,6 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
                             explanation: step.hint_3,
                             xp: -5
                         });
-                        
-                        setTimeout(() => {
-                            setShowSuccessMessage(null);
-                            
-                            if (currentStep < problemData.workflow.length - 1) {
-                                setCurrentStep(currentStep + 1);
-                                setStepHints({});
-                            } else {
-                                const totalXP = Math.max(10, (problemData.xp_guadagnati || 50) - 20);
-                                DB.addXP(totalXP);
-                                setScreen('victory');
-                            }
-                        }, 5000); // 5 secondi per leggere la spiegazione
                     }
                 }
             };
@@ -1016,7 +1016,7 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
                                             )}
                                         </>
                                     ) : (
-                                        // MESSAGGIO CONTINUE CON SPIEGAZIONE COMPLETA
+                                        // MESSAGGIO CONTINUE CON SPIEGAZIONE COMPLETA + PULSANTE
                                         <>
                                             <div className="text-5xl md:text-6xl mb-4 text-center">📖</div>
                                             <div className="text-xl md:text-2xl font-bold text-white mb-6 text-center">
@@ -1050,14 +1050,18 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
                                             </div>
                                             
                                             {showSuccessMessage.xp && showSuccessMessage.xp !== 0 && (
-                                                <div className="text-lg text-yellow-300 font-bold text-center">
+                                                <div className="text-lg text-yellow-300 font-bold text-center mb-4">
                                                     {showSuccessMessage.xp > 0 ? '+' : ''}{showSuccessMessage.xp} XP
                                                 </div>
                                             )}
                                             
-                                            <div className="text-xs md:text-sm text-white/70 text-center mt-4">
-                                                ⏭️ Passeremo al prossimo step tra qualche secondo...
-                                            </div>
+                                            {/* PULSANTE PER CONTINUARE */}
+                                            <button
+                                                onClick={handleContinueAfterExplanation}
+                                                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-4 rounded-xl text-lg md:text-xl active:scale-95 glow-green transition-all"
+                                            >
+                                                ✅ HO CAPITO, CONTINUA
+                                            </button>
                                         </>
                                     )}
                                 </div>
