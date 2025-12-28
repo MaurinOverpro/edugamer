@@ -80,7 +80,7 @@
 <body>
     <div id="root"></div>
     <script type="text/babel">
-        const { useState, useRef } = React;
+        const { useState, useRef, useEffect } = React;
         const MODEL = "gemini-3-pro-preview"; // MODELLO AGGIORNATO
 
         const DB = {
@@ -95,6 +95,20 @@
                 .replace(/\n+/g, '. ')
                 .replace(/\.+/g, '.')
                 .replace(/\s+/g, ' ')
+                .trim();
+        };
+
+        // RIMUOVE EVENTUALI TAG HTML DAL TESTO (PROTEZIONE TABLET)
+        const stripHTML = (text) => {
+            if (!text) return '';
+            return text
+                .replace(/<[^>]*>/g, '') // Rimuove tutti i tag HTML
+                .replace(/&nbsp;/g, ' ')
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
+                .replace(/\s+/g, ' ') // Normalizza spazi multipli
                 .trim();
         };
 
@@ -141,6 +155,17 @@
             const [viewMode, setViewMode] = useState('edit'); // 'edit' o 'review'
             const textareaRef = useRef(null);
 
+            // PULIZIA AUTOMATICA HTML SU CAMBIO TESTO (PROTEZIONE TABLET)
+            useEffect(() => {
+                if (text && /<[^>]*>/.test(text)) {
+                    const cleaned = stripHTML(text);
+                    if (cleaned !== text) {
+                        console.log('🛡️ Rimosso HTML residuo dal testo');
+                        setText(cleaned);
+                    }
+                }
+            }, [text]);
+
             // Funzione XP
             const addXP = (amount, action) => {
                 if (window.EduGamer) {
@@ -172,14 +197,22 @@
 
             // HANDLECHECK CHE ATTIVA LA REVISIONE
             const handleCheck = async () => {
-                if(!text.trim()) return;
+                // PULIZIA PREVENTIVA HTML
+                const cleanedText = stripHTML(text.trim());
+                if (!cleanedText) return;
+                
+                // Aggiorna con testo pulito
+                if (cleanedText !== text) {
+                    setText(cleanedText);
+                }
+                
                 setLoading(true);
                 setErrors(null);
                 
                 try {
-                    const res = await checkText(text);
+                    const res = await checkText(cleanedText);
                     setErrors(res);
-                    setCorrectedText(text);
+                    setCorrectedText(cleanedText);
                     
                     if(res.length === 0) {
                         speak("Bravissimo! Non ho trovato nessun errore!");
@@ -195,11 +228,12 @@
                 setLoading(false);
             };
 
-            // GENERATORE TESTO EVIDENZIATO
+            // GENERATORE TESTO EVIDENZIATO (USA correctedText invece di text)
             const renderHighlightedText = () => {
-                if (!errors) return text;
+                if (!errors || !correctedText) return correctedText || text;
                 
-                let htmlText = text;
+                // Usa correctedText invece di text per evitare conflitti
+                let htmlText = correctedText;
                 const sortedErrors = [...errors].sort((a, b) => b.original.length - a.original.length);
 
                 sortedErrors.forEach(err => {
@@ -217,7 +251,10 @@
 
             const fixError = (idx) => {
                 const err = errors[idx];
-                const newText = correctedText.replace(err.original, err.correction);
+                // ASSICURA TESTO PULITO
+                const cleanCorrected = stripHTML(correctedText);
+                const newText = cleanCorrected.replace(err.original, err.correction);
+                
                 setCorrectedText(newText);
                 setText(newText);
                 
@@ -234,7 +271,8 @@
             };
 
             const fixAll = () => {
-                let newText = correctedText;
+                // ASSICURA TESTO PULITO
+                let newText = stripHTML(correctedText);
                 errors.forEach(err => {
                     newText = newText.replace(err.original, err.correction);
                 });
@@ -254,17 +292,31 @@
                 window.speechSynthesis.cancel();
             };
 
+            // GESTIONE TEXTAREA CON PULIZIA
+            const handleTextChange = (e) => {
+                const newText = e.target.value;
+                // Pulizia leggera in tempo reale (solo per casi evidenti)
+                if (/<span|<div/.test(newText)) {
+                    setText(stripHTML(newText));
+                } else {
+                    setText(newText);
+                }
+            };
+
             // === FUNZIONI CONDIVISIONE RIPRISTINATE ===
             const getShareText = () => {
+                const cleanText = stripHTML(text);
+                const cleanCorrected = stripHTML(correctedText);
+                
                 let shareContent = `CORREZIONE TESTO - EduGamer\n${'='.repeat(30)}\n\n`;
-                shareContent += `TESTO ORIGINALE:\n${text}\n\n`;
+                shareContent += `TESTO ORIGINALE:\n${cleanText}\n\n`;
                 
                 if(errors && errors.length > 0) {
                     shareContent += `ERRORI TROVATI (${errors.length}):\n`;
                     errors.forEach((e, i) => {
                         shareContent += `${i+1}. "${e.original}" → "${e.correction}"\n   (${e.type}) ${e.explanation}\n`;
                     });
-                    shareContent += `\nTESTO CORRETTO:\n${correctedText}\n`;
+                    shareContent += `\nTESTO CORRETTO:\n${cleanCorrected}\n`;
                 } else {
                     shareContent += `Nessun errore trovato!\n`;
                 }
@@ -383,7 +435,7 @@
                                 <textarea 
                                     ref={textareaRef}
                                     value={text} 
-                                    onChange={e => setText(e.target.value)} 
+                                    onChange={handleTextChange}
                                     className="editor-area flex-1 bg-slate-950 p-4 text-white outline-none resize-none"
                                     placeholder="Scrivi qui il tuo testo..."
                                 />
