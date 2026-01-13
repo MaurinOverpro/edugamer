@@ -8,6 +8,30 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    /* AGGIUNGI QUESTO CODICE PRIMA DI </style> */
+    /* Gestione schermi con altezza ridotta */
+        @media (max-height: 700px) {
+        .cyber-card {
+        min-height: 120px !important;
+        }
+        .cyber-card .text-4xl,
+        .cyber-card .md\:text-6xl {
+        font-size: 2.5rem !important;
+        }
+        .cyber-card h2 {
+        font-size: 1rem !important;
+        margin-bottom: 0.5rem !important;
+        }
+    }
+
+    @media (max-height: 600px) {
+        .cyber-card {
+            min-height: 100px !important;
+        }
+        header {
+            margin-bottom: 0.5rem !important;
+        }
+    }
     <style>
         /* Reset e base */
         body { 
@@ -159,7 +183,7 @@
                     <div className="flex-1 min-h-0 overflow-y-auto pb-2">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 h-full content-start">
                             {modules.map(m => (
-                                <a key={m.name} href={m.file} className={`cyber-card ${m.border} bg-slate-800/50 hover:bg-slate-800 p-4 md:p-6 group min-h-[140px] md:min-h-[180px]`}>
+                                <a key={m.name} href={m.file} className={`cyber-card ${m.border} bg-slate-800/50 hover:bg-slate-800 p-4 md:p-6 group`}>
                                     <div className="text-4xl md:text-6xl mb-2 md:mb-4 group-hover:scale-110 transition-transform duration-200">{m.icon}</div>
                                     <h2 className={`text-lg md:text-2xl font-bold ${m.color} mb-2 text-center`}>{m.name}</h2>
                                     <span className="text-[10px] md:text-xs text-slate-400 bg-slate-900 px-3 py-1 rounded-full border border-slate-700">APRI MODULO</span>
@@ -175,4 +199,5 @@
     </script>
     <script src="game-system.js"></script>
 </body>
+
 </html>
