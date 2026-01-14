@@ -8,15 +8,6 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    @media (max-height: 600px) {
-        .cyber-card {
-            min-height: 100px !important;
-        }
-        header {
-            margin-bottom: 0.5rem !important;
-        }
-    }
     <style>
         /* Reset e base */
         body { 
@@ -68,21 +59,30 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-       /* AGGIUNGI QUESTO CODICE PRIMA DI </style> */
-    /* Gestione schermi con altezza ridotta */
+        
+        /* Gestione schermi con altezza ridotta */
         @media (max-height: 700px) {
-        .cyber-card {
-        min-height: 120px !important;
+            .cyber-card {
+                min-height: 120px !important;
+            }
+            .cyber-card .text-4xl,
+            .cyber-card .md\:text-6xl {
+                font-size: 2.5rem !important;
+            }
+            .cyber-card h2 {
+                font-size: 1rem !important;
+                margin-bottom: 0.5rem !important;
+            }
         }
-        .cyber-card .text-4xl,
-        .cyber-card .md\:text-6xl {
-        font-size: 2.5rem !important;
+
+        @media (max-height: 600px) {
+            .cyber-card {
+                min-height: 100px !important;
+            }
+            header {
+                margin-bottom: 0.5rem !important;
+            }
         }
-        .cyber-card h2 {
-        font-size: 1rem !important;
-        margin-bottom: 0.5rem !important;
-        }
-    }
     </style>
 </head>
 <body>
@@ -199,6 +199,4 @@
     </script>
     <script src="game-system.js"></script>
 </body>
-
 </html>
-
