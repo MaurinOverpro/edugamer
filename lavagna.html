@@ -8,6 +8,7 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -25,46 +26,40 @@
             left: 0;
         }
 
-        /* --- CONTAINER SCROLLABILE (FIX TABLET) --- */
         .scroll-area {
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            overflow: scroll; /* IMPORTANTE: scroll invece di auto */
+            overflow: scroll;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
             background-image: radial-gradient(#1e293b 2px, transparent 2px);
             background-size: 40px 40px;
         }
 
-        /* Mappa Gigante */
         .map-canvas {
             width: 3000px; 
             height: 3000px;
             position: relative;
-            /* Questo assicura che il canvas sia sempre scrollabile */
             min-width: 3000px;
             min-height: 3000px;
         }
 
-        /* --- STILI NODI --- */
         .node-base {
             position: absolute;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            text-align: center; padding: 20px; border-radius: 25px;
+            text-align: center; padding: 14px; border-radius: 25px;
             cursor: pointer; z-index: 20;
             transition: transform 0.2s, box-shadow 0.3s, border-color 0.3s;
             box-shadow: 0 10px 30px rgba(0,0,0,0.6);
             user-select: none;
             background: rgba(15, 23, 42, 0.95);
-            /* IMPORTANTE: permette il tap ma non blocca lo scroll */
             touch-action: manipulation;
         }
         .node-base:active { transform: scale(0.95); }
         
-        /* Tema Centrale */
         .node-central { 
             background: linear-gradient(135deg, #2563eb, #1d4ed8); 
             border: 6px solid #60a5fa; 
@@ -74,14 +69,12 @@
             box-shadow: 0 0 60px rgba(37, 99, 235, 0.6);
         }
         
-        /* Concetti */
         .node-satellite { 
             border: 3px solid #94a3b8; 
-            width: 220px; min-height: 140px; 
-            font-size: 1.1rem;
+            width: 200px; min-height: 150px; 
+            font-size: 1rem;
         }
         
-        /* STATI ATTIVI */
         .node-selected {
             border-color: #facc15 !important;
             box-shadow: 0 0 50px rgba(250, 204, 21, 0.8) !important;
@@ -101,7 +94,18 @@
             100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
         }
 
-        /* Linea Neon */
+        .node-icon {
+            font-size: 2.5rem;
+            line-height: 1;
+            margin-bottom: 6px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        }
+
+        .node-central .node-icon {
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+        }
+
         .neon-line {
             stroke-dasharray: 1000; stroke-dashoffset: 1000;
             animation: draw 1s forwards ease-out;
@@ -109,7 +113,6 @@
         }
         @keyframes draw { to { stroke-dashoffset: 0; } }
 
-        /* Pulsante Upload */
         .btn-upload-big {
             background: linear-gradient(45deg, #3b82f6, #2563eb);
             border: 2px solid #60a5fa;
@@ -118,7 +121,6 @@
         }
         .btn-upload-big:active { transform: scale(0.95); }
 
-        /* Fumetto AI */
         .ai-bubble {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
             background: #1e293b; border: 2px solid #a855f7;
@@ -131,7 +133,6 @@
         }
         @keyframes slide-up { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 
-        /* Container vista mappa - IMPORTANTE per tablet */
         .map-viewport {
             position: absolute;
             top: 0;
@@ -141,7 +142,6 @@
             overflow: hidden;
         }
 
-        /* SHARE BUTTONS - identici a matematica.html */
         .share-btn {
             display: flex;
             align-items: center;
@@ -154,6 +154,23 @@
             transition: all 0.2s;
         }
         .share-btn:active { transform: scale(0.95); }
+
+        /* PDF Generation Overlay */
+        .pdf-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.9);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 200;
+        }
+        .pdf-spinner {
+            width: 60px; height: 60px;
+            border: 6px solid #3b82f6;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -161,7 +178,6 @@
     <script type="text/babel">
         const { useState, useRef, useEffect, useCallback } = React;
         
-        // --- MODIFICA 1: Modello Aggiornato ---
         const MODEL = "gemini-2.5-flash-lite";
 
         const DB = {
@@ -172,9 +188,9 @@
                 window.dispatchEvent(new Event('xpChanged'));
                 return next;
             },
-            save: (data) => localStorage.setItem('lavagna_interactive_v2', JSON.stringify(data)),
-            load: () => JSON.parse(localStorage.getItem('lavagna_interactive_v2') || 'null'),
-            clear: () => localStorage.removeItem('lavagna_interactive_v2')
+            save: (data) => localStorage.setItem('lavagna_interactive_v3', JSON.stringify(data)),
+            load: () => JSON.parse(localStorage.getItem('lavagna_interactive_v3') || 'null'),
+            clear: () => localStorage.removeItem('lavagna_interactive_v3')
         };
 
         const AI = {
@@ -184,25 +200,42 @@
                 
                 const parts = images.map(img => ({ inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] } }));
                 
-                const prompt = `Analizza queste pagine per uno studente delle medie/superiori.
-Crea una MAPPA MENTALE chiara e concisa.
+                const prompt = `Analizza queste pagine per uno studente delle medie con DSA (dislessia).
+Crea una MAPPA MENTALE chiara e SINTETICA.
 
-ISTRUZIONI:
-1. Identifica il TEMA PRINCIPALE
-2. Estrai 6-8 CONCETTI CHIAVE fondamentali
-3. Per ogni concetto scrivi una DEFINIZIONE SINTETICA (max 15 parole) con tono informativo e diretto, senza infantilismi
+ISTRUZIONI CRITICHE:
+1. Identifica il TEMA PRINCIPALE e scegli un'EMOJI che lo rappresenti
+2. Estrai 6-8 CONCETTI CHIAVE
+3. Per ogni concetto:
+   - Scrivi una DEFINIZIONE BREVISSIMA: MASSIMO 8 PAROLE (obbligatorio!)
+   - Scegli un'EMOJI RAPPRESENTATIVA del concetto
+4. Le emoji devono essere intuitive anche per concetti astratti:
+   - Oggetti fisici: usa l'emoji dell'oggetto (es: albero = 🌳)
+   - Concetti astratti: usa metafore visive (es: libertà = 🕊️, energia = ⚡, tempo = ⏰, memoria = 🧠, crescita = 📈)
+   - Processi: usa emoji di azione (es: trasformazione = 🔄, comunicazione = 💬)
 
-TONO: Professionale ma accessibile, come un libro di testo moderno. Evita diminutivi, vezzeggiativi e tono da bambino piccolo.
+TONO: Diretto e chiaro, adatto a studente medie. No tono infantile.
 
 Rispondi SOLO con JSON (senza markdown):
-{ "theme": "Titolo", "nodes": [{ "id": 1, "label": "Nome Concetto", "content": "Definizione chiara" }] }
+{
+  "theme": "Titolo Tema",
+  "themeIcon": "emoji_tema",
+  "nodes": [
+    { "id": 1, "label": "Nome", "icon": "emoji", "content": "Max 8 parole di spiegazione" }
+  ]
+}
 
 ESEMPIO:
-{ 
-  "theme": "Fotosintesi", 
+{
+  "theme": "Fotosintesi",
+  "themeIcon": "🌿",
   "nodes": [
-    { "id": 1, "label": "Clorofilla", "content": "Pigmento verde che cattura la luce solare nelle foglie" },
-    { "id": 2, "label": "Glucosio", "content": "Zucchero prodotto dalla pianta come fonte di energia" }
+    { "id": 1, "label": "Clorofilla", "icon": "🍀", "content": "Pigmento verde che cattura la luce" },
+    { "id": 2, "label": "Glucosio", "icon": "🍬", "content": "Zucchero prodotto come fonte di energia" },
+    { "id": 3, "label": "CO2", "icon": "💨", "content": "Gas assorbito dalle foglie" },
+    { "id": 4, "label": "Ossigeno", "icon": "🫧", "content": "Gas rilasciato nell'aria" },
+    { "id": 5, "label": "Luce Solare", "icon": "☀️", "content": "Energia necessaria per il processo" },
+    { "id": 6, "label": "Acqua", "icon": "💧", "content": "Assorbita dalle radici dal terreno" }
   ]
 }`;
 
@@ -217,66 +250,397 @@ ESEMPIO:
                 return JSON.parse(text);
             },
 
-           explainConnection: async (label1, label2) => {
-    const key = DB.getKey();
-    if(!key) return `Hai collegato ${label1} con ${label2}!`;
+            explainConnection: async (label1, label2) => {
+                const key = DB.getKey();
+                if(!key) return `Hai collegato ${label1} con ${label2}!`;
 
-    const prompt = `Spiega in UNA frase chiara e diretta la relazione tra "${label1}" e "${label2}".
+                const prompt = `Spiega in UNA frase chiara la relazione tra "${label1}" e "${label2}".
 
 REQUISITI:
-- Tono: informativo e naturale, adatto a uno studente delle medie/superiori
-- Lunghezza: massimo 20 parole
-- Stile: conciso ma completo, evita tono infantile o eccessivamente semplificato
-- NON usare diminutivi, vezzeggiativi o espressioni come "carino", "bellissimo", "magico"
+- Massimo 15 parole
+- Tono informativo, adatto a studente medie
+- NO diminutivi o tono infantile
 
-Rispondi SOLO con la frase di collegamento, senza preamble.
+Rispondi SOLO con la frase.`;
 
-ESEMPI:
-- "La clorofilla cattura la luce necessaria per produrre glucosio tramite fotosintesi"
-- "Il DNA contiene le istruzioni genetiche che determinano le caratteristiche delle proteine"`;
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
+                        method: 'POST', 
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    const data = await res.json();
+                    return data.candidates[0].content.parts[0].text;
+                } catch(e) { 
+                    return `${label1} e ${label2} sono collegati.`; 
+                }
+            },
 
-    try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
-        const data = await res.json();
-        return data.candidates[0].content.parts[0].text;
-    } catch(e) { 
-        return `Ottimo! ${label1} e ${label2} sono collegati.`; 
-    }
-}
+            generateNarrative: async (theme, exploredNodes, connectionExplanations) => {
+                const key = DB.getKey();
+                if(!key || connectionExplanations.length === 0) return null;
+
+                const conceptsList = exploredNodes.map(n => `${n.icon} ${n.label}: ${n.content}`).join('\n');
+                const connectionsList = connectionExplanations.map(c => 
+                    `${c.fromIcon} ${c.from} <-> ${c.toIcon} ${c.to}: ${c.explanation}`
+                ).join('\n');
+
+                const prompt = `Sei un insegnante che prepara un riassunto per uno studente con DSA (dislessia) delle medie.
+Tema: ${theme}
+
+Concetti esplorati:
+${conceptsList}
+
+Collegamenti trovati:
+${connectionsList}
+
+Scrivi un RIASSUNTO BREVE e COERENTE che:
+1. Unisca i concetti e i collegamenti in un testo fluido
+2. Usi frasi CORTE (max 12 parole ciascuna)
+3. Vada a capo spesso (ogni 1-2 frasi)
+4. Sia lungo al massimo 10-12 frasi totali
+5. NON usi elenchi puntati, solo testo continuo con paragrafi brevi
+6. Sia informativo, NON infantile
+
+Rispondi SOLO con il testo del riassunto.`;
+
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    const data = await res.json();
+                    return data.candidates[0].content.parts[0].text.replace(/```/g, '').trim();
+                } catch(e) {
+                    return null;
+                }
+            }
         };
 
-        // --- MODIFICA 2: Funzione Pulizia Emoji ---
+        // --- Utility: pulizia testo per sintesi vocale ---
         const cleanTextForSpeech = (text) => {
-    // Se text è undefined/null, ritorna stringa vuota
-    if (!text) return '';
-    
-    // Converti a stringa per sicurezza
-    const str = String(text);
-    
-    return str
-        .replace(/[*#_`~]/g, '')
-        .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
-        .replace(/[\u{2600}-\u{26FF}]/gu, '')
-        .replace(/[\u{2700}-\u{27BF}]/gu, '')
-        .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
-        .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')
-        .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')
-        .replace(/[\u{2300}-\u{23FF}]/gu, '')
-        .replace(/[\u{2B50}]/gu, '')
-        .replace(/[\u{1F4D0}-\u{1F4FF}]/gu, '')
-        .replace(/[\u{270F}-\u{2712}]/gu, '')
-        .replace(/[\u{2705}]/gu, '')
-        .replace(/[\u{1F9E0}]/gu, '')
-        .replace(/[\u{1F50D}]/gu, '')
-        .replace(/\n+/g, '. ')
-        .replace(/\.+/g, '.')
-        .replace(/\s+/g, ' ')
-        .trim();
-};
+            if (!text) return '';
+            const str = String(text);
+            return str
+                .replace(/[*#_`~]/g, '')
+                .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+                .replace(/[\u{2600}-\u{26FF}]/gu, '')
+                .replace(/[\u{2700}-\u{27BF}]/gu, '')
+                .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
+                .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')
+                .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')
+                .replace(/[\u{2300}-\u{23FF}]/gu, '')
+                .replace(/[\u{2B50}]/gu, '')
+                .replace(/[\u{1F4D0}-\u{1F4FF}]/gu, '')
+                .replace(/[\u{270F}-\u{2712}]/gu, '')
+                .replace(/[\u{2705}]/gu, '')
+                .replace(/[\u{1F9E0}]/gu, '')
+                .replace(/[\u{1F50D}]/gu, '')
+                .replace(/\n+/g, '. ')
+                .replace(/\.+/g, '.')
+                .replace(/\s+/g, ' ')
+                .trim();
+        };
+
+        // --- Utility: emoji su canvas per PDF ---
+        const emojiToDataURL = (emoji, size = 48) => {
+            const canvas = document.createElement('canvas');
+            const scale = 2; // retina
+            canvas.width = size * scale;
+            canvas.height = size * scale;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(scale, scale);
+            ctx.font = `${size * 0.85}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(emoji, size / 2, size / 2);
+            return canvas.toDataURL('image/png');
+        };
+
+        // --- PDF Generator (STAMPA-FRIENDLY: sfondo bianco, testo scuro) ---
+        const generatePDF = async (mapData, nodes, exploredNodes, connectionExplanations, onProgress) => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const W = 210, H = 297;
+            const margin = 18;
+            const contentW = W - margin * 2;
+
+            // Colori da stampa
+            const COL = {
+                black: [30, 30, 30],
+                darkGray: [60, 60, 70],
+                medGray: [120, 120, 130],
+                lightGray: [200, 200, 205],
+                veryLight: [240, 242, 245],
+                white: [255, 255, 255],
+                blue: [37, 99, 235],
+                bluePale: [219, 234, 254],
+                green: [22, 101, 52],
+                greenPale: [220, 252, 231],
+                orange: [154, 52, 18],
+                orangePale: [255, 237, 213],
+                purple: [88, 28, 135],
+                purplePale: [243, 232, 255],
+            };
+
+            // Font sizes DSA-friendly (grandi e leggibili)
+            const TITLE_SIZE = 24;
+            const HEADING_SIZE = 16;
+            const BODY_SIZE = 13;
+            const SMALL_SIZE = 11;
+            const EMOJI_IMG_SIZE = 8;
+            const ICON_PX = 48;
+
+            const today = new Date().toLocaleDateString('it-IT', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+            });
+
+            const setCol = (c) => doc.setTextColor(...c);
+            const setFill = (c) => doc.setFillColor(...c);
+            const setDraw = (c) => doc.setDrawColor(...c);
+
+            const addEmojiImg = (emoji, x, y, size = EMOJI_IMG_SIZE) => {
+                try {
+                    const dataUrl = emojiToDataURL(emoji, ICON_PX);
+                    doc.addImage(dataUrl, 'PNG', x, y, size, size);
+                    return true;
+                } catch(e) { return false; }
+            };
+
+            const wrapText = (text, maxWidth, fontSize) => {
+                doc.setFontSize(fontSize);
+                return doc.splitTextToSize(text, maxWidth);
+            };
+
+            onProgress?.('Genero copertina...');
+
+            // ============ PAGINA 1: COPERTINA ============
+            // Banda blu in alto
+            setFill(COL.blue);
+            doc.rect(0, 0, W, 8, 'F');
+
+            // Emoji tema grande
+            const themeIcon = mapData.themeIcon || '📚';
+            addEmojiImg(themeIcon, W/2 - 12, 30, 24);
+
+            // Titolo tema
+            setCol(COL.black);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(TITLE_SIZE);
+            const themeLines = wrapText(mapData.theme, contentW - 10, TITLE_SIZE);
+            let ty = 68;
+            themeLines.forEach(line => {
+                doc.text(line, W/2, ty, { align: 'center' });
+                ty += 10;
+            });
+
+            // Linea decorativa
+            setDraw(COL.blue);
+            doc.setLineWidth(0.8);
+            doc.line(W/2 - 30, ty + 4, W/2 + 30, ty + 4);
+
+            // Sottotitolo
+            doc.setFontSize(BODY_SIZE);
+            doc.setFont('helvetica', 'normal');
+            setCol(COL.medGray);
+            doc.text('MAPPA MENTALE', W/2, ty + 16, { align: 'center' });
+            doc.text(today, W/2, ty + 26, { align: 'center' });
+
+            // Box statistiche
+            const statsY = ty + 45;
+            setFill(COL.bluePale);
+            doc.roundedRect(margin + 20, statsY, contentW - 40, 40, 6, 6, 'F');
+
+            const totalNodes = nodes.length - 1;
+            doc.setFontSize(BODY_SIZE);
+            setCol(COL.blue);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`Concetti esplorati: ${exploredNodes.length} / ${totalNodes}`, W/2, statsY + 15, { align: 'center' });
+            doc.text(`Collegamenti trovati: ${connectionExplanations.length}`, W/2, statsY + 28, { align: 'center' });
+
+            // Footer
+            doc.setFontSize(SMALL_SIZE);
+            setCol(COL.medGray);
+            doc.text('Creato con EduGamer', W/2, H - 20, { align: 'center' });
+
+            // ============ PAGINA 2: CONCETTI ============
+            onProgress?.('Aggiungo concetti...');
+            doc.addPage();
+
+            // Intestazione verde
+            setFill(COL.green);
+            doc.roundedRect(margin, 14, contentW, 14, 4, 4, 'F');
+            setCol(COL.white);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(HEADING_SIZE);
+            doc.text('CONCETTI DELLA MAPPA', W/2, 24, { align: 'center' });
+
+            let y = 38;
+            const satNodes = nodes.filter(n => !n.isCentral);
+
+            satNodes.forEach((node, i) => {
+                if (y > H - 42) {
+                    doc.addPage();
+                    y = 20;
+                }
+
+                // Card con sfondo chiaro
+                setFill(COL.veryLight);
+                doc.roundedRect(margin, y, contentW, 28, 4, 4, 'F');
+
+                // Barra laterale blu
+                setFill(COL.blue);
+                doc.rect(margin, y, 3.5, 28, 'F');
+
+                // Emoji
+                addEmojiImg(node.icon || '📌', margin + 7, y + 2, 10);
+
+                // Label (scuro e grassetto)
+                setCol(COL.blue);
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(BODY_SIZE + 1);
+                doc.text(node.label, margin + 21, y + 11);
+
+                // Content (grigio scuro)
+                setCol(COL.darkGray);
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(BODY_SIZE);
+                const contentLines = wrapText(node.content || '', contentW - 26, BODY_SIZE);
+                contentLines.forEach((line, li) => {
+                    if (li < 2) doc.text(line, margin + 21, y + 20 + (li * 5.5));
+                });
+
+                y += 33;
+            });
+
+            // ============ PAGINA 3: COLLEGAMENTI ============
+            if (connectionExplanations.length > 0) {
+                onProgress?.('Aggiungo collegamenti...');
+                doc.addPage();
+
+                // Intestazione arancio
+                setFill(COL.orange);
+                doc.roundedRect(margin, 14, contentW, 14, 4, 4, 'F');
+                setCol(COL.white);
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(HEADING_SIZE);
+                doc.text('COLLEGAMENTI SCOPERTI', W/2, 24, { align: 'center' });
+
+                y = 38;
+
+                connectionExplanations.forEach((conn, i) => {
+                    if (y > H - 46) {
+                        doc.addPage();
+                        y = 20;
+                    }
+
+                    // Card sfondo chiaro arancio
+                    setFill(COL.orangePale);
+                    doc.roundedRect(margin, y, contentW, 30, 4, 4, 'F');
+
+                    // Emoji lato sinistro e destro
+                    addEmojiImg(conn.fromIcon || '📌', margin + 5, y + 2, 8);
+                    addEmojiImg(conn.toIcon || '📌', margin + contentW - 13, y + 2, 8);
+
+                    // Titolo collegamento
+                    setCol(COL.orange);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(BODY_SIZE);
+                    doc.text(`${conn.from}  ↔  ${conn.to}`, W/2, y + 10, { align: 'center' });
+
+                    // Spiegazione
+                    setCol(COL.darkGray);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(BODY_SIZE);
+                    const explLines = wrapText(cleanTextForSpeech(conn.explanation), contentW - 20, BODY_SIZE);
+                    explLines.forEach((line, li) => {
+                        if (li < 2) doc.text(line, W/2, y + 19 + (li * 5.5), { align: 'center' });
+                    });
+
+                    y += 35;
+                });
+            }
+
+            // ============ PAGINA 4: RIASSUNTO NARRATIVO ============
+            if (connectionExplanations.length >= 2) {
+                onProgress?.('Genero riassunto...');
+                
+                const narrative = await AI.generateNarrative(
+                    mapData.theme, exploredNodes, connectionExplanations
+                );
+
+                if (narrative) {
+                    doc.addPage();
+
+                    // Intestazione viola
+                    setFill(COL.purple);
+                    doc.roundedRect(margin, 14, contentW, 14, 4, 4, 'F');
+                    setCol(COL.white);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(HEADING_SIZE);
+                    doc.text('RIASSUNTO', W/2, 24, { align: 'center' });
+
+                    // Emoji tema + titolo
+                    addEmojiImg(mapData.themeIcon || '📚', W/2 - 5, 33, 10);
+
+                    setCol(COL.black);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(BODY_SIZE + 2);
+                    doc.text(mapData.theme, W/2, 52, { align: 'center' });
+
+                    // Linea sotto titolo
+                    setDraw(COL.purple);
+                    doc.setLineWidth(0.5);
+                    doc.line(margin + 20, 56, W - margin - 20, 56);
+
+                    // Testo riassunto
+                    y = 65;
+                    const cleanNarr = cleanTextForSpeech(narrative);
+                    const paragraphs = cleanNarr.split(/\.\s+/).filter(p => p.trim());
+
+                    let iconIndex = 0;
+
+                    paragraphs.forEach((para, pi) => {
+                        const fullPara = para.endsWith('.') ? para : para + '.';
+                        const paraLines = wrapText(fullPara, contentW - 18, BODY_SIZE + 1);
+
+                        if (y + paraLines.length * 7 > H - 25) {
+                            doc.addPage();
+                            y = 20;
+                        }
+
+                        // Icona decorativa ogni 2 paragrafi
+                        if (pi % 2 === 0 && exploredNodes[iconIndex]) {
+                            addEmojiImg(exploredNodes[iconIndex].icon || '📌', margin, y - 1, 6);
+                            iconIndex = (iconIndex + 1) % exploredNodes.length;
+                        }
+
+                        setCol(COL.darkGray);
+                        doc.setFont('helvetica', 'normal');
+                        doc.setFontSize(BODY_SIZE + 1);
+                        paraLines.forEach(line => {
+                            doc.text(line, margin + 10, y);
+                            y += 7;
+                        });
+                        y += 4;
+                    });
+
+                    // Footer riassunto
+                    if (y < H - 30) {
+                        setDraw(COL.lightGray);
+                        doc.setLineWidth(0.3);
+                        doc.line(margin + 20, y + 5, W - margin - 20, y + 5);
+                        doc.setFontSize(SMALL_SIZE);
+                        setCol(COL.medGray);
+                        doc.text('Riassunto generato da AI basato sulla tua esplorazione', W/2, y + 14, { align: 'center' });
+                    }
+                }
+            }
+
+            return doc;
+        };
+
 
         const App = () => {
             const [stage, setStage] = useState('upload');
@@ -288,12 +652,10 @@ ESEMPI:
             const [aiMessage, setAiMessage] = useState(null);
             const scrollRef = useRef(null);
 
-            // NUOVO: Per salvare il percorso di esplorazione
             const [connectionExplanations, setConnectionExplanations] = useState([]);
             const [exploredNodes, setExploredNodes] = useState([]);
-            
-            // NUOVO: Menu condivisione
             const [showShareMenu, setShowShareMenu] = useState(false);
+            const [pdfProgress, setPdfProgress] = useState(null);
 
             useEffect(() => {
                 try {
@@ -307,28 +669,23 @@ ESEMPI:
                 } catch(e) { DB.clear(); }
             }, []);
 
-            useEffect(() => { if(nodes.length) DB.save({ mapData, nodes, lines, connectionExplanations, exploredNodes }); }, [nodes, lines, connectionExplanations, exploredNodes]);
+            useEffect(() => { 
+                if(nodes.length) DB.save({ mapData, nodes, lines, connectionExplanations, exploredNodes }); 
+            }, [nodes, lines, connectionExplanations, exploredNodes]);
 
-            // CENTRATURA MIGLIORATA PER TABLET
             const centerMap = useCallback(() => {
                 const el = scrollRef.current;
                 if (!el) return;
-                
                 const centerX = 1500 - (window.innerWidth / 2);
                 const centerY = 1500 - (window.innerHeight / 2);
-                
-                // Imposta direttamente senza animazione per evitare glitch
                 el.scrollLeft = Math.max(0, centerX);
                 el.scrollTop = Math.max(0, centerY);
             }, []);
 
             useEffect(() => {
                 if(stage === 'view') {
-                    // Doppio requestAnimationFrame per assicurare il render completo
                     requestAnimationFrame(() => {
-                        requestAnimationFrame(() => {
-                            centerMap();
-                        });
+                        requestAnimationFrame(() => { centerMap(); });
                     });
                 }
             }, [stage, centerMap]);
@@ -347,19 +704,23 @@ ESEMPI:
                     const data = await AI.analyzeMap(images);
                     setMapData(data);
 
-                    const cx = 1500; 
-                    const cy = 1500;
-                    const radius = 420; 
+                    const cx = 1500, cy = 1500, radius = 420;
 
-                    const central = { id: 0, label: data.theme, content: "Argomento Principale", x: cx-110, y: cy-110, w: 220, h: 220, isCentral: true };
+                    const central = { 
+                        id: 0, label: data.theme, 
+                        icon: data.themeIcon || '📚',
+                        content: "Argomento Principale", 
+                        x: cx-120, y: cy-120, w: 240, h: 240, isCentral: true 
+                    };
                     
                     const sats = data.nodes.map((n, i) => {
                         const angle = (i / data.nodes.length) * 2 * Math.PI - Math.PI/2;
                         return { 
                             ...n, id: i+1, 
+                            icon: n.icon || '📌',
                             x: cx + radius * Math.cos(angle) - 100, 
-                            y: cy + radius * Math.sin(angle) - 70, 
-                            w: 200, h: 140, isCentral: false 
+                            y: cy + radius * Math.sin(angle) - 75, 
+                            w: 200, h: 150, isCentral: false 
                         };
                     });
 
@@ -372,78 +733,74 @@ ESEMPI:
                 } catch(e) { alert("Errore: " + e.message); setStage('upload'); }
             };
 
-            // --- MODIFICA 3: Sintesi Vocale Pulita ---
             const speak = (text) => {
                 window.speechSynthesis.cancel();
                 setAiMessage(text);
-                
-                // Pulisce il testo dalle emoji
                 const cleanText = cleanTextForSpeech(text);
-                
                 const u = new SpeechSynthesisUtterance(cleanText);
                 u.lang = 'it-IT'; u.rate = 0.95;
-                
-                // Tenta di usare la voce Google
                 const voices = window.speechSynthesis.getVoices();
                 const googleVoice = voices.find(v => v.lang.includes('it') && v.name.includes('Google'));
                 if (googleVoice) u.voice = googleVoice;
-                
                 u.onend = () => setTimeout(() => setAiMessage(null), 2000);
                 window.speechSynthesis.speak(u);
             };
 
             const handleNodeClick = async (node) => {
-    if(node.isCentral) {
-        const cleanLabel = cleanTextForSpeech(node.label);
-        speak(`Tema: ${cleanLabel}. Tocca gli altri concetti per collegarli!`);
-        return;
-    }
+                if(node.isCentral) {
+                    const cleanLabel = cleanTextForSpeech(node.label);
+                    speak(`Tema: ${cleanLabel}. Tocca gli altri concetti per collegarli!`);
+                    return;
+                }
 
-    // NUOVO: Salva nodo esplorato (se non già presente)
-    if (!exploredNodes.find(n => n.id === node.id)) {
-        setExploredNodes(prev => [...prev, { id: node.id, label: node.label, content: node.content }]);
-    }
+                // Salva nodo esplorato con icona
+                if (!exploredNodes.find(n => n.id === node.id)) {
+                    setExploredNodes(prev => [...prev, { 
+                        id: node.id, label: node.label, 
+                        content: node.content, icon: node.icon 
+                    }]);
+                }
 
-    if (!selectedNode) {
-        setSelectedNode(node);
-        const cleanLabel = cleanTextForSpeech(node.label);
-        const cleanContent = cleanTextForSpeech(node.content);
-        speak(cleanLabel + ". " + cleanContent);  // ← RISOLTO
-        return;
-    }
+                if (!selectedNode) {
+                    setSelectedNode(node);
+                    const cleanLabel = cleanTextForSpeech(node.label);
+                    const cleanContent = cleanTextForSpeech(node.content);
+                    speak(cleanLabel + ". " + cleanContent);
+                    return;
+                }
 
                 if (selectedNode.id === node.id) {
                     setSelectedNode(null);
                     return;
                 }
 
-                const exists = lines.some(l => (l.from === selectedNode.id && l.to === node.id) || (l.from === node.id && l.to === selectedNode.id));
+                const exists = lines.some(l => 
+                    (l.from === selectedNode.id && l.to === node.id) || 
+                    (l.from === node.id && l.to === selectedNode.id)
+                );
                 
                 if (!exists) {
                     setLines(prev => [...prev, { from: selectedNode.id, to: node.id }]);
                     DB.addXP(20);
                     
                     setAiMessage("🤔 Analizzo il collegamento...");
-const cleanLabel1 = cleanTextForSpeech(selectedNode.label);
-const cleanLabel2 = cleanTextForSpeech(node.label);
-const explanation = await AI.explainConnection(cleanLabel1, cleanLabel2);
+                    const cleanLabel1 = cleanTextForSpeech(selectedNode.label);
+                    const cleanLabel2 = cleanTextForSpeech(node.label);
+                    const explanation = await AI.explainConnection(cleanLabel1, cleanLabel2);
 
-console.log('🔍 Explanation ricevuta:', explanation, typeof explanation);
-
-// Verifica che explanation sia valido
-if (explanation && typeof explanation === 'string') {
-    // NUOVO: Salva la spiegazione del collegamento
-    setConnectionExplanations(prev => [...prev, {
-        from: selectedNode.label,
-        to: node.label,
-        explanation: explanation
-    }]);
-
-    speak(explanation);
-} else {
-    console.error('❌ Explanation non valida:', explanation);
-    speak(`${selectedNode.label} e ${node.label} sono collegati!`);
-}  // explanation è già pulito perché viene dall'AI
+                    if (explanation && typeof explanation === 'string') {
+                        // Salva con icone per il PDF
+                        setConnectionExplanations(prev => [...prev, {
+                            from: selectedNode.label,
+                            to: node.label,
+                            fromIcon: selectedNode.icon || '📌',
+                            toIcon: node.icon || '📌',
+                            explanation: explanation
+                        }]);
+                        speak(explanation);
+                    } else {
+                        speak(`${selectedNode.label} e ${node.label} sono collegati!`);
+                    }
                 } else {
                     speak("Sono già collegati!");
                 }
@@ -459,176 +816,112 @@ if (explanation && typeof explanation === 'string') {
                 }
             };
 
-            // NUOVO: Genera testo riepilogo
-            // NUOVO: Genera testo riepilogo PULITO (senza emoji e caratteri speciali)
-const getSummaryText = (cleanVersion = false) => {
-    if (!mapData) return '';
-    
-    const today = new Date().toLocaleDateString('it-IT', { 
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-    });
-    
-    // Funzione per pulire caratteri speciali
-    const cleanText = (text) => {
-        if (!cleanVersion) return text;
-        return text
-            // Rimuovi emoji
-            .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
-            .replace(/[\u{2600}-\u{26FF}]/gu, '')
-            .replace(/[\u{2700}-\u{27BF}]/gu, '')
-            .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
-            .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')
-            .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')
-            .replace(/[\u{2300}-\u{23FF}]/gu, '')
-            .replace(/[\u{2B50}]/gu, '')
-            .replace(/[\u{1F4D0}-\u{1F4FF}]/gu, '')
-            .replace(/[\u{270F}-\u{2712}]/gu, '')
-            .replace(/[\u{2705}]/gu, '')
-            .replace(/[\u{1F9E0}]/gu, '')
-            .replace(/[\u{1F50D}]/gu, '')
-            .replace(/[\u{1F3AF}]/gu, '')
-            .replace(/[\u{1F4CC}]/gu, '')
-            .replace(/[\u{1F517}]/gu, '')
-            .replace(/[\u{2B50}]/gu, '')
-            .replace(/[\u{1F916}]/gu, '')
-            // Rimuovi caratteri box-drawing
-            .replace(/[━═│║┌┐└┘├┤┬┴┼─]/g, '')
-            // Normalizza spazi
-            .replace(/\s+/g, ' ')
-            .trim();
-    };
-    
-    // Separatori per versione pulita
-    const sep1 = cleanVersion ? '=' : '═';
-    const sep2 = cleanVersion ? '-' : '─';
-    const bullet = cleanVersion ? '*' : '•';
-    const arrow = cleanVersion ? '<->' : '↔';
-    
-    let text = '';
-    
-    // INTESTAZIONE
-    text += cleanText(`MAPPA MENTALE: ${mapData.theme}`) + '\n';
-    text += `Data: ${today}\n`;
-    text += '\n' + sep1.repeat(50) + '\n\n';
-    
-    // TEMA CENTRALE
-    text += cleanText('TEMA CENTRALE') + '\n';
-    text += cleanText(mapData.theme) + '\n\n';
-    text += sep2.repeat(50) + '\n\n';
-    
-    // CONCETTI ESPLORATI
-    text += cleanText(`CONCETTI ESPLORATI (${exploredNodes.length}/${nodes.length - 1})`) + '\n\n';
-    
-    if (exploredNodes.length === 0) {
-        text += 'Nessun concetto ancora esplorato.\n\n';
-    } else {
-        exploredNodes.forEach((node, i) => {
-            text += `${i + 1}. ${cleanText(node.label)}\n`;
-            text += `   ${cleanText(node.content)}\n\n`;
-        });
-    }
-    
-    text += sep2.repeat(50) + '\n\n';
-    
-    // COLLEGAMENTI SCOPERTI
-    text += cleanText(`COLLEGAMENTI SCOPERTI (${connectionExplanations.length})`) + '\n\n';
-    
-    if (connectionExplanations.length === 0) {
-        text += 'Nessun collegamento ancora creato.\n\n';
-    } else {
-        connectionExplanations.forEach((conn, i) => {
-            text += `${i + 1}. ${cleanText(conn.from)} ${arrow} ${cleanText(conn.to)}\n`;
-            text += `   "${cleanText(conn.explanation)}"\n\n`;
-        });
-    }
-    
-    text += sep2.repeat(50) + '\n\n';
-    
-    // STATISTICHE
-    const totalNodes = nodes.length - 1;
-    text += cleanText('STATISTICHE') + '\n';
-    text += `${bullet} Concetti esplorati: ${exploredNodes.length}/${totalNodes}\n`;
-    text += `${bullet} Collegamenti trovati: ${connectionExplanations.length}\n`;
-    text += `${bullet} XP guadagnati: ${50 + (connectionExplanations.length * 20)}\n\n`;
-    
-    text += sep1.repeat(50) + '\n';
-    text += 'Creato con EduGamer\n';
-    
-    return text;
-};
+            // --- CONDIVISIONE ---
+            const getSummaryText = (cleanVersion = false) => {
+                if (!mapData) return '';
+                const today = new Date().toLocaleDateString('it-IT', { 
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                });
+                const cleanTxt = (text) => {
+                    if (!cleanVersion) return text;
+                    return text.replace(/[\u{1F300}-\u{1FAFF}]/gu, '').replace(/[\u{2600}-\u{27BF}]/gu, '').replace(/\s+/g, ' ').trim();
+                };
+                
+                let text = '';
+                text += cleanTxt(`MAPPA MENTALE: ${mapData.theme}`) + '\n';
+                text += `Data: ${today}\n\n`;
+                text += '='.repeat(40) + '\n\n';
+                text += cleanTxt('CONCETTI') + '\n\n';
+                
+                exploredNodes.forEach((node, i) => {
+                    text += `${i + 1}. ${node.icon || ''} ${cleanTxt(node.label)}: ${cleanTxt(node.content)}\n`;
+                });
+                
+                text += '\n' + '-'.repeat(40) + '\n\n';
+                text += cleanTxt('COLLEGAMENTI') + '\n\n';
+                
+                connectionExplanations.forEach((conn, i) => {
+                    text += `${i + 1}. ${conn.fromIcon || ''} ${cleanTxt(conn.from)} <-> ${conn.toIcon || ''} ${cleanTxt(conn.to)}\n`;
+                    text += `   ${cleanTxt(conn.explanation)}\n\n`;
+                });
+                
+                text += '='.repeat(40) + '\n';
+                text += 'Creato con EduGamer\n';
+                return text;
+            };
 
-            // NUOVO: Condivisione WhatsApp
             const shareViaWhatsApp = () => {
                 const text = getSummaryText();
-                const msg = encodeURIComponent(text);
-                window.open(`https://wa.me/?text=${msg}`, '_blank');
+                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                 setShowShareMenu(false);
             };
 
-           // NUOVO: Condivisione Email con testo pulito
-const shareViaEmail = () => {
-    const text = getSummaryText(true); // true = versione pulita
-    const subject = encodeURIComponent(`Mappa Mentale: ${mapData?.theme || 'EduGamer'}`);
-    const body = encodeURIComponent(text);
-    
-    // Controlla lunghezza URL (limite ~2000 caratteri)
-    const mailtoUrl = `mailto:?subject=${subject}&body=${body}`;
-    
-    if (mailtoUrl.length > 2000) {
-        alert('⚠️ Il testo è troppo lungo per l\'email!\n\nUsa "Salva File" e allega il file .txt manualmente.');
-        return;
-    }
-    
-    window.location.href = mailtoUrl;
-    setShowShareMenu(false);
-    };
+            const shareViaEmail = () => {
+                const text = getSummaryText(true);
+                const subject = encodeURIComponent(`Mappa Mentale: ${mapData?.theme || 'EduGamer'}`);
+                const body = encodeURIComponent(text);
+                const url = `mailto:?subject=${subject}&body=${body}`;
+                if (url.length > 2000) {
+                    alert('Testo troppo lungo per email. Usa "Salva PDF".');
+                    return;
+                }
+                window.location.href = url;
+                setShowShareMenu(false);
+            };
 
-           // NUOVO: Salva file .txt PULITO
-const saveAsFile = () => {
-    const text = getSummaryText(true); // true = versione pulita
-    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    
-    // Nome file senza caratteri speciali
-    const cleanTheme = mapData?.theme
-        ?.replace(/[^\w\s]/g, '')
-        ?.replace(/\s+/g, '_')
-        ?.substring(0, 30) || 'mappa_mentale';
-    
-    const dateStr = new Date().toISOString().slice(0,10);
-    a.download = `${cleanTheme}_${dateStr}.txt`;
-    
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    setShowShareMenu(false);
-    };
+            const saveAsPDF = async () => {
+                setShowShareMenu(false);
+                setPdfProgress('Preparo il PDF...');
+                try {
+                    const doc = await generatePDF(
+                        mapData, nodes, exploredNodes, connectionExplanations,
+                        (msg) => setPdfProgress(msg)
+                    );
+                    const cleanTheme = mapData?.theme?.replace(/[^\w\s]/g, '')?.replace(/\s+/g, '_')?.substring(0, 30) || 'mappa';
+                    const dateStr = new Date().toISOString().slice(0,10);
+                    doc.save(`${cleanTheme}_${dateStr}.pdf`);
+                    setPdfProgress(null);
+                    DB.addXP(30);
+                } catch(e) {
+                    console.error('Errore PDF:', e);
+                    alert('Errore nella generazione del PDF: ' + e.message);
+                    setPdfProgress(null);
+                }
+            };
 
-            // NUOVO: Menu condivisione (identico a matematica.html)
+            const saveAsFile = () => {
+                const text = getSummaryText(true);
+                const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const cleanTheme = mapData?.theme?.replace(/[^\w\s]/g, '')?.replace(/\s+/g, '_')?.substring(0, 30) || 'mappa';
+                a.download = `${cleanTheme}_${new Date().toISOString().slice(0,10)}.txt`;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                setShowShareMenu(false);
+            };
+
+            // --- RENDER: Share Menu ---
             const renderShareMenu = () => {
                 if(!showShareMenu) return null;
-                
                 return (
                     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setShowShareMenu(false)}>
                         <div className="bg-slate-800 rounded-2xl p-4 w-full max-w-sm border-2 border-slate-600" onClick={e => e.stopPropagation()}>
-                            <h3 className="text-xl font-bold text-center text-white mb-4">📤 Invia Riepilogo</h3>
-                            
+                            <h3 className="text-xl font-bold text-center text-white mb-4">📤 Esporta Mappa</h3>
                             <div className="flex flex-col gap-3">
+                                <button onClick={saveAsPDF} className="share-btn bg-red-600 text-white text-lg">
+                                    <span className="text-xl">📄</span> Scarica PDF
+                                </button>
                                 <button onClick={shareViaWhatsApp} className="share-btn bg-green-600 text-white">
                                     <span className="text-xl">💬</span> WhatsApp
                                 </button>
-                                
                                 <button onClick={shareViaEmail} className="share-btn bg-blue-600 text-white">
                                     <span className="text-xl">📧</span> Email
                                 </button>
-                                
                                 <button onClick={saveAsFile} className="share-btn bg-purple-600 text-white">
-                                    <span className="text-xl">💾</span> Salva File
+                                    <span className="text-xl">💾</span> Salva TXT
                                 </button>
-                                
                                 <button onClick={() => setShowShareMenu(false)} className="share-btn bg-slate-600 text-white mt-2">
                                     ✕ Chiudi
                                 </button>
@@ -638,58 +931,83 @@ const saveAsFile = () => {
                 );
             };
 
-            const renderCanvas = () => {
+            // --- RENDER: PDF Progress Overlay ---
+            const renderPdfProgress = () => {
+                if(!pdfProgress) return null;
                 return (
-                    <div className="scroll-area" ref={scrollRef}>
-                        <div className="map-canvas">
-                            <svg className="absolute inset-0 pointer-events-none z-10" 
-                                 style={{width: '3000px', height: '3000px'}}>
-                                {lines.map((line, i) => {
-                                    const n1 = nodes.find(n => n.id === line.from);
-                                    const n2 = nodes.find(n => n.id === line.to);
-                                    if(!n1 || !n2) return null;
-                                    return (
-                                        <line key={i} 
-                                            x1={n1.x + n1.w/2} y1={n1.y + n1.h/2} 
-                                            x2={n2.x + n2.w/2} y2={n2.y + n2.h/2} 
-                                            stroke="#4ade80" strokeWidth="8" strokeLinecap="round"
-                                            className="neon-line"
-                                        />
-                                    );
-                                })}
-                            </svg>
-
-                            {nodes.map(node => {
-                                const isSel = selectedNode?.id === node.id;
-                                const isConnected = lines.some(l => l.from === node.id || l.to === node.id);
-
-                                return (
-                                    <div key={node.id} 
-                                        className={`node-base 
-                                            ${node.isCentral ? 'node-central' : 'node-satellite'}
-                                            ${isSel ? 'node-selected' : ''}
-                                            ${isConnected && !node.isCentral ? 'node-connected' : ''}
-                                        `}
-                                        style={{ left: node.x, top: node.y, width: node.w, height: node.h }}
-                                        onClick={(e) => { e.stopPropagation(); handleNodeClick(node); }}
-                                    >
-                                        <div className="font-bold text-yellow-300 mb-2 leading-tight">{node.label}</div>
-                                        {!node.isCentral && <div className="text-sm text-gray-200 line-clamp-3 leading-snug font-medium">{node.content}</div>}
-                                    </div>
-                                );
-                            })}
-                        </div>
+                    <div className="pdf-overlay">
+                        <div className="pdf-spinner mb-6"></div>
+                        <p className="text-blue-300 font-bold text-xl">{pdfProgress}</p>
                     </div>
                 );
             };
 
+            // --- RENDER: Canvas Mappa ---
+            const renderCanvas = () => (
+                <div className="scroll-area" ref={scrollRef}>
+                    <div className="map-canvas">
+                        <svg className="absolute inset-0 pointer-events-none z-10" 
+                             style={{width: '3000px', height: '3000px'}}>
+                            {lines.map((line, i) => {
+                                const n1 = nodes.find(n => n.id === line.from);
+                                const n2 = nodes.find(n => n.id === line.to);
+                                if(!n1 || !n2) return null;
+                                return (
+                                    <line key={i} 
+                                        x1={n1.x + n1.w/2} y1={n1.y + n1.h/2} 
+                                        x2={n2.x + n2.w/2} y2={n2.y + n2.h/2} 
+                                        stroke="#4ade80" strokeWidth="8" strokeLinecap="round"
+                                        className="neon-line"
+                                    />
+                                );
+                            })}
+                        </svg>
+
+                        {nodes.map(node => {
+                            const isSel = selectedNode?.id === node.id;
+                            const isConnected = lines.some(l => l.from === node.id || l.to === node.id);
+
+                            return (
+                                <div key={node.id} 
+                                    className={`node-base 
+                                        ${node.isCentral ? 'node-central' : 'node-satellite'}
+                                        ${isSel ? 'node-selected' : ''}
+                                        ${isConnected && !node.isCentral ? 'node-connected' : ''}
+                                    `}
+                                    style={{ left: node.x, top: node.y, width: node.w, height: node.h }}
+                                    onClick={(e) => { e.stopPropagation(); handleNodeClick(node); }}
+                                >
+                                    {/* ICONA EMOJI GRANDE */}
+                                    <div className="node-icon">{node.icon || '📌'}</div>
+                                    
+                                    {/* LABEL */}
+                                    <div className="font-bold text-yellow-300 leading-tight text-sm">
+                                        {node.label}
+                                    </div>
+                                    
+                                    {/* CONTENT (solo nodi satellite) */}
+                                    {!node.isCentral && (
+                                        <div className="text-xs text-gray-200 line-clamp-2 leading-snug mt-1 font-medium">
+                                            {node.content}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+
+            // --- STAGE: Upload ---
             if(stage === 'upload') return (
                 <div className="h-full flex flex-col items-center justify-center p-6 gap-6">
                     <h1 className="text-4xl font-black text-green-400 tracking-tighter">LAVAGNA MAGICA ✨</h1>
                     <div className="border-2 border-dashed border-slate-600 p-8 rounded-3xl flex flex-col items-center gap-6 bg-slate-800/50 w-full max-w-2xl shadow-2xl">
                         <div className="flex gap-2 overflow-auto max-w-full p-2 min-h-[90px]">
-                            {images.length === 0 ? <span className="text-slate-500 m-auto">Nessuna foto ancora...</span> : 
-                            images.map((src,i)=><img key={i} src={src} className="h-24 rounded-xl border-2 border-slate-500 shadow-lg"/>)}
+                            {images.length === 0 ? 
+                                <span className="text-slate-500 m-auto">Nessuna foto ancora...</span> : 
+                                images.map((src,i) => <img key={i} src={src} className="h-24 rounded-xl border-2 border-slate-500 shadow-lg"/>)
+                            }
                         </div>
                         
                         <label className="btn-upload-big w-full py-6 rounded-2xl font-bold text-2xl cursor-pointer text-white flex items-center justify-center gap-3 shadow-xl">
@@ -707,6 +1025,7 @@ const saveAsFile = () => {
                 </div>
             );
 
+            // --- STAGE: Scanning ---
             if(stage === 'scanning') return (
                 <div className="h-full flex flex-col items-center justify-center gap-6">
                     <div className="w-24 h-24 border-8 border-green-500 border-t-transparent rounded-full animate-spin"></div>
@@ -714,6 +1033,7 @@ const saveAsFile = () => {
                 </div>
             );
 
+            // --- STAGE: View (Mappa) ---
             return (
                 <div className="h-screen w-screen flex flex-col overflow-hidden" style={{position: 'fixed', top: 0, left: 0}}>
                     {/* Toolbar */}
@@ -733,10 +1053,9 @@ const saveAsFile = () => {
                         </button>
                     </div>
 
-                    {/* Area di Gioco Scrollabile */}
+                    {/* Area Mappa */}
                     <div className="map-viewport flex-1">
                         {renderCanvas()}
-                        
                         {aiMessage && (
                             <div className="ai-bubble">
                                 <span className="text-3xl">🤖</span>
@@ -745,21 +1064,16 @@ const saveAsFile = () => {
                         )}
                     </div>
 
-                    {/* Menu Condivisione */}
+                    {/* Overlay e Menu */}
                     {renderShareMenu()}
+                    {renderPdfProgress()}
                 </div>
             );
         };
+
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
     <script src="game-system.js"></script>
 </body>
-
 </html>
-
-
-
-
-
-
