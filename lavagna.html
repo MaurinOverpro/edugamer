@@ -556,62 +556,111 @@ Rispondi SOLO con il testo del riassunto.`;
                 y = 38;
 
                 connectionExplanations.forEach((conn, i) => {
-                    // Area testo: tra le due emoji (16mm margine per lato)
-                    const connTitleMaxW = contentW - 36;
-                    const connTitle = `${conn.from}  ↔  ${conn.to}`;
-
-                    // Calcola se il titolo va a capo, riduci font se necessario
-                    let connFontSize = BODY_SIZE;
+                    // === LAYOUT CARD COLLEGAMENTO ===
+                    // Riga 1: [emoji1] Label1     <-->     Label2 [emoji2]
+                    // Riga 2: spiegazione centrata
+                    
+                    const iconSize = 7;
+                    const iconMargin = 3;
+                    const innerPad = 8;
+                    
+                    // Calcola larghezze label (ciascuna metà card meno icona)
+                    const halfW = (contentW - 20) / 2; // 20mm per freccia centrale
+                    
+                    // Wrap labels se necessarie
                     doc.setFont('helvetica', 'bold');
-                    let connTitleLines = wrapText(connTitle, connTitleMaxW, connFontSize);
-                    if (connTitleLines.length > 2) {
-                        connFontSize = BODY_SIZE - 2;
-                        connTitleLines = wrapText(connTitle, connTitleMaxW, connFontSize);
+                    let labelFontSize = BODY_SIZE;
+                    let label1Lines = wrapText(conn.from, halfW - iconSize - iconMargin - 4, labelFontSize);
+                    let label2Lines = wrapText(conn.to, halfW - iconSize - iconMargin - 4, labelFontSize);
+                    if (label1Lines.length > 2 || label2Lines.length > 2) {
+                        labelFontSize = BODY_SIZE - 2;
+                        label1Lines = wrapText(conn.from, halfW - iconSize - iconMargin - 4, labelFontSize);
+                        label2Lines = wrapText(conn.to, halfW - iconSize - iconMargin - 4, labelFontSize);
                     }
-
-                    // Spiegazione
+                    const maxLabelRows = Math.max(label1Lines.length, label2Lines.length);
+                    const labelBlockH = maxLabelRows * (labelFontSize * 0.5);
+                    
+                    // Wrap spiegazione
                     doc.setFont('helvetica', 'normal');
-                    const explLines = wrapText(cleanTextForSpeech(conn.explanation), contentW - 20, BODY_SIZE);
-                    const titleH = connTitleLines.length * (connFontSize * 0.45);
-                    const explH = Math.min(explLines.length, 2) * 5.5;
-                    const cardH = Math.max(30, 6 + titleH + 4 + explH + 4);
-
+                    const explLines = wrapText(cleanTextForSpeech(conn.explanation), contentW - 16, BODY_SIZE);
+                    const explH = Math.min(explLines.length, 3) * 5.5;
+                    
+                    // Altezza card totale
+                    const topRowH = Math.max(iconSize, labelBlockH) + 4;
+                    const cardH = innerPad + topRowH + 4 + explH + innerPad;
+                    
                     if (y > H - cardH - 10) {
                         doc.addPage();
                         y = 20;
                     }
-
-                    // Card sfondo chiaro arancio
+                    
+                    // Card sfondo
                     setFill(COL.orangePale);
                     doc.roundedRect(margin, y, contentW, cardH, 4, 4, 'F');
-
-                    // Emoji lato sinistro e destro — centrate verticalmente
-                    const connEmojiY = y + (cardH - 8) / 2 - 2;
-                    addEmojiImg(conn.fromIcon || '📌', margin + 5, connEmojiY, 8);
-                    addEmojiImg(conn.toIcon || '📌', margin + contentW - 13, connEmojiY, 8);
-
-                    // Titolo collegamento — centrato, tra le emoji
+                    
+                    // === RIGA SUPERIORE: emoji + label a sinistra | freccia | label + emoji a destra ===
+                    const rowY = y + innerPad;
+                    
+                    // -- Lato sinistro: emoji1 + label1 --
+                    const leftEmojiX = margin + 5;
+                    const leftEmojiY = rowY + (topRowH - iconSize) / 2 - 1;
+                    addEmojiImg(conn.fromIcon || '📌', leftEmojiX, leftEmojiY, iconSize);
+                    
+                    const leftTextX = leftEmojiX + iconSize + iconMargin;
                     setCol(COL.orange);
                     doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(connFontSize);
-                    let connTextY = y + 8;
-                    connTitleLines.forEach(line => {
-                        doc.text(line, W/2, connTextY, { align: 'center' });
-                        connTextY += connFontSize * 0.45;
+                    doc.setFontSize(labelFontSize);
+                    let ltY = rowY + (topRowH - labelBlockH) / 2 + labelFontSize * 0.35;
+                    label1Lines.forEach(line => {
+                        doc.text(line, leftTextX, ltY);
+                        ltY += labelFontSize * 0.5;
                     });
-
-                    // Spiegazione
-                    connTextY += 3;
+                    
+                    // -- Freccia centrale (disegnata come grafica, no Unicode) --
+                    const arrowCX = W / 2;
+                    const arrowCY = rowY + topRowH / 2;
+                    setDraw(COL.orange);
+                    doc.setLineWidth(0.6);
+                    doc.line(arrowCX - 8, arrowCY, arrowCX + 8, arrowCY);
+                    // Punte freccia
+                    doc.line(arrowCX - 8, arrowCY, arrowCX - 5, arrowCY - 1.5);
+                    doc.line(arrowCX - 8, arrowCY, arrowCX - 5, arrowCY + 1.5);
+                    doc.line(arrowCX + 8, arrowCY, arrowCX + 5, arrowCY - 1.5);
+                    doc.line(arrowCX + 8, arrowCY, arrowCX + 5, arrowCY + 1.5);
+                    
+                    // -- Lato destro: label2 + emoji2 (allineato a destra) --
+                    const rightEmojiX = margin + contentW - 5 - iconSize;
+                    const rightEmojiY = rowY + (topRowH - iconSize) / 2 - 1;
+                    addEmojiImg(conn.toIcon || '📌', rightEmojiX, rightEmojiY, iconSize);
+                    
+                    const rightTextMaxX = rightEmojiX - iconMargin;
+                    setCol(COL.orange);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(labelFontSize);
+                    let rtY = rowY + (topRowH - labelBlockH) / 2 + labelFontSize * 0.35;
+                    label2Lines.forEach(line => {
+                        doc.text(line, rightTextMaxX, rtY, { align: 'right' });
+                        rtY += labelFontSize * 0.5;
+                    });
+                    
+                    // === LINEA SEPARATORE sottile ===
+                    const sepY = rowY + topRowH + 2;
+                    setDraw(COL.lightGray);
+                    doc.setLineWidth(0.2);
+                    doc.line(margin + 10, sepY, margin + contentW - 10, sepY);
+                    
+                    // === RIGA INFERIORE: spiegazione centrata ===
+                    let explY = sepY + 5;
                     setCol(COL.darkGray);
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(BODY_SIZE);
                     explLines.forEach((line, li) => {
-                        if (li < 2) {
-                            doc.text(line, W/2, connTextY, { align: 'center' });
-                            connTextY += 5.5;
+                        if (li < 3) {
+                            doc.text(line, W / 2, explY, { align: 'center' });
+                            explY += 5.5;
                         }
                     });
-
+                    
                     y += cardH + 5;
                 });
             }
