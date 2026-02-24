@@ -422,17 +422,24 @@ Rispondi SOLO con il testo del riassunto.`;
 
             // Emoji tema grande
             const themeIcon = mapData.themeIcon || '📚';
-            addEmojiImg(themeIcon, W/2 - 12, 30, 24);
+            const emojiSize = 24;
+            addEmojiImg(themeIcon, W/2 - emojiSize/2, 30, emojiSize);
 
-            // Titolo tema
+            // Titolo tema — parte SOTTO l'emoji con margine
+            let ty = 30 + emojiSize + 8;
             setCol(COL.black);
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(TITLE_SIZE);
-            const themeLines = wrapText(mapData.theme, contentW - 10, TITLE_SIZE);
-            let ty = 68;
+            // Riduci font se titolo troppo lungo per stare su 2 righe
+            let titleFontSize = TITLE_SIZE;
+            let themeLines = wrapText(mapData.theme, contentW - 20, titleFontSize);
+            if (themeLines.length > 2) {
+                titleFontSize = TITLE_SIZE - 4;
+                themeLines = wrapText(mapData.theme, contentW - 20, titleFontSize);
+            }
+            doc.setFontSize(titleFontSize);
             themeLines.forEach(line => {
                 doc.text(line, W/2, ty, { align: 'center' });
-                ty += 10;
+                ty += titleFontSize * 0.45;
             });
 
             // Linea decorativa
@@ -480,38 +487,57 @@ Rispondi SOLO con il testo del riassunto.`;
             const satNodes = nodes.filter(n => !n.isCentral);
 
             satNodes.forEach((node, i) => {
-                if (y > H - 42) {
+                // Calcola altezza card in base al contenuto
+                const labelMaxW = contentW - 26;
+                doc.setFont('helvetica', 'bold');
+                const labelLines = wrapText(node.label, labelMaxW, BODY_SIZE + 1);
+                doc.setFont('helvetica', 'normal');
+                const contentLines = wrapText(node.content || '', labelMaxW, BODY_SIZE);
+                const labelH = labelLines.length * 6;
+                const contentH = Math.min(contentLines.length, 2) * 5.5;
+                const cardH = Math.max(28, 6 + labelH + contentH + 4);
+
+                if (y > H - cardH - 10) {
                     doc.addPage();
                     y = 20;
                 }
 
                 // Card con sfondo chiaro
                 setFill(COL.veryLight);
-                doc.roundedRect(margin, y, contentW, 28, 4, 4, 'F');
+                doc.roundedRect(margin, y, contentW, cardH, 4, 4, 'F');
 
                 // Barra laterale blu
                 setFill(COL.blue);
-                doc.rect(margin, y, 3.5, 28, 'F');
+                doc.rect(margin, y, 3.5, cardH, 'F');
 
-                // Emoji
-                addEmojiImg(node.icon || '📌', margin + 7, y + 2, 10);
+                // Emoji — centrata verticalmente nella card
+                const emojiY = y + (cardH - 10) / 2;
+                addEmojiImg(node.icon || '📌', margin + 7, emojiY, 10);
 
-                // Label (scuro e grassetto)
+                // Label (a destra dell'emoji, va a capo se serve)
+                const textX = margin + 21;
+                let textY = y + 8;
                 setCol(COL.blue);
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(BODY_SIZE + 1);
-                doc.text(node.label, margin + 21, y + 11);
+                labelLines.forEach(line => {
+                    doc.text(line, textX, textY);
+                    textY += 6;
+                });
 
                 // Content (grigio scuro)
+                textY += 1;
                 setCol(COL.darkGray);
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(BODY_SIZE);
-                const contentLines = wrapText(node.content || '', contentW - 26, BODY_SIZE);
                 contentLines.forEach((line, li) => {
-                    if (li < 2) doc.text(line, margin + 21, y + 20 + (li * 5.5));
+                    if (li < 2) {
+                        doc.text(line, textX, textY);
+                        textY += 5.5;
+                    }
                 });
 
-                y += 33;
+                y += cardH + 5;
             });
 
             // ============ PAGINA 3: COLLEGAMENTI ============
@@ -530,35 +556,63 @@ Rispondi SOLO con il testo del riassunto.`;
                 y = 38;
 
                 connectionExplanations.forEach((conn, i) => {
-                    if (y > H - 46) {
+                    // Area testo: tra le due emoji (16mm margine per lato)
+                    const connTitleMaxW = contentW - 36;
+                    const connTitle = `${conn.from}  ↔  ${conn.to}`;
+
+                    // Calcola se il titolo va a capo, riduci font se necessario
+                    let connFontSize = BODY_SIZE;
+                    doc.setFont('helvetica', 'bold');
+                    let connTitleLines = wrapText(connTitle, connTitleMaxW, connFontSize);
+                    if (connTitleLines.length > 2) {
+                        connFontSize = BODY_SIZE - 2;
+                        connTitleLines = wrapText(connTitle, connTitleMaxW, connFontSize);
+                    }
+
+                    // Spiegazione
+                    doc.setFont('helvetica', 'normal');
+                    const explLines = wrapText(cleanTextForSpeech(conn.explanation), contentW - 20, BODY_SIZE);
+                    const titleH = connTitleLines.length * (connFontSize * 0.45);
+                    const explH = Math.min(explLines.length, 2) * 5.5;
+                    const cardH = Math.max(30, 6 + titleH + 4 + explH + 4);
+
+                    if (y > H - cardH - 10) {
                         doc.addPage();
                         y = 20;
                     }
 
                     // Card sfondo chiaro arancio
                     setFill(COL.orangePale);
-                    doc.roundedRect(margin, y, contentW, 30, 4, 4, 'F');
+                    doc.roundedRect(margin, y, contentW, cardH, 4, 4, 'F');
 
-                    // Emoji lato sinistro e destro
-                    addEmojiImg(conn.fromIcon || '📌', margin + 5, y + 2, 8);
-                    addEmojiImg(conn.toIcon || '📌', margin + contentW - 13, y + 2, 8);
+                    // Emoji lato sinistro e destro — centrate verticalmente
+                    const connEmojiY = y + (cardH - 8) / 2 - 2;
+                    addEmojiImg(conn.fromIcon || '📌', margin + 5, connEmojiY, 8);
+                    addEmojiImg(conn.toIcon || '📌', margin + contentW - 13, connEmojiY, 8);
 
-                    // Titolo collegamento
+                    // Titolo collegamento — centrato, tra le emoji
                     setCol(COL.orange);
                     doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(BODY_SIZE);
-                    doc.text(`${conn.from}  ↔  ${conn.to}`, W/2, y + 10, { align: 'center' });
+                    doc.setFontSize(connFontSize);
+                    let connTextY = y + 8;
+                    connTitleLines.forEach(line => {
+                        doc.text(line, W/2, connTextY, { align: 'center' });
+                        connTextY += connFontSize * 0.45;
+                    });
 
                     // Spiegazione
+                    connTextY += 3;
                     setCol(COL.darkGray);
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(BODY_SIZE);
-                    const explLines = wrapText(cleanTextForSpeech(conn.explanation), contentW - 20, BODY_SIZE);
                     explLines.forEach((line, li) => {
-                        if (li < 2) doc.text(line, W/2, y + 19 + (li * 5.5), { align: 'center' });
+                        if (li < 2) {
+                            doc.text(line, W/2, connTextY, { align: 'center' });
+                            connTextY += 5.5;
+                        }
                     });
 
-                    y += 35;
+                    y += cardH + 5;
                 });
             }
 
@@ -581,21 +635,34 @@ Rispondi SOLO con il testo del riassunto.`;
                     doc.setFontSize(HEADING_SIZE);
                     doc.text('RIASSUNTO', W/2, 24, { align: 'center' });
 
-                    // Emoji tema + titolo
-                    addEmojiImg(mapData.themeIcon || '📚', W/2 - 5, 33, 10);
+                    // Emoji tema + titolo — sotto l'intestazione
+                    const narrEmojiSize = 10;
+                    addEmojiImg(mapData.themeIcon || '📚', W/2 - narrEmojiSize/2, 33, narrEmojiSize);
 
+                    // Titolo tema — parte sotto l'emoji
+                    const narrTitleY = 33 + narrEmojiSize + 5;
                     setCol(COL.black);
                     doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(BODY_SIZE + 2);
-                    doc.text(mapData.theme, W/2, 52, { align: 'center' });
+                    let narrTitleSize = BODY_SIZE + 2;
+                    let narrTitleLines = wrapText(mapData.theme, contentW - 20, narrTitleSize);
+                    if (narrTitleLines.length > 2) {
+                        narrTitleSize = BODY_SIZE;
+                        narrTitleLines = wrapText(mapData.theme, contentW - 20, narrTitleSize);
+                    }
+                    doc.setFontSize(narrTitleSize);
+                    let ntY = narrTitleY;
+                    narrTitleLines.forEach(line => {
+                        doc.text(line, W/2, ntY, { align: 'center' });
+                        ntY += narrTitleSize * 0.45;
+                    });
 
                     // Linea sotto titolo
                     setDraw(COL.purple);
                     doc.setLineWidth(0.5);
-                    doc.line(margin + 20, 56, W - margin - 20, 56);
+                    doc.line(margin + 20, ntY + 3, W - margin - 20, ntY + 3);
 
                     // Testo riassunto
-                    y = 65;
+                    y = ntY + 12;
                     const cleanNarr = cleanTextForSpeech(narrative);
                     const paragraphs = cleanNarr.split(/\.\s+/).filter(p => p.trim());
 
