@@ -580,6 +580,27 @@ Rispondi SOLO con JSON (senza markdown):
             const [podcastGenerating, setPodcastGenerating] = useState(false);
             const podcastPlayingRef = useRef(false);
             const podcastIndexRef = useRef(-1);
+            const [profVoiceName, setProfVoiceName] = useState('');
+            const [studentVoiceName, setStudentVoiceName] = useState('');
+            const [showVoiceSettings, setShowVoiceSettings] = useState(false);
+            const [availableVoices, setAvailableVoices] = useState([]);
+
+            // Load voices when available
+            useEffect(() => {
+                const loadVoices = () => {
+                    const voices = window.speechSynthesis.getVoices();
+                    const itVoices = voices.filter(v => v.lang.startsWith('it'));
+                    setAvailableVoices(itVoices);
+                    // Auto-assign best defaults on first load
+                    if(itVoices.length > 0 && !profVoiceName) {
+                        const { profVoice, studentVoice } = getItalianVoices();
+                        if(profVoice) setProfVoiceName(profVoice.name);
+                        if(studentVoice) setStudentVoiceName(studentVoice.name);
+                    }
+                };
+                loadVoices();
+                window.speechSynthesis.onvoiceschanged = loadVoices;
+            }, []);
 
             // === Computed ===
             const satNodes = nodes.filter(n => !n.isCentral);
@@ -634,45 +655,92 @@ Rispondi SOLO con JSON (senza markdown):
                 const u = new SpeechSynthesisUtterance(clean);
                 u.lang = 'it-IT'; u.rate = 0.95;
                 const voices = window.speechSynthesis.getVoices();
-                const gv = voices.find(v => v.lang.includes('it') && v.name.includes('Google'));
-                if (gv) u.voice = gv;
+                // Prefer Natural/Neural voices, then Google, then any Italian
+                const itVoices = voices.filter(v => v.lang.startsWith('it'));
+                const natural = itVoices.find(v => v.name.includes('Natural') || v.name.includes('Neural'));
+                const google = itVoices.find(v => v.name.includes('Google'));
+                if (natural) u.voice = natural;
+                else if (google) u.voice = google;
+                else if (itVoices.length) u.voice = itVoices[0];
                 u.onend = () => setTimeout(() => setAiMessage(null), 2500);
                 window.speechSynthesis.speak(u);
+            };
+
+            // speak that returns a Promise (resolves when speech finishes)
+            const speakAndWait = (text) => {
+                return new Promise((resolve) => {
+                    window.speechSynthesis.cancel();
+                    setAiMessage(text);
+                    const clean = cleanTextForSpeech(text);
+                    if(!clean) { resolve(); return; }
+                    const u = new SpeechSynthesisUtterance(clean);
+                    u.lang = 'it-IT'; u.rate = 0.95;
+                    const voices = window.speechSynthesis.getVoices();
+                    const itVoices = voices.filter(v => v.lang.startsWith('it'));
+                    const natural = itVoices.find(v => v.name.includes('Natural') || v.name.includes('Neural'));
+                    const google = itVoices.find(v => v.name.includes('Google'));
+                    if (natural) u.voice = natural;
+                    else if (google) u.voice = google;
+                    else if (itVoices.length) u.voice = itVoices[0];
+                    u.onend = () => { setTimeout(() => setAiMessage(null), 1500); setTimeout(resolve, 300); };
+                    u.onerror = () => resolve();
+                    window.speechSynthesis.speak(u);
+                });
             };
 
             // === PODCAST: Get two distinct Italian voices ===
             const getItalianVoices = () => {
                 const voices = window.speechSynthesis.getVoices();
                 const itVoices = voices.filter(v => v.lang.startsWith('it'));
-                // Try to find a pair: prefer Google voices, then any two distinct ones
-                const googleIt = itVoices.filter(v => v.name.includes('Google'));
-                const msIt = itVoices.filter(v => v.name.includes('Microsoft'));
                 let profVoice = null, studentVoice = null;
                 
-                if(googleIt.length >= 2) {
-                    profVoice = googleIt[0]; studentVoice = googleIt[1];
-                } else if(googleIt.length === 1 && msIt.length >= 1) {
-                    profVoice = googleIt[0]; studentVoice = msIt[0];
+                // 1. Best: find specific named voices (Cosimo=male→Prof, Elsa=female→Student)
+                const cosimo = itVoices.find(v => v.name.toLowerCase().includes('cosimo'));
+                const elsa = itVoices.find(v => v.name.toLowerCase().includes('elsa'));
+                const isabella = itVoices.find(v => v.name.toLowerCase().includes('isabella'));
+                const google = itVoices.find(v => v.name.includes('Google'));
+                
+                if(cosimo && elsa) {
+                    profVoice = cosimo; studentVoice = elsa;
+                } else if(cosimo && isabella) {
+                    profVoice = cosimo; studentVoice = isabella;
+                } else if(cosimo && google) {
+                    profVoice = cosimo; studentVoice = google;
+                } else if(elsa && google) {
+                    profVoice = google; studentVoice = elsa;
                 } else if(itVoices.length >= 2) {
                     profVoice = itVoices[0]; studentVoice = itVoices[1];
                 } else if(itVoices.length === 1) {
                     profVoice = itVoices[0]; studentVoice = itVoices[0];
                 }
-                return { profVoice, studentVoice };
+                return { profVoice, studentVoice, allItalian: itVoices };
             };
 
             // === PODCAST: Speak single line, return promise ===
             const speakPodcastLine = (text, speaker) => {
                 return new Promise((resolve) => {
                     window.speechSynthesis.cancel();
-                    const { profVoice, studentVoice } = getItalianVoices();
+                    const voices = window.speechSynthesis.getVoices();
                     const clean = cleanTextForSpeech(text);
                     const u = new SpeechSynthesisUtterance(clean);
                     u.lang = 'it-IT';
-                    u.rate = speaker === 'prof' ? 0.92 : 0.98;
-                    u.pitch = speaker === 'prof' ? 0.9 : 1.15;
-                    if(speaker === 'prof' && profVoice) u.voice = profVoice;
-                    if(speaker === 'studente' && studentVoice) u.voice = studentVoice;
+                    u.rate = speaker === 'prof' ? 0.88 : 1.0;
+                    u.pitch = speaker === 'prof' ? 0.7 : 1.4;
+                    
+                    // Use manually selected voice, or auto-detected
+                    const targetName = speaker === 'prof' ? profVoiceName : studentVoiceName;
+                    if(targetName) {
+                        const found = voices.find(v => v.name === targetName);
+                        if(found) {
+                            u.voice = found;
+                            // If we have two DIFFERENT real voices, reduce pitch manipulation
+                            const otherName = speaker === 'prof' ? studentVoiceName : profVoiceName;
+                            if(targetName !== otherName) {
+                                u.pitch = speaker === 'prof' ? 0.85 : 1.15;
+                                u.rate = speaker === 'prof' ? 0.90 : 0.98;
+                            }
+                        }
+                    }
                     u.onend = () => setTimeout(resolve, 400);
                     u.onerror = () => resolve();
                     window.speechSynthesis.speak(u);
@@ -784,7 +852,7 @@ Rispondi SOLO con JSON (senza markdown):
             };
 
             // === EXPLORE: Node click (sequential, read aloud) ===
-            const handleExploreClick = (node) => {
+            const handleExploreClick = async (node) => {
                 if(node.isCentral) {
                     speak(`Tema: ${cleanTextForSpeech(node.label)}. Tocca il concetto evidenziato!`);
                     return;
@@ -804,7 +872,6 @@ Rispondi SOLO con JSON (senza markdown):
                 // Explore this node
                 const cleanLabel = cleanTextForSpeech(node.label);
                 const cleanContent = cleanTextForSpeech(node.content);
-                speak(cleanLabel + ". " + cleanContent);
 
                 const newOrder = [...exploredOrder, node.id];
                 setExploredOrder(newOrder);
@@ -813,12 +880,13 @@ Rispondi SOLO con JSON (senza markdown):
                 }]);
                 DB.addXP(10);
 
-                // Check if all explored → transition to CONNECT
+                // Check if all explored → WAIT for speech to finish, THEN transition
                 if(newOrder.length >= totalSatellites) {
-                    setTimeout(() => {
-                        speak("Hai scoperto tutti i concetti! Ora puoi collegare le idee tra loro.");
-                        setTimeout(() => setStage('connect'), 2000);
-                    }, 3000);
+                    await speakAndWait(cleanLabel + ". " + cleanContent);
+                    await speakAndWait("Hai scoperto tutti i concetti! Ora puoi collegare le idee tra loro.");
+                    setStage('connect');
+                } else {
+                    speak(cleanLabel + ". " + cleanContent);
                 }
             };
 
@@ -842,11 +910,14 @@ Rispondi SOLO con JSON (senza markdown):
                 if(!exists) {
                     setLines(prev => [...prev, { from: selectedNode.id, to: node.id }]);
                     DB.addXP(20);
-                    setAiMessage("🤔 Analizzo il collegamento...");
-                    const explanation = await AI.explainConnection(
-                        cleanTextForSpeech(selectedNode.label),
-                        cleanTextForSpeech(node.label)
-                    );
+                    
+                    // Vocalize BOTH concepts before generating connection
+                    const label1 = cleanTextForSpeech(selectedNode.label);
+                    const label2 = cleanTextForSpeech(node.label);
+                    await speakAndWait(`${label1},  e,  ${label2}`);
+                    
+                    setAiMessage("🤔 Cerco il collegamento...");
+                    const explanation = await AI.explainConnection(label1, label2);
                     if(explanation && typeof explanation === 'string') {
                         setConnectionExplanations(prev => [...prev, {
                             from: selectedNode.label, to: node.label,
@@ -1204,7 +1275,59 @@ Rispondi SOLO con JSON (senza markdown):
                             )}
                         </div>
                         <button onClick={reset} className="bg-red-600 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-red-400">🔄</button>
+                        <button onClick={()=>setShowVoiceSettings(!showVoiceSettings)} 
+                            className="bg-slate-600 px-3 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-slate-400 text-lg">🔊</button>
                     </div>
+
+                    {/* Voice settings panel */}
+                    {showVoiceSettings && (
+                        <div className="flex-shrink-0 bg-slate-900 border-b border-slate-600 p-3">
+                            <div className="text-slate-300 text-xs font-bold mb-2 text-center">SELEZIONA LE VOCI</div>
+                            <div className="flex gap-3 items-center justify-center flex-wrap">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-blue-400 text-sm font-bold">🎓Prof:</span>
+                                    <select value={profVoiceName} onChange={e => setProfVoiceName(e.target.value)}
+                                        className="bg-slate-700 text-white text-sm rounded-lg px-2 py-1 border border-slate-500 max-w-[180px]">
+                                        {availableVoices.map(v => (
+                                            <option key={'p-'+v.name} value={v.name}>
+                                                {v.name.replace('Microsoft ', '').replace(' Online (Natural) - Italian (Italy)', '').replace('Google ', 'G: ')}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button onClick={()=>{
+                                        const v = window.speechSynthesis.getVoices().find(x=>x.name===profVoiceName);
+                                        const u = new SpeechSynthesisUtterance("Ciao, sono il professore.");
+                                        u.lang='it-IT'; u.pitch=0.85; u.rate=0.90;
+                                        if(v) u.voice=v;
+                                        window.speechSynthesis.cancel();
+                                        window.speechSynthesis.speak(u);
+                                    }} className="bg-blue-600 text-white text-xs px-2 py-1 rounded-lg">▶</button>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-emerald-400 text-sm font-bold">💡Stud:</span>
+                                    <select value={studentVoiceName} onChange={e => setStudentVoiceName(e.target.value)}
+                                        className="bg-slate-700 text-white text-sm rounded-lg px-2 py-1 border border-slate-500 max-w-[180px]">
+                                        {availableVoices.map(v => (
+                                            <option key={'s-'+v.name} value={v.name}>
+                                                {v.name.replace('Microsoft ', '').replace(' Online (Natural) - Italian (Italy)', '').replace('Google ', 'G: ')}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button onClick={()=>{
+                                        const v = window.speechSynthesis.getVoices().find(x=>x.name===studentVoiceName);
+                                        const u = new SpeechSynthesisUtterance("Ciao, sono lo studente curioso!");
+                                        u.lang='it-IT'; u.pitch=1.15; u.rate=0.98;
+                                        if(v) u.voice=v;
+                                        window.speechSynthesis.cancel();
+                                        window.speechSynthesis.speak(u);
+                                    }} className="bg-emerald-600 text-white text-xs px-2 py-1 rounded-lg">▶</button>
+                                </div>
+                            </div>
+                            <div className="text-slate-500 text-xs text-center mt-2">
+                                {availableVoices.length} voci italiane trovate · Premi ▶ per anteprima
+                            </div>
+                        </div>
+                    )}
 
                     {/* Content */}
                     {podcastGenerating ? (
