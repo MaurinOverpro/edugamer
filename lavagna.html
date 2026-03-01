@@ -374,6 +374,7 @@ REGOLE TASSATIVE:
 7. Chiudi con un breve riepilogo del prof
 8. Tono: informale ma informativo. MAI infantile. Come due persone che discutono con entusiasmo.
 9. In italiano naturale e scorrevole
+10. IMPORTANTE per la lettura vocale: usa VIRGOLE per creare pause naturali. Usa PUNTI per separare i pensieri. Evita abbreviazioni, sigle, numeri romani e caratteri speciali.
 
 Rispondi SOLO con JSON (senza markdown):
 [
@@ -666,48 +667,77 @@ Rispondi SOLO con JSON (senza markdown):
                 window.speechSynthesis.speak(u);
             };
 
-            // speak that returns a Promise (resolves when speech finishes)
+            // speak that returns a Promise (resolves when speech TRULY finishes)
+            // Does NOT call cancel() - caller must cancel explicitly if needed
             const speakAndWait = (text) => {
                 return new Promise((resolve) => {
-                    window.speechSynthesis.cancel();
-                    setAiMessage(text);
-                    const clean = cleanTextForSpeech(text);
-                    if(!clean) { resolve(); return; }
-                    const u = new SpeechSynthesisUtterance(clean);
-                    u.lang = 'it-IT'; u.rate = 0.95;
-                    const voices = window.speechSynthesis.getVoices();
-                    const itVoices = voices.filter(v => v.lang.startsWith('it'));
-                    const natural = itVoices.find(v => v.name.includes('Natural') || v.name.includes('Neural'));
-                    const google = itVoices.find(v => v.name.includes('Google'));
-                    if (natural) u.voice = natural;
-                    else if (google) u.voice = google;
-                    else if (itVoices.length) u.voice = itVoices[0];
-                    u.onend = () => { setTimeout(() => setAiMessage(null), 1500); setTimeout(resolve, 300); };
-                    u.onerror = () => resolve();
-                    window.speechSynthesis.speak(u);
+                    // Wait for any current speech to finish first
+                    const waitForIdle = () => {
+                        if(window.speechSynthesis.speaking) {
+                            setTimeout(waitForIdle, 100);
+                            return;
+                        }
+                        // Now speak
+                        setAiMessage(text);
+                        const clean = cleanTextForSpeech(text);
+                        if(!clean) { resolve(); return; }
+                        const u = new SpeechSynthesisUtterance(clean);
+                        u.lang = 'it-IT'; u.rate = 0.95;
+                        const voices = window.speechSynthesis.getVoices();
+                        const itVoices = voices.filter(v => v.lang.startsWith('it'));
+                        const natural = itVoices.find(v => v.name.includes('Natural') || v.name.includes('Neural'));
+                        const google = itVoices.find(v => v.name.includes('Google'));
+                        if (natural) u.voice = natural;
+                        else if (google) u.voice = google;
+                        else if (itVoices.length) u.voice = itVoices[0];
+                        
+                        let resolved = false;
+                        const done = () => {
+                            if(resolved) return;
+                            resolved = true;
+                            setTimeout(() => setAiMessage(null), 1500);
+                            // Extra buffer to ensure audio hardware finishes
+                            setTimeout(resolve, 500);
+                        };
+                        u.onend = done;
+                        u.onerror = done;
+                        // Safety timeout: estimate ~80ms per character for Italian speech
+                        const safetyMs = Math.max(4000, clean.length * 80);
+                        setTimeout(done, safetyMs);
+                        
+                        window.speechSynthesis.speak(u);
+                    };
+                    waitForIdle();
                 });
             };
 
             // === PODCAST: Get two distinct Italian voices ===
+            // Supports Windows (Cosimo/Elsa/Isabella), iOS (Luca/Alice/Federica), Android (Google it)
             const getItalianVoices = () => {
                 const voices = window.speechSynthesis.getVoices();
                 const itVoices = voices.filter(v => v.lang.startsWith('it'));
                 let profVoice = null, studentVoice = null;
                 
-                // 1. Best: find specific named voices (Cosimo=male→Prof, Elsa=female→Student)
-                const cosimo = itVoices.find(v => v.name.toLowerCase().includes('cosimo'));
-                const elsa = itVoices.find(v => v.name.toLowerCase().includes('elsa'));
-                const isabella = itVoices.find(v => v.name.toLowerCase().includes('isabella'));
-                const google = itVoices.find(v => v.name.includes('Google'));
+                // Helper: find voice by partial name match (case-insensitive)
+                const find = (term) => itVoices.find(v => v.name.toLowerCase().includes(term.toLowerCase()));
                 
-                if(cosimo && elsa) {
-                    profVoice = cosimo; studentVoice = elsa;
-                } else if(cosimo && isabella) {
-                    profVoice = cosimo; studentVoice = isabella;
-                } else if(cosimo && google) {
-                    profVoice = cosimo; studentVoice = google;
-                } else if(elsa && google) {
-                    profVoice = google; studentVoice = elsa;
+                // Known male voices (for Prof)
+                const males = find('Cosimo') || find('Luca') || find('Diego');
+                // Known female voices (for Student)
+                const females = find('Elsa') || find('Alice') || find('Federica') || find('Isabella');
+                // Google voice (gender unknown, works as fallback)
+                const google = find('Google');
+                
+                if(males && females) {
+                    // Best case: one male, one female
+                    profVoice = males; studentVoice = females;
+                } else if(males && google) {
+                    profVoice = males; studentVoice = google;
+                } else if(females && google) {
+                    profVoice = google; studentVoice = females;
+                } else if(google) {
+                    // Android typical: only Google voice available
+                    profVoice = google; studentVoice = google;
                 } else if(itVoices.length >= 2) {
                     profVoice = itVoices[0]; studentVoice = itVoices[1];
                 } else if(itVoices.length === 1) {
@@ -719,31 +749,52 @@ Rispondi SOLO con JSON (senza markdown):
             // === PODCAST: Speak single line, return promise ===
             const speakPodcastLine = (text, speaker) => {
                 return new Promise((resolve) => {
-                    window.speechSynthesis.cancel();
-                    const voices = window.speechSynthesis.getVoices();
-                    const clean = cleanTextForSpeech(text);
-                    const u = new SpeechSynthesisUtterance(clean);
-                    u.lang = 'it-IT';
-                    u.rate = speaker === 'prof' ? 0.88 : 1.0;
-                    u.pitch = speaker === 'prof' ? 0.7 : 1.4;
-                    
-                    // Use manually selected voice, or auto-detected
-                    const targetName = speaker === 'prof' ? profVoiceName : studentVoiceName;
-                    if(targetName) {
-                        const found = voices.find(v => v.name === targetName);
-                        if(found) {
-                            u.voice = found;
-                            // If we have two DIFFERENT real voices, reduce pitch manipulation
-                            const otherName = speaker === 'prof' ? studentVoiceName : profVoiceName;
-                            if(targetName !== otherName) {
-                                u.pitch = speaker === 'prof' ? 0.85 : 1.15;
-                                u.rate = speaker === 'prof' ? 0.90 : 0.98;
-                            }
+                    // Wait for any current speech to finish
+                    const waitAndSpeak = () => {
+                        if(window.speechSynthesis.speaking) {
+                            setTimeout(waitAndSpeak, 100);
+                            return;
                         }
-                    }
-                    u.onend = () => setTimeout(resolve, 400);
-                    u.onerror = () => resolve();
-                    window.speechSynthesis.speak(u);
+                        const voices = window.speechSynthesis.getVoices();
+                        const clean = cleanTextForSpeech(text);
+                        const u = new SpeechSynthesisUtterance(clean);
+                        u.lang = 'it-IT';
+                        
+                        // Use manually selected voice, or auto-detected
+                        const targetName = speaker === 'prof' ? profVoiceName : studentVoiceName;
+                        const otherName = speaker === 'prof' ? studentVoiceName : profVoiceName;
+                        const sameVoice = !targetName || !otherName || targetName === otherName;
+                        
+                        if(targetName) {
+                            const found = voices.find(v => v.name === targetName);
+                            if(found) u.voice = found;
+                        }
+                        
+                        if(sameVoice) {
+                            // Single voice (typical Android): exaggerate pitch/rate
+                            u.pitch = speaker === 'prof' ? 0.65 : 1.5;
+                            u.rate = speaker === 'prof' ? 0.85 : 1.02;
+                        } else {
+                            // Two different voices: subtle tuning is enough
+                            u.pitch = speaker === 'prof' ? 0.9 : 1.1;
+                            u.rate = speaker === 'prof' ? 0.92 : 0.98;
+                        }
+                        
+                        let resolved = false;
+                        const done = () => {
+                            if(resolved) return;
+                            resolved = true;
+                            setTimeout(resolve, 350);
+                        };
+                        u.onend = done;
+                        u.onerror = done;
+                        // Safety timeout
+                        const safetyMs = Math.max(3000, clean.length * 80);
+                        setTimeout(done, safetyMs);
+                        
+                        window.speechSynthesis.speak(u);
+                    };
+                    waitAndSpeak();
                 });
             };
 
@@ -882,6 +933,7 @@ Rispondi SOLO con JSON (senza markdown):
 
                 // Check if all explored → WAIT for speech to finish, THEN transition
                 if(newOrder.length >= totalSatellites) {
+                    window.speechSynthesis.cancel(); // stop any prior speech
                     await speakAndWait(cleanLabel + ". " + cleanContent);
                     await speakAndWait("Hai scoperto tutti i concetti! Ora puoi collegare le idee tra loro.");
                     setStage('connect');
@@ -914,6 +966,7 @@ Rispondi SOLO con JSON (senza markdown):
                     // Vocalize BOTH concepts before generating connection
                     const label1 = cleanTextForSpeech(selectedNode.label);
                     const label2 = cleanTextForSpeech(node.label);
+                    window.speechSynthesis.cancel(); // stop any prior speech
                     await speakAndWait(`${label1},  e,  ${label2}`);
                     
                     setAiMessage("🤔 Cerco il collegamento...");
@@ -1325,6 +1378,14 @@ Rispondi SOLO con JSON (senza markdown):
                             </div>
                             <div className="text-slate-500 text-xs text-center mt-2">
                                 {availableVoices.length} voci italiane trovate · Premi ▶ per anteprima
+                                {availableVoices.length <= 1 && (
+                                    <div className="text-yellow-500 mt-1">
+                                        ⚠️ Solo {availableVoices.length} voce trovata.
+                                        {/Android/i.test(navigator.userAgent) && " Android: Impostazioni → Sistema → Lingua → Sintesi vocale → Installa dati vocali"}
+                                        {/iPhone|iPad/i.test(navigator.userAgent) && " iOS: Impostazioni → Accessibilità → Contenuto letto ad alta voce → Voci → Italiano"}
+                                        {!/Android|iPhone|iPad/i.test(navigator.userAgent) && " Windows: Impostazioni → Ora e lingua → Voce → Aggiungi voci italiane"}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
