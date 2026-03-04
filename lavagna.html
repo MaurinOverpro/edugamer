@@ -33,13 +33,13 @@
             position: absolute; display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             text-align: center; padding: 14px; border-radius: 25px;
-            cursor: pointer; z-index: 20;
-            transition: transform 0.2s, box-shadow 0.3s, border-color 0.3s;
+            cursor: grab; z-index: 20;
+            transition: box-shadow 0.3s, border-color 0.3s;
             box-shadow: 0 10px 30px rgba(0,0,0,0.6);
             user-select: none; background: rgba(15, 23, 42, 0.95);
-            touch-action: manipulation;
+            touch-action: none; /* Permette il drag su mobile */
         }
-        .node-base:active { transform: scale(0.95); }
+        .node-base:active { cursor: grabbing; transform: scale(0.95); transition: transform 0.1s; }
         .node-central { 
             background: linear-gradient(135deg, #2563eb, #1d4ed8); 
             border: 6px solid #60a5fa; width: 240px; height: 240px; 
@@ -63,10 +63,6 @@
             border-color: #facc15 !important;
             box-shadow: 0 0 40px rgba(250, 204, 21, 0.6) !important;
             animation: pulse-yellow 1.5s infinite;
-        }
-        .node-locked {
-            opacity: 0.35; cursor: not-allowed;
-            filter: grayscale(0.5);
         }
         .node-connected {
             border-color: #4ade80 !important; background: #064e3b !important;
@@ -253,9 +249,9 @@
                 window.dispatchEvent(new Event('xpChanged'));
                 return next;
             },
-            save: (data) => localStorage.setItem('lavagna_interactive_v4', JSON.stringify(data)),
-            load: () => JSON.parse(localStorage.getItem('lavagna_interactive_v4') || 'null'),
-            clear: () => localStorage.removeItem('lavagna_interactive_v4')
+            save: (data) => localStorage.setItem('lavagna_interactive_v5', JSON.stringify(data)),
+            load: () => JSON.parse(localStorage.getItem('lavagna_interactive_v5') || 'null'),
+            clear: () => localStorage.removeItem('lavagna_interactive_v5')
         };
 
         const AI = {
@@ -269,15 +265,10 @@ Crea una MAPPA MENTALE chiara e SINTETICA.
 
 ISTRUZIONI CRITICHE:
 1. Identifica il TEMA PRINCIPALE e scegli un'EMOJI che lo rappresenti
-2. Estrai 6-8 CONCETTI CHIAVE nell'ORDINE ESATTO in cui appaiono nel testo (dal primo all'ultimo)
+2. Estrai 6-8 CONCETTI CHIAVE
 3. Per ogni concetto:
    - Scrivi una DEFINIZIONE BREVISSIMA: MASSIMO 8-10 PAROLE (obbligatorio!)
    - Scegli un'EMOJI RAPPRESENTATIVA del concetto
-4. Le emoji devono essere intuitive anche per concetti astratti:
-   - Oggetti fisici: usa l'emoji dell'oggetto (es: albero = 🌳)
-   - Concetti astratti: usa metafore visive (es: libertà = 🕊️, energia = ⚡, tempo = ⏰, memoria = 🧠, crescita = 📈)
-   - Processi: usa emoji di azione (es: trasformazione = 🔄, comunicazione = 💬)
-5. IMPORTANTE: l'ordine dei nodi DEVE seguire l'ordine del testo originale, dalla prima pagina all'ultima
 
 TONO: Diretto e chiaro, adatto a studente medie. No tono infantile.
 
@@ -300,11 +291,12 @@ Rispondi SOLO con JSON (senza markdown):
                 return JSON.parse(text);
             },
 
-            explainConnection: async (label1, label2) => {
+            explainConnection: async (label1, label2, maxWords) => {
                 const key = DB.getKey();
                 if(!key) return `${label1} e ${label2} sono collegati.`;
-                const prompt = `Spiega in UNA frase chiara la relazione tra "${label1}" e "${label2}".
-REQUISITI: Massimo 15 parole. Tono informativo, adatto a studente medie. NO tono infantile.
+                const prompt = `Spiega la relazione logica tra "${label1}" e "${label2}".
+REQUISITI TASSATIVI: La tua spiegazione deve essere lunga MASSIMO ${maxWords} parole. Sii conciso.
+Tono informativo, adatto a studente medie. NO tono infantile.
 Rispondi SOLO con la frase.`;
                 try {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
@@ -365,16 +357,11 @@ CONCETTI:\n${conceptsList}
 ${connectionsList ? `COLLEGAMENTI:\n${connectionsList}` : ''}
 
 REGOLE TASSATIVE:
-1. Il dialogo deve coprire TUTTI i concetti nell'ordine dato
+1. Il dialogo deve coprire TUTTI i concetti
 2. Ogni battuta: MASSIMO 25 parole. Frasi CORTE e CHIARE.
 3. Tra 12 e 18 battute totali (alternando prof e studente)
-4. Il prof inizia con un'introduzione accattivante
-5. Lo studente fa domande, commenta, collega concetti
-6. Se ci sono collegamenti, lo studente deve "scoprirli" nel dialogo
-7. Chiudi con un breve riepilogo del prof
-8. Tono: informale ma informativo. MAI infantile. Come due persone che discutono con entusiasmo.
-9. In italiano naturale e scorrevole
-10. IMPORTANTE per la lettura vocale: usa VIRGOLE per creare pause naturali. Usa PUNTI per separare i pensieri. Evita abbreviazioni, sigle, numeri romani e caratteri speciali.
+4. Tono: informale ma informativo. MAI infantile.
+5. In italiano naturale e scorrevole
 
 Rispondi SOLO con JSON (senza markdown):
 [
@@ -550,7 +537,6 @@ Rispondi SOLO con JSON (senza markdown):
         // === MAIN APP ===
         // ============================================================
         const App = () => {
-            // Stages: upload, scanning, explore, connect, review, podcast
             const [stage, setStage] = useState('upload');
             const [images, setImages] = useState([]);
             const [mapData, setMapData] = useState(null);
@@ -560,17 +546,16 @@ Rispondi SOLO con JSON (senza markdown):
             const [aiMessage, setAiMessage] = useState(null);
             const scrollRef = useRef(null);
 
-            // Explore tracking: ordered set
-            const [exploredOrder, setExploredOrder] = useState([]); // array of node ids in order explored
-            const [exploredNodes, setExploredNodes] = useState([]); // node data for PDF
+            // Drag & Drop State
+            const [dragNodeId, setDragNodeId] = useState(null);
+            const dragRef = useRef({ startX: 0, startY: 0, initX: 0, initY: 0, hasMoved: false });
 
-            // Connect
+            // Esplorazione Libera
+            const [exploredOrder, setExploredOrder] = useState([]); 
+            const [exploredNodes, setExploredNodes] = useState([]); 
             const [connectionExplanations, setConnectionExplanations] = useState([]);
 
-            // Review
             const [reviewRevealedCount, setReviewRevealedCount] = useState(0);
-
-            // Share
             const [showShareMenu, setShowShareMenu] = useState(false);
             const [pdfProgress, setPdfProgress] = useState(null);
 
@@ -586,32 +571,32 @@ Rispondi SOLO con JSON (senza markdown):
             const [showVoiceSettings, setShowVoiceSettings] = useState(false);
             const [availableVoices, setAvailableVoices] = useState([]);
 
-            // Load voices when available
+            const satNodes = nodes.filter(n => !n.isCentral);
+            const totalSatellites = satNodes.length;
+            const allExplored = totalSatellites > 0 && exploredOrder.length >= totalSatellites;
+            const allRevealed = reviewRevealedCount >= exploredNodes.length;
+
             useEffect(() => {
                 const loadVoices = () => {
                     const voices = window.speechSynthesis.getVoices();
                     const itVoices = voices.filter(v => v.lang.startsWith('it'));
                     setAvailableVoices(itVoices);
-                    // Auto-assign best defaults on first load
                     if(itVoices.length > 0 && !profVoiceName) {
-                        const { profVoice, studentVoice } = getItalianVoices();
-                        if(profVoice) setProfVoiceName(profVoice.name);
-                        if(studentVoice) setStudentVoiceName(studentVoice.name);
+                        const males = itVoices.find(v => v.name.toLowerCase().includes('cosimo') || v.name.toLowerCase().includes('luca') || v.name.toLowerCase().includes('diego'));
+                        const females = itVoices.find(v => v.name.toLowerCase().includes('elsa') || v.name.toLowerCase().includes('alice') || v.name.toLowerCase().includes('federica') || v.name.toLowerCase().includes('isabella'));
+                        const google = itVoices.find(v => v.name.toLowerCase().includes('google'));
+                        if(males && females) { setProfVoiceName(males.name); setStudentVoiceName(females.name); }
+                        else if(males && google) { setProfVoiceName(males.name); setStudentVoiceName(google.name); }
+                        else if(females && google) { setProfVoiceName(google.name); setStudentVoiceName(females.name); }
+                        else if(google) { setProfVoiceName(google.name); setStudentVoiceName(google.name); }
+                        else if(itVoices.length >= 2) { setProfVoiceName(itVoices[0].name); setStudentVoiceName(itVoices[1].name); }
+                        else if(itVoices.length === 1) { setProfVoiceName(itVoices[0].name); setStudentVoiceName(itVoices[0].name); }
                     }
                 };
                 loadVoices();
                 window.speechSynthesis.onvoiceschanged = loadVoices;
             }, []);
 
-            // === Computed ===
-            const satNodes = nodes.filter(n => !n.isCentral);
-            const totalSatellites = satNodes.length;
-            const allExplored = totalSatellites > 0 && exploredOrder.length >= totalSatellites;
-            // Next node to explore (by satellite index order: 0,1,2,...) 
-            const nextExploreId = satNodes[exploredOrder.length]?.id;
-            const allRevealed = reviewRevealedCount >= exploredNodes.length;
-
-            // === PERSISTENCE ===
             useEffect(() => {
                 try {
                     const saved = DB.load();
@@ -635,7 +620,6 @@ Rispondi SOLO con JSON (senza markdown):
                 });
             }, [nodes, lines, exploredOrder, exploredNodes, connectionExplanations, reviewRevealedCount, podcastLines, stage]);
 
-            // === MAP CENTERING ===
             const centerMap = useCallback(() => {
                 const el = scrollRef.current; if (!el) return;
                 el.scrollLeft = Math.max(0, 1500 - window.innerWidth / 2);
@@ -648,7 +632,6 @@ Rispondi SOLO con JSON (senza markdown):
                 }
             }, [stage, centerMap]);
 
-            // === SPEECH ===
             const speak = (text) => {
                 window.speechSynthesis.cancel();
                 setAiMessage(text);
@@ -656,7 +639,6 @@ Rispondi SOLO con JSON (senza markdown):
                 const u = new SpeechSynthesisUtterance(clean);
                 u.lang = 'it-IT'; u.rate = 0.95;
                 const voices = window.speechSynthesis.getVoices();
-                // Prefer Natural/Neural voices, then Google, then any Italian
                 const itVoices = voices.filter(v => v.lang.startsWith('it'));
                 const natural = itVoices.find(v => v.name.includes('Natural') || v.name.includes('Neural'));
                 const google = itVoices.find(v => v.name.includes('Google'));
@@ -667,17 +649,10 @@ Rispondi SOLO con JSON (senza markdown):
                 window.speechSynthesis.speak(u);
             };
 
-            // speak that returns a Promise (resolves when speech TRULY finishes)
-            // Does NOT call cancel() - caller must cancel explicitly if needed
             const speakAndWait = (text) => {
                 return new Promise((resolve) => {
-                    // Wait for any current speech to finish first
                     const waitForIdle = () => {
-                        if(window.speechSynthesis.speaking) {
-                            setTimeout(waitForIdle, 100);
-                            return;
-                        }
-                        // Now speak
+                        if(window.speechSynthesis.speaking) { setTimeout(waitForIdle, 100); return; }
                         setAiMessage(text);
                         const clean = cleanTextForSpeech(text);
                         if(!clean) { resolve(); return; }
@@ -696,182 +671,85 @@ Rispondi SOLO con JSON (senza markdown):
                             if(resolved) return;
                             resolved = true;
                             setTimeout(() => setAiMessage(null), 1500);
-                            // Extra buffer to ensure audio hardware finishes
                             setTimeout(resolve, 500);
                         };
-                        u.onend = done;
-                        u.onerror = done;
-                        // Safety timeout: estimate ~80ms per character for Italian speech
+                        u.onend = done; u.onerror = done;
                         const safetyMs = Math.max(4000, clean.length * 80);
                         setTimeout(done, safetyMs);
-                        
                         window.speechSynthesis.speak(u);
                     };
                     waitForIdle();
                 });
             };
 
-            // === PODCAST: Get two distinct Italian voices ===
-            // Supports Windows (Cosimo/Elsa/Isabella), iOS (Luca/Alice/Federica), Android (Google it)
-            const getItalianVoices = () => {
-                const voices = window.speechSynthesis.getVoices();
-                const itVoices = voices.filter(v => v.lang.startsWith('it'));
-                let profVoice = null, studentVoice = null;
-                
-                // Helper: find voice by partial name match (case-insensitive)
-                const find = (term) => itVoices.find(v => v.name.toLowerCase().includes(term.toLowerCase()));
-                
-                // Known male voices (for Prof)
-                const males = find('Cosimo') || find('Luca') || find('Diego');
-                // Known female voices (for Student)
-                const females = find('Elsa') || find('Alice') || find('Federica') || find('Isabella');
-                // Google voice (gender unknown, works as fallback)
-                const google = find('Google');
-                
-                if(males && females) {
-                    // Best case: one male, one female
-                    profVoice = males; studentVoice = females;
-                } else if(males && google) {
-                    profVoice = males; studentVoice = google;
-                } else if(females && google) {
-                    profVoice = google; studentVoice = females;
-                } else if(google) {
-                    // Android typical: only Google voice available
-                    profVoice = google; studentVoice = google;
-                } else if(itVoices.length >= 2) {
-                    profVoice = itVoices[0]; studentVoice = itVoices[1];
-                } else if(itVoices.length === 1) {
-                    profVoice = itVoices[0]; studentVoice = itVoices[0];
-                }
-                return { profVoice, studentVoice, allItalian: itVoices };
-            };
-
-            // === PODCAST: Speak single line, return promise ===
             const speakPodcastLine = (text, speaker) => {
                 return new Promise((resolve) => {
-                    // Wait for any current speech to finish
                     const waitAndSpeak = () => {
-                        if(window.speechSynthesis.speaking) {
-                            setTimeout(waitAndSpeak, 100);
-                            return;
-                        }
+                        if(window.speechSynthesis.speaking) { setTimeout(waitAndSpeak, 100); return; }
                         const voices = window.speechSynthesis.getVoices();
                         const clean = cleanTextForSpeech(text);
                         const u = new SpeechSynthesisUtterance(clean);
                         u.lang = 'it-IT';
                         
-                        // Use manually selected voice, or auto-detected
                         const targetName = speaker === 'prof' ? profVoiceName : studentVoiceName;
                         const otherName = speaker === 'prof' ? studentVoiceName : profVoiceName;
                         const sameVoice = !targetName || !otherName || targetName === otherName;
                         
-                        if(targetName) {
-                            const found = voices.find(v => v.name === targetName);
-                            if(found) u.voice = found;
-                        }
+                        if(targetName) { const found = voices.find(v => v.name === targetName); if(found) u.voice = found; }
                         
                         if(sameVoice) {
-                            // Single voice (typical Android): exaggerate pitch/rate
                             u.pitch = speaker === 'prof' ? 0.65 : 1.5;
                             u.rate = speaker === 'prof' ? 0.85 : 1.02;
                         } else {
-                            // Two different voices: subtle tuning is enough
                             u.pitch = speaker === 'prof' ? 0.9 : 1.1;
                             u.rate = speaker === 'prof' ? 0.92 : 0.98;
                         }
                         
                         let resolved = false;
-                        const done = () => {
-                            if(resolved) return;
-                            resolved = true;
-                            setTimeout(resolve, 350);
-                        };
-                        u.onend = done;
-                        u.onerror = done;
-                        // Safety timeout
-                        const safetyMs = Math.max(3000, clean.length * 80);
-                        setTimeout(done, safetyMs);
-                        
+                        const done = () => { if(resolved) return; resolved = true; setTimeout(resolve, 350); };
+                        u.onend = done; u.onerror = done;
+                        setTimeout(done, Math.max(3000, clean.length * 80));
                         window.speechSynthesis.speak(u);
                     };
                     waitAndSpeak();
                 });
             };
 
-            // === PODCAST: Generate ===
             const generatePodcast = async () => {
-                setPodcastGenerating(true);
-                setStage('podcast');
+                setPodcastGenerating(true); setStage('podcast');
                 setPodcastLines([]); setPodcastIndex(-1); setPodcastPlaying(false);
                 podcastPlayingRef.current = false; podcastIndexRef.current = -1;
                 try {
-                    const lines = await AI.generatePodcast(
-                        mapData?.theme, mapData?.themeIcon,
-                        exploredNodes, connectionExplanations
-                    );
+                    const lines = await AI.generatePodcast(mapData?.theme, mapData?.themeIcon, exploredNodes, connectionExplanations);
                     if(lines && Array.isArray(lines) && lines.length > 0) {
-                        setPodcastLines(lines);
-                        DB.addXP(40);
-                    } else {
-                        alert("Errore nella generazione del podcast. Riprova.");
-                        setStage('review');
-                    }
-                } catch(e) {
-                    alert("Errore: " + e.message);
-                    setStage('review');
-                }
+                        setPodcastLines(lines); DB.addXP(40);
+                    } else { alert("Errore generazione podcast. Riprova."); setStage('review'); }
+                } catch(e) { alert("Errore: " + e.message); setStage('review'); }
                 setPodcastGenerating(false);
             };
 
-            // === PODCAST: Play/Pause ===
             const playPodcast = async () => {
-                if(podcastPlaying) {
-                    podcastPlayingRef.current = false;
-                    setPodcastPlaying(false);
-                    window.speechSynthesis.cancel();
-                    return;
-                }
-                podcastPlayingRef.current = true;
-                setPodcastPlaying(true);
-                
+                if(podcastPlaying) { podcastPlayingRef.current = false; setPodcastPlaying(false); window.speechSynthesis.cancel(); return; }
+                podcastPlayingRef.current = true; setPodcastPlaying(true);
                 let startIdx = podcastIndexRef.current + 1;
-                if(startIdx >= podcastLines.length) {
-                    // Restart from beginning
-                    startIdx = 0;
-                    setPodcastIndex(-1);
-                    podcastIndexRef.current = -1;
-                }
+                if(startIdx >= podcastLines.length) { startIdx = 0; setPodcastIndex(-1); podcastIndexRef.current = -1; }
 
                 for(let i = startIdx; i < podcastLines.length; i++) {
                     if(!podcastPlayingRef.current) break;
                     const line = podcastLines[i];
-                    setPodcastIndex(i);
-                    podcastIndexRef.current = i;
-                    
-                    // Scroll to current bubble
-                    setTimeout(() => {
-                        const el = document.getElementById(`podcast-bubble-${i}`);
-                        if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }, 100);
-
+                    setPodcastIndex(i); podcastIndexRef.current = i;
+                    setTimeout(() => { const el = document.getElementById(`podcast-bubble-${i}`); if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
                     await speakPodcastLine(line.text, line.speaker);
-                    
                     if(!podcastPlayingRef.current) break;
                 }
-                
-                podcastPlayingRef.current = false;
-                setPodcastPlaying(false);
+                podcastPlayingRef.current = false; setPodcastPlaying(false);
             };
 
-            // === IMAGE UPLOAD ===
             const addImage = (e) => {
                 const f = e.target.files[0]; if(!f) return;
-                const r = new FileReader();
-                r.onload = (evt) => setImages(p => [...p, evt.target.result]);
-                r.readAsDataURL(f);
+                const r = new FileReader(); r.onload = (evt) => setImages(p => [...p, evt.target.result]); r.readAsDataURL(f);
             };
 
-            // === START: Generate Map ===
             const start = async () => {
                 if(!images.length) return;
                 setStage('scanning');
@@ -879,111 +757,107 @@ Rispondi SOLO con JSON (senza markdown):
                     const data = await AI.analyzeMap(images);
                     setMapData(data);
                     const cx = 1500, cy = 1500, radius = 420;
-                    const central = { 
-                        id: 0, label: data.theme, icon: data.themeIcon || '📚',
-                        content: "Argomento Principale", 
-                        x: cx-120, y: cy-120, w: 240, h: 240, isCentral: true 
-                    };
-                    // CLOCKWISE from 12 o'clock: angle starts at -PI/2 (top)
+                    const central = { id: 0, label: data.theme, icon: data.themeIcon || '📚', content: "Argomento Principale", x: cx-120, y: cy-120, w: 240, h: 240, isCentral: true };
                     const sats = data.nodes.map((n, i) => {
                         const angle = (i / data.nodes.length) * 2 * Math.PI - Math.PI/2;
-                        return { 
-                            ...n, id: i+1, icon: n.icon || '📌',
-                            x: cx + radius * Math.cos(angle) - 100, 
-                            y: cy + radius * Math.sin(angle) - 75, 
-                            w: 200, h: 150, isCentral: false 
-                        };
+                        return { ...n, id: i+1, icon: n.icon || '📌', x: cx + radius * Math.cos(angle) - 100, y: cy + radius * Math.sin(angle) - 75, w: 200, h: 150, isCentral: false };
                     });
                     setNodes([central, ...sats]);
-                    setLines([]); setConnectionExplanations([]); setExploredNodes([]);
-                    setExploredOrder([]); setReviewRevealedCount(0);
-                    DB.addXP(50);
-                    setStage('explore');
+                    setLines([]); setConnectionExplanations([]); setExploredNodes([]); setExploredOrder([]); setReviewRevealedCount(0);
+                    DB.addXP(50); setStage('explore');
                 } catch(e) { alert("Errore: " + e.message); setStage('upload'); }
             };
 
-            // === EXPLORE: Node click (sequential, read aloud) ===
+            // === DRAG & DROP HANDLERS ===
+            const onNodePointerDown = (e, node) => {
+                e.stopPropagation(); e.target.setPointerCapture(e.pointerId);
+                setDragNodeId(node.id);
+                dragRef.current = { startX: e.clientX, startY: e.clientY, initX: node.x, initY: node.y, hasMoved: false };
+            };
+
+            const onNodePointerMove = (e) => {
+                if(dragNodeId === null) return;
+                const dx = e.clientX - dragRef.current.startX;
+                const dy = e.clientY - dragRef.current.startY;
+                if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                    dragRef.current.hasMoved = true;
+                    setNodes(prev => prev.map(n => n.id === dragNodeId ? { ...n, x: dragRef.current.initX + dx, y: dragRef.current.initY + dy } : n));
+                }
+            };
+
+            const onNodePointerUp = (e, node) => {
+                if(dragNodeId === null) return;
+                e.target.releasePointerCapture(e.pointerId);
+                const moved = dragRef.current.hasMoved;
+                setDragNodeId(null);
+                if (!moved) {
+                    if (stage === 'explore') handleExploreClick(node);
+                    else if (stage === 'connect') handleConnectClick(node);
+                }
+            };
+
             const handleExploreClick = async (node) => {
                 if(node.isCentral) {
-                    speak(`Tema: ${cleanTextForSpeech(node.label)}. Tocca il concetto evidenziato!`);
+                    speak(`Tema: ${cleanTextForSpeech(node.label)}. Scegli tu quale concetto esplorare per primo e trascina le schede!`);
                     return;
                 }
-                // Only allow clicking the NEXT node in sequence
-                if(node.id !== nextExploreId) {
-                    // Already explored? Just re-read it
-                    if(exploredOrder.includes(node.id)) {
-                        const cleanLabel = cleanTextForSpeech(node.label);
-                        const cleanContent = cleanTextForSpeech(node.content);
-                        speak(cleanLabel + ". " + cleanContent);
-                    }
-                    // Locked? Do nothing visible
+                
+                if(exploredOrder.includes(node.id)) {
+                    speak(cleanTextForSpeech(node.label) + ". " + cleanTextForSpeech(node.content));
                     return;
                 }
 
-                // Explore this node
                 const cleanLabel = cleanTextForSpeech(node.label);
                 const cleanContent = cleanTextForSpeech(node.content);
-
                 const newOrder = [...exploredOrder, node.id];
+                
                 setExploredOrder(newOrder);
-                setExploredNodes(prev => [...prev, {
-                    id: node.id, label: node.label, content: node.content, icon: node.icon
-                }]);
-                DB.addXP(10);
+                setExploredNodes(prev => [...prev, { id: node.id, label: node.label, content: node.content, icon: node.icon }]);
+                DB.addXP(15);
 
-                // Check if all explored → WAIT for speech to finish, THEN transition
                 if(newOrder.length >= totalSatellites) {
-                    window.speechSynthesis.cancel(); // stop any prior speech
+                    window.speechSynthesis.cancel();
                     await speakAndWait(cleanLabel + ". " + cleanContent);
-                    await speakAndWait("Hai scoperto tutti i concetti! Ora puoi collegare le idee tra loro.");
+                    await speakAndWait("Complimenti! Hai esplorato tutto a modo tuo. Ora collega le idee avvicinando le schede!");
                     setStage('connect');
                 } else {
                     speak(cleanLabel + ". " + cleanContent);
                 }
             };
 
-            // === CONNECT: Node click (pair selection) ===
             const handleConnectClick = async (node) => {
-                if(node.isCentral) {
-                    speak("Tocca due concetti per collegarli tra loro!");
-                    return;
-                }
-                if(!selectedNode) {
-                    setSelectedNode(node);
-                    speak(cleanTextForSpeech(node.label));
-                    return;
-                }
+                if(node.isCentral) { speak("Tocca due concetti per collegarli tra loro!"); return; }
+                if(!selectedNode) { setSelectedNode(node); speak(cleanTextForSpeech(node.label)); return; }
                 if(selectedNode.id === node.id) { setSelectedNode(null); return; }
 
-                const exists = lines.some(l => 
-                    (l.from===selectedNode.id && l.to===node.id) || 
-                    (l.from===node.id && l.to===selectedNode.id));
-
+                const exists = lines.some(l => (l.from===selectedNode.id && l.to===node.id) || (l.from===node.id && l.to===selectedNode.id));
                 if(!exists) {
                     setLines(prev => [...prev, { from: selectedNode.id, to: node.id }]);
                     DB.addXP(20);
                     
-                    // Vocalize BOTH concepts before generating connection
                     const label1 = cleanTextForSpeech(selectedNode.label);
                     const label2 = cleanTextForSpeech(node.label);
-                    window.speechSynthesis.cancel(); // stop any prior speech
-                    await speakAndWait(`${label1},  e,  ${label2}`);
                     
+                    // CALCOLO DISTANZA EUCLIDEA PER LE PAROLE
+                    const dx = selectedNode.x - node.x;
+                    const dy = selectedNode.y - node.y;
+                    const distance = Math.sqrt(dx*dx + dy*dy);
+                    let wordLimit = Math.floor(25 - (distance / 60));
+                    wordLimit = Math.max(8, Math.min(25, wordLimit)); 
+                    
+                    window.speechSynthesis.cancel();
+                    await speakAndWait(`${label1},  e,  ${label2}`);
                     setAiMessage("🤔 Cerco il collegamento...");
-                    const explanation = await AI.explainConnection(label1, label2);
+                    
+                    const explanation = await AI.explainConnection(label1, label2, wordLimit);
                     if(explanation && typeof explanation === 'string') {
-                        setConnectionExplanations(prev => [...prev, {
-                            from: selectedNode.label, to: node.label,
-                            fromIcon: selectedNode.icon||'📌', toIcon: node.icon||'📌',
-                            explanation
-                        }]);
+                        setConnectionExplanations(prev => [...prev, { from: selectedNode.label, to: node.label, fromIcon: selectedNode.icon||'📌', toIcon: node.icon||'📌', explanation }]);
                         speak(explanation);
                     } else { speak(`${selectedNode.label} e ${node.label} sono collegati!`); }
                 } else { speak("Sono già collegati!"); }
                 setSelectedNode(null);
             };
 
-            // === REVIEW: sequential icon click ===
             const handleReviewClick = (index) => {
                 if(index !== reviewRevealedCount) return;
                 const node = exploredNodes[index];
@@ -993,24 +867,17 @@ Rispondi SOLO con JSON (senza markdown):
                 DB.addXP(5);
             };
 
-            // === RESET ===
             const reset = () => {
                 if(confirm("Creare nuova mappa?")) {
-                    window.speechSynthesis.cancel();
-                    podcastPlayingRef.current = false;
+                    window.speechSynthesis.cancel(); podcastPlayingRef.current = false;
                     DB.clear(); setImages([]); setMapData(null); setNodes([]); setLines([]);
-                    setConnectionExplanations([]); setExploredNodes([]); setExploredOrder([]);
-                    setReviewRevealedCount(0); setSelectedNode(null);
-                    setPodcastLines([]); setPodcastIndex(-1); setPodcastPlaying(false);
-                    setPodcastGenerating(false);
-                    setStage('upload');
+                    setConnectionExplanations([]); setExploredNodes([]); setExploredOrder([]); setReviewRevealedCount(0); setSelectedNode(null);
+                    setPodcastLines([]); setPodcastIndex(-1); setPodcastPlaying(false); setPodcastGenerating(false); setStage('upload');
                 }
             };
 
-            // === PDF ===
             const saveAsPDF = async () => {
-                setShowShareMenu(false);
-                setPdfProgress('Preparo il PDF...');
+                setShowShareMenu(false); setPdfProgress('Preparo il PDF...');
                 try {
                     const doc = await generatePDF(mapData, nodes, exploredNodes, connectionExplanations, (msg) => setPdfProgress(msg));
                     const cleanTheme = mapData?.theme?.replace(/[^\w\s]/g,'')?.replace(/\s+/g,'_')?.substring(0,30)||'mappa';
@@ -1019,7 +886,6 @@ Rispondi SOLO con JSON (senza markdown):
                 } catch(e) { console.error('Errore PDF:',e); alert('Errore PDF: '+e.message); setPdfProgress(null); }
             };
 
-            // === SHARE MENU ===
             const getSummaryText = () => {
                 if(!mapData) return '';
                 let t = `MAPPA MENTALE: ${mapData.theme}\n\nCONCETTI:\n`;
@@ -1048,30 +914,10 @@ Rispondi SOLO con JSON (senza markdown):
                 );
             };
 
-            // ============================================================
-            // === RENDER: MAP CANVAS (shared explore + connect) ===
-            // ============================================================
             const renderCanvas = (mode) => (
                 <div className="scroll-area" ref={scrollRef}>
                     <div className="map-canvas">
                         <svg className="absolute inset-0 pointer-events-none z-10" style={{width:'3000px',height:'3000px'}}>
-                            {/* Radial lines from center to each satellite (subtle guide) */}
-                            {mode === 'explore' && nodes.filter(n=>!n.isCentral).map((node,i) => {
-                                const central = nodes.find(n=>n.isCentral);
-                                if(!central) return null;
-                                const isExplored = exploredOrder.includes(node.id);
-                                return (
-                                    <line key={'rad-'+i}
-                                        x1={central.x+central.w/2} y1={central.y+central.h/2}
-                                        x2={node.x+node.w/2} y2={node.y+node.h/2}
-                                        stroke={isExplored ? "#22d3ee" : "#1e293b"}
-                                        strokeWidth={isExplored ? "4" : "2"}
-                                        strokeDasharray={isExplored ? "none" : "8 8"}
-                                        opacity={isExplored ? 0.6 : 0.3}
-                                    />
-                                );
-                            })}
-                            {/* Connection lines (connect mode) */}
                             {lines.map((line,i)=>{
                                 const n1=nodes.find(n=>n.id===line.from),n2=nodes.find(n=>n.id===line.to);
                                 if(!n1||!n2) return null;
@@ -1082,46 +928,37 @@ Rispondi SOLO con JSON (senza markdown):
                         {nodes.map(node => {
                             const isSel = selectedNode?.id === node.id;
                             const isExplored = exploredOrder.includes(node.id);
-                            const isNext = node.id === nextExploreId;
                             const isConnected = lines.some(l=>l.from===node.id||l.to===node.id);
-                            const isLocked = mode === 'explore' && !node.isCentral && !isExplored && !isNext;
 
                             let nodeClass = `node-base ${node.isCentral ? 'node-central' : 'node-satellite'}`;
                             if(mode === 'explore') {
-                                if(isNext) nodeClass += ' node-next-to-explore';
-                                else if(isExplored && !node.isCentral) nodeClass += ' node-explored';
-                                else if(isLocked) nodeClass += ' node-locked';
+                                if(isExplored && !node.isCentral) nodeClass += ' node-explored';
                             }
                             if(mode === 'connect') {
                                 if(isSel) nodeClass += ' node-selected';
                                 if(isConnected && !node.isCentral) nodeClass += ' node-connected';
                             }
 
-                            // Show order number badge for explored nodes
                             const orderIndex = exploredOrder.indexOf(node.id);
 
                             return (
                                 <div key={node.id} className={nodeClass}
                                     style={{left:node.x, top:node.y, width:node.w, height:node.h}}
-                                    onClick={(e)=>{
-                                        e.stopPropagation();
-                                        mode==='explore' ? handleExploreClick(node) : handleConnectClick(node);
-                                    }}
+                                    onPointerDown={(e) => onNodePointerDown(e, node)}
+                                    onPointerMove={onNodePointerMove}
+                                    onPointerUp={(e) => onNodePointerUp(e, node)}
+                                    onPointerCancel={(e) => onNodePointerUp(e, node)}
                                 >
-                                    {/* Order badge */}
                                     {!node.isCentral && orderIndex >= 0 && (
                                         <div style={{
-                                            position:'absolute', top: -8, right: -8,
-                                            width: 28, height: 28, borderRadius: '50%',
-                                            background: '#22d3ee', color: '#0a0e17',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            fontWeight: 'bold', fontSize: '0.85rem', zIndex: 60,
-                                            border: '2px solid #0a0e17'
+                                            position:'absolute', top: -8, right: -8, width: 28, height: 28, borderRadius: '50%',
+                                            background: '#22d3ee', color: '#0a0e17', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            fontWeight: 'bold', fontSize: '0.85rem', zIndex: 60, border: '2px solid #0a0e17'
                                         }}>{orderIndex + 1}</div>
                                     )}
                                     <div className="node-icon">{node.icon||'📌'}</div>
                                     <div className="font-bold text-yellow-300 leading-tight text-sm">{node.label}</div>
-                                    {!node.isCentral && (
+                                    {(!node.isCentral && (isExplored || mode==='connect')) && (
                                         <div className="text-xs text-gray-200 line-clamp-2 leading-snug mt-1 font-medium">{node.content}</div>
                                     )}
                                 </div>
@@ -1131,11 +968,6 @@ Rispondi SOLO con JSON (senza markdown):
                 </div>
             );
 
-            // ============================================================
-            // === RENDER STAGES ===
-            // ============================================================
-
-            // --- UPLOAD ---
             if(stage === 'upload') return (
                 <div className="h-full flex flex-col items-center justify-center p-6 gap-6">
                     <h1 className="text-4xl font-black text-green-400 tracking-tighter">LAVAGNA MAGICA ✨</h1>
@@ -1155,7 +987,6 @@ Rispondi SOLO con JSON (senza markdown):
                 </div>
             );
 
-            // --- SCANNING ---
             if(stage === 'scanning') return (
                 <div className="h-full flex flex-col items-center justify-center gap-6">
                     <div className="w-24 h-24 border-8 border-green-500 border-t-transparent rounded-full animate-spin"></div>
@@ -1163,14 +994,13 @@ Rispondi SOLO con JSON (senza markdown):
                 </div>
             );
 
-            // --- EXPLORE ---
             if(stage === 'explore') return (
                 <div className="h-screen w-screen flex flex-col overflow-hidden" style={{position:'fixed',top:0,left:0}}>
                     <div className="flex-shrink-0 p-3 flex gap-3 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg">
                         <a href="index.html" className="bg-slate-700 px-4 py-2 rounded-xl text-white font-bold text-xl">🏠</a>
                         <div className="flex-1 mx-2">
                             <div className="text-center text-cyan-400 font-bold text-sm mb-1">
-                                👆 SCOPRI I CONCETTI IN ORDINE ({exploredOrder.length}/{totalSatellites})
+                                👆 SCOPRI ED ESPLORA I CONCETTI ({exploredOrder.length}/{totalSatellites})
                             </div>
                             <div className="progress-bar-bg">
                                 <div className="progress-bar-fill" style={{width: `${totalSatellites>0 ? (exploredOrder.length/totalSatellites)*100 : 0}%`}}></div>
@@ -1186,18 +1016,17 @@ Rispondi SOLO con JSON (senza markdown):
                 </div>
             );
 
-            // --- CONNECT ---
             if(stage === 'connect') return (
                 <div className="h-screen w-screen flex flex-col overflow-hidden" style={{position:'fixed',top:0,left:0}}>
                     <div className="flex-shrink-0 p-3 flex gap-3 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg">
                         <a href="index.html" className="bg-slate-700 px-4 py-2 rounded-xl text-white font-bold text-xl">🏠</a>
                         <div className="flex-1 text-center">
                             <div className="text-yellow-400 font-bold text-sm animate-pulse">
-                                {selectedNode ? "👇 TOCCA UN ALTRO PER COLLEGARLI!" : "🔗 COLLEGA I CONCETTI TRA LORO"}
+                                {selectedNode ? "👇 TOCCA UN ALTRO PER COLLEGARLI!" : "🔗 COLLEGA I CONCETTI VICINI"}
                             </div>
                             {connectionExplanations.length > 0 && (
                                 <div className="text-cyan-400 text-xs mt-1">
-                                    {connectionExplanations.length} collegament{connectionExplanations.length===1?'o':'i'} trovat{connectionExplanations.length===1?'o':'i'}
+                                    {connectionExplanations.length} collegament{connectionExplanations.length===1?'o':'i'}
                                 </div>
                             )}
                         </div>
@@ -1218,10 +1047,8 @@ Rispondi SOLO con JSON (senza markdown):
                 </div>
             );
 
-            // --- REVIEW ---
             if(stage === 'review') return (
                 <div className="h-screen w-screen flex flex-col overflow-hidden" style={{position:'fixed',top:0,left:0,background:'#0a0e17'}}>
-                    {/* Toolbar */}
                     <div className="flex-shrink-0 p-3 flex gap-3 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg">
                         <button onClick={()=>setStage('connect')} className="bg-slate-700 px-4 py-2 rounded-xl text-white font-bold text-lg">← Mappa</button>
                         <div className="flex-1 mx-2">
@@ -1234,63 +1061,36 @@ Rispondi SOLO con JSON (senza markdown):
                         </div>
                         <button onClick={reset} className="bg-red-600 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-red-400">🔄</button>
                     </div>
-
-                    {/* Review content */}
                     <div className="review-container">
-                        {/* Theme header */}
                         <div className="text-center mb-6 mt-2">
                             <span className="text-5xl">{mapData?.themeIcon || '📚'}</span>
                             <h2 className="text-xl font-bold text-yellow-300 mt-3">{mapData?.theme}</h2>
                             <p className="text-slate-400 text-sm mt-1">Tocca le icone una alla volta, dall'alto</p>
                         </div>
-
-                        {/* Icon list */}
                         {exploredNodes.map((node, i) => {
                             const isRevealed = i < reviewRevealedCount;
                             const isActive = i === reviewRevealedCount;
                             const isLocked = i > reviewRevealedCount;
-
                             return (
                                 <div key={node.id} className={`review-icon-row ${isRevealed && i === reviewRevealedCount - 1 ? 'just-revealed' : ''}`}>
-                                    {/* Gamer connector line */}
                                     {i > 0 && isRevealed && <div className="review-connector"></div>}
-
-                                    {/* Icon button */}
-                                    <div 
-                                        className={`review-icon-btn ${isActive?'active':''} ${isRevealed?'revealed':''} ${isLocked?'locked':''}`}
-                                        onClick={() => handleReviewClick(i)}
-                                    >
+                                    <div className={`review-icon-btn ${isActive?'active':''} ${isRevealed?'revealed':''} ${isLocked?'locked':''}`} onClick={() => handleReviewClick(i)}>
                                         {node.icon || '📌'}
                                     </div>
-
-                                    {/* Text box (revealed) */}
                                     {isRevealed && (
                                         <div className="review-text-box">
                                             <div className="text-cyan-300 font-bold text-base">{node.label}</div>
                                             <div className="text-gray-300 text-sm mt-1">{node.content}</div>
                                         </div>
                                     )}
-
-                                    {/* Hint for active */}
-                                    {isActive && !isRevealed && (
-                                        <div className="flex-1 text-yellow-400 text-sm font-bold animate-pulse pl-2">
-                                            👆 Tocca per scoprire...
-                                        </div>
-                                    )}
+                                    {isActive && !isRevealed && (<div className="flex-1 text-yellow-400 text-sm font-bold animate-pulse pl-2">👆 Tocca per scoprire...</div>)}
                                 </div>
                             );
                         })}
-
-                        {/* Completion area */}
                         {allRevealed && (
                             <div className="mt-10 flex flex-col gap-4 items-center pb-8">
-                                <div className="text-center text-green-400 font-bold text-xl animate-pulse">
-                                    ✅ Ripasso completato!
-                                </div>
-                                <div className="text-slate-400 text-sm text-center">Ascolta il podcast o esporta il tuo lavoro</div>
-                                <button onClick={generatePodcast} 
-                                    className="bg-purple-600 text-white font-bold px-10 py-4 rounded-2xl text-lg shadow-xl transform active:scale-95 border-2 border-purple-400"
-                                    style={{animation: 'micPulse 2s infinite'}}>
+                                <div className="text-center text-green-400 font-bold text-xl animate-pulse">✅ Ripasso completato!</div>
+                                <button onClick={generatePodcast} className="bg-purple-600 text-white font-bold px-10 py-4 rounded-2xl text-lg shadow-xl transform active:scale-95 border-2 border-purple-400" style={{animation: 'micPulse 2s infinite'}}>
                                     🎙️ ASCOLTA IL PODCAST
                                 </button>
                                 <button onClick={saveAsPDF} className="bg-red-600 text-white font-bold px-10 py-4 rounded-2xl text-lg shadow-xl transform active:scale-95 border-2 border-red-400">
@@ -1302,171 +1102,82 @@ Rispondi SOLO con JSON (senza markdown):
                             </div>
                         )}
                     </div>
-
-                    {/* AI Bubble */}
                     {aiMessage && <div className="ai-bubble"><span className="text-3xl">🤖</span><span>{aiMessage}</span></div>}
                     {renderShareMenu()}
                     {pdfProgress && <div className="pdf-overlay"><div className="pdf-spinner mb-6"></div><p className="text-blue-300 font-bold text-xl">{pdfProgress}</p></div>}
                 </div>
             );
 
-            // --- PODCAST ---
             if(stage === 'podcast') return (
                 <div className="h-screen w-screen flex flex-col overflow-hidden" style={{position:'fixed',top:0,left:0,background:'#0a0e17'}}>
-                    {/* Toolbar */}
                     <div className="flex-shrink-0 p-3 flex gap-3 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg">
-                        <button onClick={()=>{window.speechSynthesis.cancel();podcastPlayingRef.current=false;setPodcastPlaying(false);setStage('review');}} 
-                            className="bg-slate-700 px-4 py-2 rounded-xl text-white font-bold text-lg">← Ripasso</button>
+                        <button onClick={()=>{window.speechSynthesis.cancel();podcastPlayingRef.current=false;setPodcastPlaying(false);setStage('review');}} className="bg-slate-700 px-4 py-2 rounded-xl text-white font-bold text-lg">← Ripasso</button>
                         <div className="flex-1 text-center">
-                            <div className="text-purple-400 font-bold text-sm">
-                                🎙️ PODCAST DIDATTICO
-                            </div>
-                            {podcastLines.length > 0 && (
-                                <div className="text-slate-400 text-xs mt-1">
-                                    {podcastIndex >= 0 ? `${podcastIndex + 1}/${podcastLines.length}` : `${podcastLines.length} battute`}
-                                </div>
-                            )}
+                            <div className="text-purple-400 font-bold text-sm">🎙️ PODCAST DIDATTICO</div>
+                            {podcastLines.length > 0 && (<div className="text-slate-400 text-xs mt-1">{podcastIndex >= 0 ? `${podcastIndex + 1}/${podcastLines.length}` : `${podcastLines.length} battute`}</div>)}
                         </div>
                         <button onClick={reset} className="bg-red-600 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-red-400">🔄</button>
-                        <button onClick={()=>setShowVoiceSettings(!showVoiceSettings)} 
-                            className="bg-slate-600 px-3 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-slate-400 text-lg">🔊</button>
+                        <button onClick={()=>setShowVoiceSettings(!showVoiceSettings)} className="bg-slate-600 px-3 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-slate-400 text-lg">🔊</button>
                     </div>
 
-                    {/* Voice settings panel */}
                     {showVoiceSettings && (
                         <div className="flex-shrink-0 bg-slate-900 border-b border-slate-600 p-3">
                             <div className="text-slate-300 text-xs font-bold mb-2 text-center">SELEZIONA LE VOCI</div>
                             <div className="flex gap-3 items-center justify-center flex-wrap">
                                 <div className="flex items-center gap-2">
                                     <span className="text-blue-400 text-sm font-bold">🎓Prof:</span>
-                                    <select value={profVoiceName} onChange={e => setProfVoiceName(e.target.value)}
-                                        className="bg-slate-700 text-white text-sm rounded-lg px-2 py-1 border border-slate-500 max-w-[180px]">
-                                        {availableVoices.map(v => (
-                                            <option key={'p-'+v.name} value={v.name}>
-                                                {v.name.replace('Microsoft ', '').replace(' Online (Natural) - Italian (Italy)', '').replace('Google ', 'G: ')}
-                                            </option>
-                                        ))}
+                                    <select value={profVoiceName} onChange={e => setProfVoiceName(e.target.value)} className="bg-slate-700 text-white text-sm rounded-lg px-2 py-1 border border-slate-500 max-w-[180px]">
+                                        {availableVoices.map(v => (<option key={'p-'+v.name} value={v.name}>{v.name.replace('Microsoft ', '').replace(' Online (Natural) - Italian (Italy)', '').replace('Google ', 'G: ')}</option>))}
                                     </select>
-                                    <button onClick={()=>{
-                                        const v = window.speechSynthesis.getVoices().find(x=>x.name===profVoiceName);
-                                        const u = new SpeechSynthesisUtterance("Ciao, sono il professore.");
-                                        u.lang='it-IT'; u.pitch=0.85; u.rate=0.90;
-                                        if(v) u.voice=v;
-                                        window.speechSynthesis.cancel();
-                                        window.speechSynthesis.speak(u);
-                                    }} className="bg-blue-600 text-white text-xs px-2 py-1 rounded-lg">▶</button>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className="text-emerald-400 text-sm font-bold">💡Stud:</span>
-                                    <select value={studentVoiceName} onChange={e => setStudentVoiceName(e.target.value)}
-                                        className="bg-slate-700 text-white text-sm rounded-lg px-2 py-1 border border-slate-500 max-w-[180px]">
-                                        {availableVoices.map(v => (
-                                            <option key={'s-'+v.name} value={v.name}>
-                                                {v.name.replace('Microsoft ', '').replace(' Online (Natural) - Italian (Italy)', '').replace('Google ', 'G: ')}
-                                            </option>
-                                        ))}
+                                    <select value={studentVoiceName} onChange={e => setStudentVoiceName(e.target.value)} className="bg-slate-700 text-white text-sm rounded-lg px-2 py-1 border border-slate-500 max-w-[180px]">
+                                        {availableVoices.map(v => (<option key={'s-'+v.name} value={v.name}>{v.name.replace('Microsoft ', '').replace(' Online (Natural) - Italian (Italy)', '').replace('Google ', 'G: ')}</option>))}
                                     </select>
-                                    <button onClick={()=>{
-                                        const v = window.speechSynthesis.getVoices().find(x=>x.name===studentVoiceName);
-                                        const u = new SpeechSynthesisUtterance("Ciao, sono lo studente curioso!");
-                                        u.lang='it-IT'; u.pitch=1.15; u.rate=0.98;
-                                        if(v) u.voice=v;
-                                        window.speechSynthesis.cancel();
-                                        window.speechSynthesis.speak(u);
-                                    }} className="bg-emerald-600 text-white text-xs px-2 py-1 rounded-lg">▶</button>
                                 </div>
-                            </div>
-                            <div className="text-slate-500 text-xs text-center mt-2">
-                                {availableVoices.length} voci italiane trovate · Premi ▶ per anteprima
-                                {availableVoices.length <= 1 && (
-                                    <div className="text-yellow-500 mt-1">
-                                        ⚠️ Solo {availableVoices.length} voce trovata.
-                                        {/Android/i.test(navigator.userAgent) && " Android: Impostazioni → Sistema → Lingua → Sintesi vocale → Installa dati vocali"}
-                                        {/iPhone|iPad/i.test(navigator.userAgent) && " iOS: Impostazioni → Accessibilità → Contenuto letto ad alta voce → Voci → Italiano"}
-                                        {!/Android|iPhone|iPad/i.test(navigator.userAgent) && " Windows: Impostazioni → Ora e lingua → Voce → Aggiungi voci italiane"}
-                                    </div>
-                                )}
                             </div>
                         </div>
                     )}
 
-                    {/* Content */}
                     {podcastGenerating ? (
                         <div className="podcast-generating">
                             <div className="w-20 h-20 border-6 border-purple-500 border-t-transparent rounded-full animate-spin" style={{borderWidth:'6px'}}></div>
                             <div className="text-purple-400 font-bold text-xl animate-pulse">Creo il podcast... 🎙️</div>
-                            <div className="text-slate-500 text-sm">Il Prof e lo Studente si preparano</div>
                         </div>
                     ) : (
                         <div className="podcast-container">
-                            {/* Theme header */}
                             <div className="text-center mb-6 mt-2">
                                 <span className="text-4xl">{mapData?.themeIcon || '📚'}</span>
                                 <h2 className="text-lg font-bold text-purple-300 mt-2">{mapData?.theme}</h2>
-                                <div className="flex justify-center gap-6 mt-3">
-                                    <span className="text-sm text-blue-400">🎓 Prof</span>
-                                    <span className="text-sm text-emerald-400">💡 Studente</span>
-                                </div>
                             </div>
-
-                            {/* Chat bubbles */}
                             {podcastLines.map((line, i) => {
                                 const isVisible = podcastIndex === -1 || i <= podcastIndex;
                                 const isSpeaking = i === podcastIndex && podcastPlaying;
                                 if(!isVisible && podcastIndex >= 0) return null;
-                                // If never played, show all bubbles but dimmed
                                 const neverPlayed = podcastIndex === -1;
-
                                 return (
-                                    <div key={i} id={`podcast-bubble-${i}`}
-                                        className={`podcast-bubble ${line.speaker} ${isSpeaking ? 'speaking' : ''}`}
-                                        style={{
-                                            opacity: neverPlayed ? 0.5 : (i <= podcastIndex ? 1 : 0.3),
-                                            transition: 'opacity 0.3s'
-                                        }}>
-                                        <div className="podcast-speaker">
-                                            {line.speaker === 'prof' ? '🎓' : '💡'}
-                                            {line.speaker === 'prof' ? ' Prof' : ' Studente'}
-                                        </div>
+                                    <div key={i} id={`podcast-bubble-${i}`} className={`podcast-bubble ${line.speaker} ${isSpeaking ? 'speaking' : ''}`} style={{ opacity: neverPlayed ? 0.5 : (i <= podcastIndex ? 1 : 0.3), transition: 'opacity 0.3s' }}>
+                                        <div className="podcast-speaker">{line.speaker === 'prof' ? '🎓 Prof' : '💡 Studente'}</div>
                                         <div>{line.text}</div>
                                     </div>
                                 );
                             })}
-                            
-                            {/* End message */}
                             {podcastIndex >= podcastLines.length - 1 && !podcastPlaying && podcastLines.length > 0 && (
-                                <div className="text-center mt-6 mb-4">
-                                    <div className="text-green-400 font-bold text-lg">✅ Podcast completato!</div>
-                                    <div className="text-slate-400 text-sm mt-1">Premi ▶ per riascoltare</div>
-                                </div>
+                                <div className="text-center mt-6 mb-4"><div className="text-green-400 font-bold text-lg">✅ Podcast completato!</div></div>
                             )}
                         </div>
                     )}
 
-                    {/* Playback controls */}
                     {!podcastGenerating && podcastLines.length > 0 && (
                         <div className="podcast-controls">
-                            <div className="podcast-progress-text">
-                                {podcastIndex >= 0 ? `${podcastIndex + 1}` : '0'} / {podcastLines.length}
-                            </div>
-                            <div className={`podcast-play-btn ${podcastPlaying ? 'bg-yellow-500 border-yellow-400 text-black' : 'bg-purple-600 border-purple-400 text-white'}`}
-                                onClick={playPodcast}>
-                                {podcastPlaying ? '⏸' : '▶'}
-                            </div>
-                            <button onClick={()=>{
-                                window.speechSynthesis.cancel();
-                                podcastPlayingRef.current=false;
-                                setPodcastPlaying(false);
-                                setPodcastIndex(-1);
-                                podcastIndexRef.current=-1;
-                            }} className="text-slate-400 font-bold text-sm bg-slate-700 px-4 py-2 rounded-xl">
-                                ↩ Riavvolgi
-                            </button>
+                            <div className="podcast-progress-text">{podcastIndex >= 0 ? `${podcastIndex + 1}` : '0'} / {podcastLines.length}</div>
+                            <div className={`podcast-play-btn ${podcastPlaying ? 'bg-yellow-500 border-yellow-400 text-black' : 'bg-purple-600 border-purple-400 text-white'}`} onClick={playPodcast}>{podcastPlaying ? '⏸' : '▶'}</div>
+                            <button onClick={()=>{window.speechSynthesis.cancel();podcastPlayingRef.current=false;setPodcastPlaying(false);setPodcastIndex(-1);podcastIndexRef.current=-1;}} className="text-slate-400 font-bold text-sm bg-slate-700 px-4 py-2 rounded-xl">↩ Riavvolgi</button>
                         </div>
                     )}
                 </div>
             );
-
             return null;
         };
 
