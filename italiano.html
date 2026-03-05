@@ -13,7 +13,7 @@
 
     <style>
         * { letter-spacing: 0.03em; word-spacing: 0.05em; box-sizing: border-box; }
-        html, body { height: 100dvh; margin: 0; overflow: hidden; background-color: #0a0e17; color: white; font-family: 'OpenDyslexic', Verdana, sans-serif; }
+        html, body { height: 100vh; margin: 0; overflow: hidden; background-color: #0a0e17; color: white; font-family: 'OpenDyslexic', Verdana, sans-serif; }
         
         .scroll-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         ::-webkit-scrollbar { width: 8px; }
@@ -57,13 +57,15 @@
             }
         };
 
+        // Rimosso il backtick dalla regex che causava il crash del parser Babel!
         const cleanTextForSpeech = (text) => {
             if (!text) return '';
-            return String(text).replace(/[*#_`~"]/g, '').replace(/\n+/g, '. ').trim();
+            return String(text).replace(/[*#_~"]/g, '').replace(/\n+/g, '. ').trim();
         };
 
-        // Identificatore univoco per cancellare le code audio precedenti
         window.speechSequenceID = 0;
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
         const AI = {
             checkText: async (text) => {
@@ -111,6 +113,7 @@ Rispondi SOLO con JSON:
             const [title, setTitle] = useState('');
             const [ideas, setIdeas] = useState([]);
             const [currentIdeaInput, setCurrentIdeaInput] = useState('');
+            const [isRecording, setIsRecording] = useState(false);
             
             const [drafts, setDrafts] = useState({});
             const [currentDraftIndex, setCurrentDraftIndex] = useState(0);
@@ -124,7 +127,24 @@ Rispondi SOLO con JSON:
             const [styleComment, setStyleComment] = useState('');
             const [aiMessage, setAiMessage] = useState(null);
 
-            // FIX AUDIO: Sintesi Vocale a "pezzi" per superare il limite dei 15 secondi di Android
+            const recognitionRef = useRef(null);
+
+            useEffect(() => {
+                if(SpeechRecognition) {
+                    recognitionRef.current = new SpeechRecognition();
+                    recognitionRef.current.lang = 'it-IT';
+                    recognitionRef.current.continuous = false;
+                    recognitionRef.current.interimResults = false;
+                    
+                    recognitionRef.current.onresult = (event) => {
+                        const transcript = event.results[0][0].transcript;
+                        setCurrentIdeaInput(prev => prev + (prev ? ' ' : '') + transcript);
+                    };
+                    recognitionRef.current.onend = () => setIsRecording(false);
+                    recognitionRef.current.onerror = () => setIsRecording(false);
+                }
+            }, []);
+
             const speak = (text) => {
                 window.speechSynthesis.cancel();
                 window.speechSequenceID++;
@@ -133,17 +153,13 @@ Rispondi SOLO con JSON:
                 setAiMessage(text);
                 
                 let cleanText = cleanTextForSpeech(text);
-                // Aggiungiamo un punto alla fine se non c'è, per assicurarci che l'ultima frase venga processata
                 if (!cleanText.match(/[.!?]$/)) cleanText += '.';
                 
-                // Dividiamo il testo in frasi usando la punteggiatura
                 const chunks = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
                 let chunkIndex = 0;
 
                 const speakNextChunk = () => {
-                    // Se l'utente ha premuto di nuovo o è uscito, interrompi la coda
                     if (currentSeq !== window.speechSequenceID) return;
-                    
                     if (chunkIndex >= chunks.length) {
                         setTimeout(() => setAiMessage(null), 1000);
                         return;
@@ -165,21 +181,18 @@ Rispondi SOLO con JSON:
                     const bestVoice = itVoices.find(v => v.name.includes('Natural') || v.name.includes('Google')) || itVoices[0];
                     if(bestVoice) u.voice = bestVoice;
                     
-                    u.onend = () => {
-                        chunkIndex++;
-                        speakNextChunk();
-                    };
-                    u.onerror = () => {
-                        if (currentSeq === window.speechSequenceID) {
-                            chunkIndex++;
-                            speakNextChunk();
-                        }
-                    };
+                    u.onend = () => { chunkIndex++; speakNextChunk(); };
+                    u.onerror = () => { if (currentSeq === window.speechSequenceID) { chunkIndex++; speakNextChunk(); } };
                     
                     window.speechSynthesis.speak(u);
                 };
-
                 speakNextChunk();
+            };
+
+            const toggleDictation = () => {
+                if(!recognitionRef.current) return alert("Dettatura vocale non supportata.");
+                if(isRecording) { recognitionRef.current.stop(); setIsRecording(false); }
+                else { recognitionRef.current.start(); setIsRecording(true); }
             };
 
             const startBrainstorming = () => {
@@ -198,7 +211,7 @@ Rispondi SOLO con JSON:
 
             const removeIdea = (id) => setIdeas(ideas.filter(i => i.id !== id));
 
-            const handleDragStart = (e, index) => e.dataTransfer.setData('index', index);
+            const handleDragStart = (e, index) => e.dataTransfer.setData('index', index.toString());
             const handleDrop = (e, index) => {
                 const draggedIdx = parseInt(e.dataTransfer.getData('index'));
                 const newIdeas = [...ideas];
@@ -213,19 +226,22 @@ Rispondi SOLO con JSON:
                 setStage('draft');
             };
 
-            const handleDraftChange = (val) => setDrafts({ ...drafts, [ideas[currentDraftIndex].id]: val });
+            const handleDraftChange = (val) => {
+                const currentId = ideas[currentDraftIndex]?.id;
+                if(currentId) setDrafts({ ...drafts, [currentId]: val });
+            };
 
-            const nextDraft = () => {
-                DB.addXP(15);
-                if(currentDraftIndex < ideas.length - 1) {
-                    setCurrentDraftIndex(prev => prev + 1);
-                    speak("Ottimo! Passiamo alla prossima idea.");
-                } else {
-                    const combined = ideas.map(i => drafts[i.id] || "").filter(t => t.trim() !== "").join("\n\n");
-                    setFinalText(combined);
-                    speak("Stesura completata! Ora indago per vedere se si è nascosto qualche errore.");
-                    analyzeText(combined);
-                }
+            // Funzione di Stile Spostata in alto per sicurezza Javascript
+            const startStyling = async (textBase) => {
+                setStage('style');
+                setIsChecking(true);
+                try {
+                    const res = await AI.improveFluency(textBase);
+                    setFluentText(res.fluency_text);
+                    setStyleComment(res.ai_comment);
+                    speak(res.ai_comment);
+                } catch(e) { setStage('final'); }
+                setIsChecking(false);
             };
 
             const analyzeText = async (textToCheck) => {
@@ -246,6 +262,19 @@ Rispondi SOLO con JSON:
                 setIsChecking(false);
             };
 
+            const nextDraft = () => {
+                DB.addXP(15);
+                if(currentDraftIndex < ideas.length - 1) {
+                    setCurrentDraftIndex(prev => prev + 1);
+                    speak("Ottimo! Passiamo alla prossima idea.");
+                } else {
+                    const combined = ideas.map(i => drafts[i.id] || "").filter(t => t.trim() !== "").join("\n\n");
+                    setFinalText(combined);
+                    speak("Stesura completata! Ora indago per vedere se si è nascosto qualche errore.");
+                    analyzeText(combined);
+                }
+            };
+
             const applyCorrection = () => {
                 const currentErr = errors[currentErrorIndex];
                 const newText = finalText.replace(currentErr.original, currentErr.correction);
@@ -260,18 +289,6 @@ Rispondi SOLO con JSON:
                     speak("Hai superato tutte le sfide ortografiche! Ora facciamo una magia...");
                     startStyling(newText);
                 }
-            };
-
-            const startStyling = async (textBase) => {
-                setStage('style');
-                setIsChecking(true);
-                try {
-                    const res = await AI.improveFluency(textBase);
-                    setFluentText(res.fluency_text);
-                    setStyleComment(res.ai_comment);
-                    speak(res.ai_comment);
-                } catch(e) { setStage('final'); }
-                setIsChecking(false);
             };
 
             const acceptStyle = () => {
@@ -375,4 +392,153 @@ Rispondi SOLO con JSON:
             if(stage === 'draft') return (
                 <div className="h-full flex flex-col p-4 gap-4 bg-slate-900">
                     <div className="bg-slate-800 p-4 rounded-2xl flex justify-between items-center border-b-4 border-blue-400 shadow-lg shrink-0">
-                        <div className="text-blue-400 font-bold text-lg hidden sm:block">📝 FASE 2: LA STESURA ({currentDraftIndex + 1}/{ideas
+                        <div className="text-blue-400 font-bold text-lg hidden sm:block">📝 FASE 2: LA STESURA ({currentDraftIndex + 1}/{ideas.length})</div>
+                        <div className="text-white font-bold">{title}</div>
+                        <div className="w-[100px] hidden sm:block"></div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto min-h-0 w-full pb-4">
+                        <div className="flex flex-col items-center justify-start max-w-4xl mx-auto w-full gap-6 mt-4">
+                            <div className="post-it w-full text-center text-2xl py-6 shadow-2xl relative">
+                                <span className="text-slate-500 text-lg absolute left-4 top-4">Idea {currentDraftIndex + 1}</span>
+                                <span className="block mt-4">" {ideas[currentDraftIndex]?.text} "</span>
+                            </div>
+                            <div className="w-full text-center text-slate-400 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                                Espandi l'idea usando la tastiera. Gli errori li sistemiamo dopo!
+                            </div>
+                            <textarea autoFocus value={drafts[ideas[currentDraftIndex]?.id] || ""} onChange={e => handleDraftChange(e.target.value)} placeholder="Scrivi la frase qui..." className="editor-area w-full text-xl sm:text-2xl p-6 shadow-inner min-h-[250px]" />
+                            <button onClick={nextDraft} disabled={!(drafts[ideas[currentDraftIndex]?.id] || "").trim()} className="btn-magico w-full py-5 rounded-2xl font-bold text-white text-xl sm:text-2xl mt-4 shrink-0">
+                                {currentDraftIndex < ideas.length - 1 ? 'PROSSIMA IDEA ➡️' : 'FINITO! CONTROLLIAMO 🔍'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            if(stage === 'review') return (
+                <div className="h-full flex flex-col p-4 gap-4 bg-slate-900">
+                    <div className="bg-slate-800 p-4 rounded-2xl flex justify-between items-center border-b-4 border-purple-400 shadow-lg shrink-0">
+                        <div className="text-purple-400 font-bold text-lg">🔍 FASE 3: L'INVESTIGATORE</div>
+                        {!isChecking && errors.length > 0 && <div className="bg-purple-900 border border-purple-500 px-4 py-1 rounded-full text-purple-200 font-bold text-sm">Sfida {currentErrorIndex + 1} di {errors.length}</div>}
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto min-h-0 w-full pb-4">
+                        <div className="flex flex-col lg:flex-row gap-6 max-w-6xl mx-auto w-full h-full">
+                            <div className="flex-1 bg-slate-900 p-6 sm:p-8 rounded-3xl border-2 border-slate-700 shadow-inner h-max lg:h-full overflow-y-auto">
+                                {isChecking ? (
+                                    <div className="flex flex-col items-center justify-center gap-6 py-10"><div className="text-7xl animate-bounce">🤖</div><div className="text-2xl text-purple-400 font-bold animate-pulse text-center">Analizzo il testo...</div></div>
+                                ) : renderReviewText()}
+                            </div>
+
+                            {!isChecking && errors.length > 0 && (
+                                <div className="w-full lg:w-96 bg-slate-800 p-6 rounded-3xl border-2 border-purple-500 flex flex-col justify-center items-center text-center gap-6 shadow-2xl shrink-0 h-max">
+                                    <div className="text-6xl drop-shadow-md">🕵️‍♂️</div>
+                                    <div className="w-full">
+                                        <div className="text-slate-400 mb-2 text-sm font-bold uppercase">Indizio sull'errore:</div>
+                                        <div className="text-2xl sm:text-3xl text-red-400 font-bold line-through decoration-wavy break-words bg-red-900/20 py-2 rounded-xl">{errors[currentErrorIndex].original}</div>
+                                    </div>
+                                    <div className="text-3xl text-slate-600 animate-pulse">⬇️</div>
+                                    <div className="w-full">
+                                        <div className="text-slate-400 mb-2 text-sm font-bold uppercase">Forma corretta:</div>
+                                        <div className="text-3xl sm:text-4xl text-green-400 font-bold break-words bg-green-900/20 py-3 rounded-xl shadow-lg">{errors[currentErrorIndex].correction}</div>
+                                    </div>
+                                    <div className="bg-slate-900 p-4 rounded-xl text-yellow-300 w-full font-bold border border-slate-700 shadow-inner mt-2">
+                                        💡 {errors[currentErrorIndex].explanation}
+                                    </div>
+                                    <button onClick={applyCorrection} className="btn-magico w-full py-4 rounded-xl font-bold text-white text-xl mt-2 shadow-lg">
+                                        APPLICA CORREZIONE ✨
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+
+            if(stage === 'style') return (
+                <div className="h-full flex flex-col p-4 gap-4 bg-slate-900">
+                    <div className="bg-slate-800 p-4 rounded-2xl flex items-center border-b-4 border-pink-400 shadow-lg shrink-0 justify-center">
+                        <div className="text-pink-400 font-bold text-xl text-center">✨ FASE 4: LA MAGIA DELLO SCRITTORE</div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto min-h-0 w-full pb-4">
+                        <div className="flex flex-col items-center justify-start max-w-5xl mx-auto w-full gap-6">
+                            {isChecking ? (
+                                <div className="flex flex-col items-center gap-6 py-10"><div className="text-7xl animate-spin">🪄</div><div className="text-2xl text-pink-400 font-bold animate-pulse text-center">L'AI sta unendo le frasi in un racconto fluido...</div></div>
+                            ) : (
+                                <>
+                                    <p className="text-slate-300 text-center text-lg max-w-2xl bg-slate-800 p-4 rounded-xl border border-slate-700">
+                                        Ho aggiunto qualche "parola ponte" (come: allora, poi, mentre) per far scorrere meglio le tue idee. Ascoltale entrambe e scegli quale ti piace di più!
+                                    </p>
+                                    
+                                    <div className="flex flex-col md:flex-row w-full gap-6">
+                                        <div className="flex-1 flex flex-col bg-slate-800 border-2 border-slate-600 rounded-2xl overflow-hidden opacity-90 h-max">
+                                            <div className="bg-slate-700 p-3 flex justify-between items-center text-slate-300 border-b border-slate-600">
+                                                <span className="font-bold text-lg">La tua versione</span>
+                                                <button onClick={() => speak(finalText)} className="bg-slate-600 hover:bg-slate-500 w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-md border border-slate-500">🔊</button>
+                                            </div>
+                                            <div className="p-6 text-lg leading-relaxed text-slate-300 flex-1">
+                                                {finalText.split('\n').map((par, i) => <p key={i} className="mb-4">{par}</p>)}
+                                            </div>
+                                            <button onClick={rejectStyle} className="bg-slate-700 p-5 font-bold text-white hover:bg-slate-600 text-lg border-t border-slate-600">
+                                                ✋ TIENI LA MIA
+                                            </button>
+                                        </div>
+
+                                        <div className="flex-1 flex flex-col bg-slate-900 border-2 border-pink-500 rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(236,72,153,0.3)] h-max">
+                                            <div className="bg-pink-900/50 p-3 flex justify-between items-center text-pink-300 border-b border-pink-700/50">
+                                                <span className="font-bold text-lg">Versione Magica ✨</span>
+                                                <button onClick={() => speak(fluentText)} className="bg-pink-700 hover:bg-pink-600 w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-md text-white border border-pink-500">🔊</button>
+                                            </div>
+                                            <div className="p-6 text-lg leading-relaxed text-white flex-1">
+                                                {(fluentText||'').split('\n').map((par, i) => <p key={i} className="mb-4">{par}</p>)}
+                                            </div>
+                                            <button onClick={acceptStyle} className="bg-pink-600 p-5 font-bold text-white hover:bg-pink-500 text-xl border-t border-pink-700">
+                                                ✨ ACCETTA LA MAGIA
+                                            </button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                    {aiMessage && <div className="ai-bubble"><span className="text-3xl">🤖</span><span>{aiMessage}</span></div>}
+                </div>
+            );
+
+            if(stage === 'final') return (
+                <div className="h-full flex flex-col p-4 gap-4 bg-slate-900">
+                    <div className="bg-slate-800 p-4 rounded-2xl flex justify-between items-center border-b-4 border-green-400 shadow-lg shrink-0">
+                        <div className="text-green-400 font-bold text-lg">🎉 IL TUO CAPOLAVORO</div>
+                        <button onClick={() => window.location.reload()} className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-xl text-white font-bold active:scale-95 transition-all">Scrivi un altro</button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto min-h-0 w-full pb-4">
+                        <div className="flex flex-col items-center justify-start max-w-4xl mx-auto w-full gap-6 mt-4">
+                            <h2 className="text-3xl sm:text-4xl font-black text-blue-400 text-center mb-2 drop-shadow-md">{title}</h2>
+                            <div className="bg-slate-800 p-6 sm:p-8 rounded-3xl border-2 border-slate-700 w-full text-xl sm:text-2xl leading-loose text-gray-200 shadow-inner h-max">
+                                {finalText.split('\n').map((par, i) => <p key={i} className="mb-6">{par}</p>)}
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-4 w-full mt-auto mb-4">
+                                <button onClick={() => speak(finalText)} className="flex-1 bg-purple-600 py-4 sm:py-5 rounded-2xl font-bold text-white text-lg sm:text-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 border-2 border-purple-400 transition-transform">
+                                    <span className="text-2xl">🔊</span> ASCOLTA
+                                </button>
+                                <button onClick={exportPDF} className="flex-1 bg-red-600 py-4 sm:py-5 rounded-2xl font-bold text-white text-lg sm:text-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 border-2 border-red-400 transition-transform">
+                                    <span className="text-2xl">📄</span> SCARICA PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {aiMessage && <div className="ai-bubble"><span className="text-3xl">🤖</span><span>{aiMessage}</span></div>}
+                </div>
+            );
+
+            return null;
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+    <script src="game-system.js"></script>
+</body>
+</html>
