@@ -322,22 +322,34 @@ Rispondi SOLO con JSON:
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 
-                doc.setFillColor(30, 41, 59); doc.rect(0, 0, 210, 297, 'F');
-                doc.setTextColor(59, 130, 246); doc.setFontSize(24);
+                // Sfondo Bianco (nessun rect nero disegnato)
+                
+                // Titolo in Blu scuro
+                doc.setTextColor(37, 99, 235); 
+                doc.setFontSize(24);
                 doc.text(title, 105, 30, { align: 'center' });
                 
-                doc.setTextColor(255, 255, 255); doc.setFontSize(14);
+                // Testo principale in Grigio molto scuro (Slate 800 - quasi nero)
+                doc.setTextColor(30, 41, 59); 
+                doc.setFontSize(14);
                 const splitText = doc.splitTextToSize(finalText, 170);
                 doc.text(splitText, 20, 50);
 
-                doc.setDrawColor(74, 222, 128); doc.setLineWidth(1); doc.line(20, 250, 190, 250);
-                doc.setTextColor(148, 163, 184); doc.setFontSize(12);
-                doc.text(`Idee: ${ideas.length} | Sfide vinte: ${errors.length}`, 105, 260, { align: 'center' });
-                doc.text(`Creato con EduGamer`, 105, 270, { align: 'center' });
+                // Linea separatrice elegante in fondo
+                doc.setDrawColor(203, 213, 225); // Grigio chiaro
+                doc.setLineWidth(1); 
+                doc.line(20, 250, 190, 250);
+                
+                // Statistiche per la maestra (Testo grigio medio)
+                doc.setTextColor(100, 116, 139); 
+                doc.setFontSize(12);
+                doc.text(`Idee organizzate: ${ideas.length} | Sfide superate: ${errors.length}`, 105, 260, { align: 'center' });
+                doc.text(`Creato con EduGamer - Metodo Inclusivo`, 105, 270, { align: 'center' });
 
+                // Salvataggio
                 doc.save(`${title.replace(/\s+/g, '_')}_EduGamer.pdf`);
                 DB.addXP(20);
-                speak("Il capolavoro è stato scaricato!");
+                speak("Il tuo capolavoro è pronto da stampare e consegnare!");
             };
 
             // RENDER UI //
