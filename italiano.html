@@ -2,541 +2,506 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Italiano - EduGamer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Laboratorio di Scrittura - EduGamer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link href="https://fonts.cdnfonts.com/css/opendyslexic" rel="stylesheet">
 
     <style>
-        * { letter-spacing: 0.03em; word-spacing: 0.05em; }
+        * { letter-spacing: 0.03em; word-spacing: 0.05em; box-sizing: border-box; }
+        html, body { height: 100dvh; margin: 0; overflow: hidden; background-color: #0a0e17; color: white; font-family: 'OpenDyslexic', Verdana, sans-serif; }
+        
+        .scroll-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 4px; }
 
-        html, body, #root {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
+        .btn-magico { background: linear-gradient(135deg, #3b82f6, #8b5cf6); transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 15px rgba(59,130,246,0.4); }
+        .btn-magico:active { transform: scale(0.95); }
+        .btn-magico:disabled { background: #475569; box-shadow: none; transform: none; cursor: not-allowed; opacity: 0.7; }
 
-        body { 
-            background-color: #0a0e17; 
-            color: white; 
-            font-family: 'OpenDyslexic', Verdana, sans-serif;
-            line-height: 1.6;
-        }
+        /* POST-IT DRAG & DROP */
+        .post-it { background: linear-gradient(135deg, #fef08a, #fde047); color: #1e293b; border-radius: 12px; padding: 12px; box-shadow: 2px 4px 10px rgba(0,0,0,0.3); border-left: 6px solid #eab308; cursor: grab; transition: transform 0.2s; position: relative; }
+        .post-it:active { cursor: grabbing; transform: scale(0.98); }
+        .post-it.dragging { opacity: 0.5; border: 2px dashed #3b82f6; }
 
-        /* SCROLL */
-        .scroll-area {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
-        }
+        .editor-area { font-family: 'OpenDyslexic', Verdana, sans-serif; font-size: 1.2rem; line-height: 1.8; width: 100%; border-radius: 12px; padding: 16px; background: #1e293b; border: 2px solid #3b82f6; color: white; resize: none; min-height: 150px; }
+        .editor-area:focus { outline: none; border-color: #facc15; box-shadow: 0 0 15px rgba(250,204,21,0.3); }
 
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .error-highlight { background-color: rgba(239, 68, 68, 0.3); border-bottom: 3px wavy #ef4444; font-weight: bold; border-radius: 4px; padding: 0 4px; animation: pulse-red 2s infinite; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } 70% { box-shadow: 0 0 0 10px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
 
-        /* TEXTAREA */
-        .editor-area {
-            font-family: 'OpenDyslexic', Verdana, sans-serif;
-            font-size: 1.1rem;
-            line-height: 1.8;
-            letter-spacing: 0.03em;
-        }
-
-        /* ERRORI */
-        .error-card { transition: all 0.2s; }
-        .error-card:active { transform: scale(0.98); }
-
-        /* TIPO ERRORE */
-        .badge-ort { background: #dc2626; }
-        .badge-pun { background: #f59e0b; }
-        .badge-sin { background: #8b5cf6; }
-
-        /* SHARE BUTTONS */
-        .share-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 12px 16px;
-            border-radius: 12px;
-            font-weight: bold;
-            font-size: 1rem;
-            transition: all 0.2s;
-        }
-        .share-btn:active { transform: scale(0.95); }
-
-        /* ANIMAZIONI */
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+        .ai-bubble { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; border: 2px solid #a855f7; padding: 15px 25px; border-radius: 30px; color: #e9d5ff; font-weight: bold; display: flex; align-items: center; gap: 15px; z-index: 100; box-shadow: 0 10px 40px rgba(0,0,0,0.8); width: 90%; max-width: 600px; animation: slide-up 0.3s ease-out; }
+        @keyframes slide-up { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+        
+        .mic-btn { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; transition: all 0.2s; cursor: pointer; }
+        .mic-btn.recording { background: #ef4444; animation: pulse-mic 1s infinite; box-shadow: 0 0 20px #ef4444; }
+        .mic-btn.idle { background: #3b82f6; }
+        @keyframes pulse-mic { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useRef, useEffect } = React;
-        const MODEL = "gemini-3-pro-preview"; // MODELLO AGGIORNATO
+        const MODEL = "gemini-2.5-flash-lite"; 
 
         const DB = {
-            getKey: () => localStorage.getItem('gemini_api_key')
+            getKey: () => localStorage.getItem('gemini_api_key'),
+            addXP: (amount) => {
+                const next = parseInt(localStorage.getItem('edu_xp') || '0') + amount;
+                localStorage.setItem('edu_xp', next.toString());
+                window.dispatchEvent(new Event('xpChanged'));
+            }
         };
 
-        // PULIZIA TESTO PER SINTESI VOCALE
         const cleanTextForSpeech = (text) => {
-            return text
-                .replace(/[*#_`~]/g, '')
-                .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
-                .replace(/\n+/g, '. ')
-                .replace(/\.+/g, '.')
-                .replace(/\s+/g, ' ')
-                .trim();
-        };
-
-        // RIMUOVE EVENTUALI TAG HTML DAL TESTO (PROTEZIONE TABLET)
-        const stripHTML = (text) => {
             if (!text) return '';
-            return text
-                .replace(/<[^>]*>/g, '') // Rimuove tutti i tag HTML
-                .replace(/&nbsp;/g, ' ')
-                .replace(/&amp;/g, '&')
-                .replace(/&lt;/g, '<')
-                .replace(/&gt;/g, '>')
-                .replace(/&quot;/g, '"')
-                .replace(/\s+/g, ' ') // Normalizza spazi multipli
-                .trim();
+            return String(text).replace(/[*#_`~]/g, '').replace(/\n+/g, '. ').trim();
         };
 
-        const checkText = async (text) => {
-            const key = DB.getKey();
-            if(!key) throw new Error("Manca API Key! Vai su Home.");
-            
-            // NUOVO PROMPT "SEGUGIO"
-            const prompt = `Sei un correttore esperto e RIGOROSO per la scuola primaria.
-            Analizza questo testo: "${text}"
-            
-            OBIETTIVO: Trova TUTTI gli errori in un unico passaggio. Sii ossessivo sulla PUNTEGGIATURA.
-            
-            CATEGORIE ERRORE:
-            - ORT (Ortografia): Accenti, doppie, 'h' mancanti, apostrofi, maiuscole.
-            - PUN (Punteggiatura): Virgole negli elenchi, punti fine frase, spazi dopo la virgola.
-            - SIN (Sintassi): Frasi contorte, verbi sbagliati, ripetizioni.
+        // SPEECH RECOGNITION (Dettatura vocale nativa del browser)
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-            ISTRUZIONI:
-            1. Se mancano virgole o punti, SEGNALO.
-            2. Spiegazioni TELEGRAFICHE (max 6 parole).
-            3. Se il testo è perfetto, array vuoto.
+        const AI = {
+            checkText: async (text) => {
+                const key = DB.getKey();
+                if(!key) throw new Error("Manca API Key! Vai su Home per inserirla.");
+                const prompt = `Sei un maestro incoraggiante. Analizza questo testo per un ragazzo con dislessia: "${text}"
+Trova TUTTI gli errori di ortografia, punteggiatura e grammatica.
+Sii telegrafico e non usare parole difficili nella spiegazione.
 
-            Rispondi SOLO con un JSON array valido:
-            [{"original":"testo errato", "type":"ORT", "correction":"correzione", "explanation":"spiegazione"}]`;
-            
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-            });
-            
-            if(!res.ok) throw new Error("Errore AI");
-            const data = await res.json();
-            const jsonText = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
-            return JSON.parse(jsonText);
+Rispondi SOLO con un array JSON (niente markdown) con questa struttura:
+[{"original":"parola sbagliata o frase", "correction":"parola o frase giusta", "explanation":"Breve motivo (es: ci vuole l'h, manca la doppia)"}]
+Se il testo è perfetto, restituisci: []`;
+                
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    if(!res.ok) throw new Error("Errore API");
+                    const data = await res.json();
+                    const jsonText = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
+                    return JSON.parse(jsonText);
+                } catch(e) {
+                    console.error(e);
+                    throw new Error("Impossibile contattare l'intelligenza artificiale.");
+                }
+            }
         };
 
         const App = () => {
-            const [text, setText] = useState('');
-            const [correctedText, setCorrectedText] = useState('');
-            const [errors, setErrors] = useState(null);
-            const [loading, setLoading] = useState(false);
-            const [showShareMenu, setShowShareMenu] = useState(false);
-            const [viewMode, setViewMode] = useState('edit'); // 'edit' o 'review'
-            const textareaRef = useRef(null);
+            // STAGES: 'title', 'brainstorm', 'draft', 'review', 'final'
+            const [stage, setStage] = useState('title');
+            const [title, setTitle] = useState('');
+            const [ideas, setIdeas] = useState([]); // {id, text}
+            const [currentIdeaInput, setCurrentIdeaInput] = useState('');
+            const [isRecording, setIsRecording] = useState(false);
+            
+            // Drafting (Stesura)
+            const [drafts, setDrafts] = useState({}); // { ideaId: "testo del paragrafo" }
+            const [currentDraftIndex, setCurrentDraftIndex] = useState(0);
+            
+            // Review (Investigatore)
+            const [finalText, setFinalText] = useState('');
+            const [errors, setErrors] = useState([]);
+            const [currentErrorIndex, setCurrentErrorIndex] = useState(0);
+            const [isChecking, setIsChecking] = useState(false);
 
-            // PULIZIA AUTOMATICA HTML SU CAMBIO TESTO (PROTEZIONE TABLET)
+            // Audio & UI
+            const [aiMessage, setAiMessage] = useState(null);
+            const recognitionRef = useRef(null);
+
             useEffect(() => {
-                if (text && /<[^>]*>/.test(text)) {
-                    const cleaned = stripHTML(text);
-                    if (cleaned !== text) {
-                        console.log('🛡️ Rimosso HTML residuo dal testo');
-                        setText(cleaned);
-                    }
+                if(SpeechRecognition) {
+                    recognitionRef.current = new SpeechRecognition();
+                    recognitionRef.current.lang = 'it-IT';
+                    recognitionRef.current.continuous = false;
+                    recognitionRef.current.interimResults = false;
+                    
+                    recognitionRef.current.onresult = (event) => {
+                        const transcript = event.results[0][0].transcript;
+                        setCurrentIdeaInput(prev => prev + (prev ? ' ' : '') + transcript);
+                    };
+                    recognitionRef.current.onend = () => setIsRecording(false);
+                    recognitionRef.current.onerror = () => setIsRecording(false);
                 }
-            }, [text]);
+            }, []);
 
-            // Funzione XP
-            const addXP = (amount, action) => {
-                if (window.EduGamer) {
-                    window.EduGamer.addXP(amount, 'italiano', action);
-                } else {
-                    const next = parseInt(localStorage.getItem('edu_xp') || '0') + amount;
-                    localStorage.setItem('edu_xp', next.toString());
-                    window.dispatchEvent(new Event('xpChanged'));
-                }
-            };
-
-            // NUOVA FUNZIONE VOCE CON FIX GOOGLE
             const speak = (text) => {
                 window.speechSynthesis.cancel();
-                const cleanText = cleanTextForSpeech(text);
-                const u = new SpeechSynthesisUtterance(cleanText);
+                setAiMessage(text);
+                const u = new SpeechSynthesisUtterance(cleanTextForSpeech(text));
+                u.lang = 'it-IT'; u.rate = 0.9;
                 
-                // FORZA VOCE GOOGLE
+                // Cerca di usare una voce italiana chiara (Google o Natural se disponibili)
                 const voices = window.speechSynthesis.getVoices();
-                const googleVoice = voices.find(v => v.lang.includes('it') && v.name.includes('Google'));
-                const itVoice = voices.find(v => v.lang.includes('it'));
-                if (googleVoice) u.voice = googleVoice;
-                else if (itVoice) u.voice = itVoice;
-
-                u.lang = 'it-IT'; 
-                u.rate = 0.85;
+                const itVoices = voices.filter(v => v.lang.startsWith('it'));
+                const bestVoice = itVoices.find(v => v.name.includes('Natural') || v.name.includes('Google')) || itVoices[0];
+                if(bestVoice) u.voice = bestVoice;
+                
+                u.onend = () => setTimeout(() => setAiMessage(null), 2000);
                 window.speechSynthesis.speak(u);
             };
 
-            // HANDLECHECK CHE ATTIVA LA REVISIONE
-            const handleCheck = async () => {
-                // PULIZIA PREVENTIVA HTML
-                const cleanedText = stripHTML(text.trim());
-                if (!cleanedText) return;
-                
-                // Aggiorna con testo pulito
-                if (cleanedText !== text) {
-                    setText(cleanedText);
+            const toggleDictation = () => {
+                if(!recognitionRef.current) return alert("Dettatura vocale non supportata dal tuo browser. Prova Chrome o Edge.");
+                if(isRecording) { 
+                    recognitionRef.current.stop(); 
+                    setIsRecording(false); 
+                } else { 
+                    recognitionRef.current.start(); 
+                    setIsRecording(true); 
                 }
-                
-                setLoading(true);
-                setErrors(null);
-                
+            };
+
+            // --- FASE 1: TITOLO ---
+            const startBrainstorming = () => {
+                if(!title.trim()) return;
+                DB.addXP(10);
+                speak(`Ottimo titolo! Ora inseriamo le idee principali come fossero dei post-it.`);
+                setStage('brainstorm');
+            };
+
+            // --- FASE 2: BRAINSTORMING E POST-IT ---
+            const addIdea = () => {
+                if(!currentIdeaInput.trim()) return;
+                setIdeas([...ideas, { id: Date.now().toString(), text: currentIdeaInput.trim() }]);
+                setCurrentIdeaInput('');
+                DB.addXP(5); // Premia l'organizzazione
+            };
+
+            const removeIdea = (id) => setIdeas(ideas.filter(i => i.id !== id));
+
+            // Gestione Drag & Drop
+            const handleDragStart = (e, index) => e.dataTransfer.setData('index', index);
+            const handleDrop = (e, index) => {
+                const draggedIdx = parseInt(e.dataTransfer.getData('index'));
+                const newIdeas = [...ideas];
+                const [draggedItem] = newIdeas.splice(draggedIdx, 1);
+                newIdeas.splice(index, 0, draggedItem);
+                setIdeas(newIdeas);
+            };
+
+            const startDrafting = () => {
+                if(ideas.length === 0) return speak("Aggiungi almeno un'idea prima di continuare!");
+                speak(`Perfetto! Hai organizzato la scaletta. Ora trasformiamo ogni post-it in una frase completa.`);
+                setStage('draft');
+            };
+
+            // --- FASE 3: STESURA ---
+            const handleDraftChange = (val) => {
+                setDrafts({ ...drafts, [ideas[currentDraftIndex].id]: val });
+            };
+
+            const nextDraft = () => {
+                DB.addXP(15); // Premio maggiore per aver scritto con la tastiera
+                if(currentDraftIndex < ideas.length - 1) {
+                    setCurrentDraftIndex(prev => prev + 1);
+                    speak("Ottimo! Passiamo alla prossima idea.");
+                } else {
+                    // Unisce tutti i paragrafi in un testo unico
+                    const combined = ideas.map(i => drafts[i.id] || "").filter(t => t.trim() !== "").join("\n\n");
+                    setFinalText(combined);
+                    speak("Hai completato la stesura! Ora indago per vedere se si è nascosto qualche errore.");
+                    analyzeText(combined);
+                }
+            };
+
+            // --- FASE 4: INVESTIGATORE (REVISIONE GAMIFICATA) ---
+            const analyzeText = async (textToCheck) => {
+                setStage('review');
+                setIsChecking(true);
                 try {
-                    const res = await checkText(cleanedText);
-                    setErrors(res);
-                    setCorrectedText(cleanedText);
-                    
-                    if(res.length === 0) {
-                        speak("Bravissimo! Non ho trovato nessun errore!");
-                        addXP(30, 'perfect');
+                    const errs = await AI.checkText(textToCheck);
+                    if(!errs || errs.length === 0) {
+                        setErrors([]);
+                        speak("Incredibile! Non ho trovato nessun errore. Sei un campione!");
+                        DB.addXP(50);
+                        setTimeout(() => setStage('final'), 3000);
                     } else {
-                        speak(`Ho trovato ${res.length} errori. Guarda le parole sottolineate.`);
-                        setViewMode('review'); // ATTIVA MODALITÀ SOTTOLINEATA
-                        addXP(10, 'check');
+                        setErrors(errs);
+                        setCurrentErrorIndex(0);
+                        speak(`Ottimo lavoro! Ci sono solo ${errs.length} piccoli dettagli da sistemare. Risolviamoli insieme!`);
                     }
                 } catch(e) { 
-                    alert("Errore: " + e.message); 
+                    alert(e.message); 
+                    setStage('draft'); 
                 }
-                setLoading(false);
+                setIsChecking(false);
             };
 
-            // GENERATORE TESTO EVIDENZIATO (USA correctedText invece di text)
-            const renderHighlightedText = () => {
-                if (!errors || !correctedText) return correctedText || text;
+            const applyCorrection = () => {
+                const currentErr = errors[currentErrorIndex];
+                // Sostituisce la prima occorrenza esatta dell'errore
+                const newText = finalText.replace(currentErr.original, currentErr.correction);
+                setFinalText(newText);
+                DB.addXP(10);
                 
-                // Usa correctedText invece di text per evitare conflitti
-                let htmlText = correctedText;
-                const sortedErrors = [...errors].sort((a, b) => b.original.length - a.original.length);
-
-                sortedErrors.forEach(err => {
-                    let colorClass = "";
-                    if(err.type === 'ORT') colorClass = "decoration-red-500 bg-red-500/20";
-                    else if(err.type === 'PUN') colorClass = "decoration-yellow-500 bg-yellow-500/20";
-                    else colorClass = "decoration-purple-500 bg-purple-500/20";
-                    
-                    const span = `<span class="underline decoration-wavy decoration-2 ${colorClass} font-bold cursor-pointer" title="${err.explanation}">${err.original}</span>`;
-                    htmlText = htmlText.replace(err.original, span);
-                });
-
-                return <div className="editor-area p-4 whitespace-pre-wrap" dangerouslySetInnerHTML={{__html: htmlText}}></div>;
-            };
-
-            const fixError = (idx) => {
-                const err = errors[idx];
-                // ASSICURA TESTO PULITO
-                const cleanCorrected = stripHTML(correctedText);
-                const newText = cleanCorrected.replace(err.original, err.correction);
+                speak(`Corretto! Abbiamo trasformato ${currentErr.original} in ${currentErr.correction}.`);
                 
-                setCorrectedText(newText);
-                setText(newText);
-                
-                const newErrors = errors.filter((_, i) => i !== idx);
-                setErrors(newErrors);
-                
-                speak(`Corretto! ${err.original} diventa ${err.correction}`);
-                addXP(5, 'fix');
-                
-                if(newErrors.length === 0) {
-                    speak("Perfetto! Hai corretto tutto!");
-                    setViewMode('edit');
-                }
-            };
-
-            const fixAll = () => {
-                // ASSICURA TESTO PULITO
-                let newText = stripHTML(correctedText);
-                errors.forEach(err => {
-                    newText = newText.replace(err.original, err.correction);
-                });
-                setCorrectedText(newText);
-                setText(newText);
-                setErrors([]);
-                speak("Ho corretto tutti gli errori!");
-                setViewMode('edit');
-                addXP(30, 'perfect');
-            };
-
-            const reset = () => {
-                setText('');
-                setCorrectedText('');
-                setErrors(null);
-                setViewMode('edit');
-                window.speechSynthesis.cancel();
-            };
-
-            // GESTIONE TEXTAREA CON PULIZIA
-            const handleTextChange = (e) => {
-                const newText = e.target.value;
-                // Pulizia leggera in tempo reale (solo per casi evidenti)
-                if (/<span|<div/.test(newText)) {
-                    setText(stripHTML(newText));
+                if(currentErrorIndex < errors.length - 1) {
+                    setCurrentErrorIndex(prev => prev + 1);
                 } else {
-                    setText(newText);
+                    speak("Complimenti! Hai superato tutte le sfide ortografiche!");
+                    setStage('final');
                 }
             };
 
-            // === FUNZIONI CONDIVISIONE RIPRISTINATE ===
-            const getShareText = () => {
-                const cleanText = stripHTML(text);
-                const cleanCorrected = stripHTML(correctedText);
+            // Renderizza il testo mostrando *solo* l'errore corrente evidenziato
+            const renderReviewText = () => {
+                if(errors.length === 0 || currentErrorIndex >= errors.length) return finalText;
+                const err = errors[currentErrorIndex];
                 
-                let shareContent = `CORREZIONE TESTO - EduGamer\n${'='.repeat(30)}\n\n`;
-                shareContent += `TESTO ORIGINALE:\n${cleanText}\n\n`;
-                
-                if(errors && errors.length > 0) {
-                    shareContent += `ERRORI TROVATI (${errors.length}):\n`;
-                    errors.forEach((e, i) => {
-                        shareContent += `${i+1}. "${e.original}" → "${e.correction}"\n   (${e.type}) ${e.explanation}\n`;
-                    });
-                    shareContent += `\nTESTO CORRETTO:\n${cleanCorrected}\n`;
-                } else {
-                    shareContent += `Nessun errore trovato!\n`;
-                }
-                
-                shareContent += `\n${'='.repeat(30)}\nCorretto con EduGamer`;
-                return shareContent;
-            };
+                const parts = finalText.split(err.original);
+                if(parts.length === 1) return finalText; // Se non lo trova esattamente, mostra il testo normale
 
-            const shareViaWhatsApp = () => {
-                const msg = encodeURIComponent(getShareText());
-                window.open(`https://wa.me/?text=${msg}`, '_blank');
-                setShowShareMenu(false);
-            };
-
-            const shareViaEmail = () => {
-                const subject = encodeURIComponent('Correzione testo - EduGamer');
-                const body = encodeURIComponent(getShareText());
-                window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
-                setShowShareMenu(false);
-            };
-
-            const saveAsFile = () => {
-                const content = getShareText();
-                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `correzione_${new Date().toISOString().slice(0,10)}.txt`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                setShowShareMenu(false);
-            };
-
-            const getErrorBadgeClass = (type) => {
-                switch(type) {
-                    case 'ORT': return 'badge-ort';
-                    case 'PUN': return 'badge-pun';
-                    case 'SIN': return 'badge-sin';
-                    default: return 'bg-slate-600';
-                }
-            };
-
-            const getErrorLabel = (type) => {
-                switch(type) {
-                    case 'ORT': return 'Ortografia';
-                    case 'PUN': return 'Punteggiatura';
-                    case 'SIN': return 'Sintassi';
-                    default: return type;
-                }
-            };
-
-            // MENU CONDIVISIONE RIPRISTINATO
-            const renderShareMenu = () => {
-                if(!showShareMenu) return null;
-                
                 return (
-                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setShowShareMenu(false)}>
-                        <div className="bg-slate-800 rounded-2xl p-5 w-full max-w-sm border-2 border-slate-600 animate-fade-in" onClick={e => e.stopPropagation()}>
-                            <h3 className="text-xl font-bold text-center text-white mb-4">📤 Condividi Correzione</h3>
-                            
-                            <div className="flex flex-col gap-3">
-                                <button onClick={shareViaWhatsApp} className="share-btn bg-green-600 text-white">
-                                    <span className="text-xl">💬</span> WhatsApp
-                                </button>
-                                
-                                <button onClick={shareViaEmail} className="share-btn bg-blue-600 text-white">
-                                    <span className="text-xl">📧</span> Email
-                                </button>
-                                
-                                <button onClick={saveAsFile} className="share-btn bg-purple-600 text-white">
-                                    <span className="text-xl">💾</span> Salva File
-                                </button>
-                                
-                                <button onClick={() => setShowShareMenu(false)} className="share-btn bg-slate-600 text-white mt-2">
-                                    ✕ Chiudi
-                                </button>
-                            </div>
-                        </div>
+                    <div className="whitespace-pre-wrap text-xl leading-relaxed text-gray-300">
+                        {parts[0]}
+                        <span className="error-highlight text-white">{err.original}</span>
+                        {parts.slice(1).join(err.original)}
                     </div>
                 );
             };
 
-            return (
-                <div className="h-full flex flex-col p-3 gap-3 bg-slate-900">
-                    {/* HEADER */}
-                    <div className="flex gap-2 shrink-0 h-12">
-                        <a href="index.html" className="bg-slate-700 hover:bg-slate-600 text-white px-4 rounded-xl font-bold flex items-center justify-center text-xl active:scale-95">🏠</a>
-                        <div className="flex-1 flex items-center justify-center">
-                            <h1 className="text-xl font-bold text-blue-400">✏️ CORRETTORE ITALIANO</h1>
-                        </div>
-                        <button onClick={reset} className="bg-red-600 hover:bg-red-500 text-white px-4 rounded-xl font-bold active:scale-95">🗑️</button>
+            // --- FASE 5: CAPOLAVORO E PDF ---
+            const exportPDF = () => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Sfondo Scuro
+                doc.setFillColor(30, 41, 59); 
+                doc.rect(0, 0, 210, 297, 'F');
+                
+                // Titolo
+                doc.setTextColor(59, 130, 246);
+                doc.setFontSize(24);
+                doc.text(title, 105, 30, { align: 'center' });
+                
+                // Testo principale
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(14);
+                const splitText = doc.splitTextToSize(finalText, 170);
+                doc.text(splitText, 20, 50);
+
+                // Linea separatrice
+                doc.setDrawColor(74, 222, 128); 
+                doc.setLineWidth(1);
+                doc.line(20, 250, 190, 250);
+                
+                // Statistiche per l'insegnante
+                doc.setTextColor(148, 163, 184); 
+                doc.setFontSize(12);
+                doc.text(`Idee organizzate: ${ideas.length} | Sfide superate: ${errors.length}`, 105, 260, { align: 'center' });
+                doc.text(`Creato con EduGamer - Metodo Inclusivo`, 105, 270, { align: 'center' });
+
+                doc.save(`${title.replace(/\s+/g, '_')}_EduGamer.pdf`);
+                DB.addXP(20);
+                speak("Il tuo capolavoro è stato scaricato in PDF!");
+            };
+
+
+            // ================== RENDER UI ================== //
+            
+            if(stage === 'title') return (
+                <div className="h-full flex flex-col items-center justify-center p-6 gap-6 bg-slate-900">
+                    <h1 className="text-4xl font-black text-blue-400 text-center drop-shadow-lg">TUTOR DI SCRITTURA ✍️</h1>
+                    <div className="bg-slate-800 p-8 rounded-3xl flex flex-col items-center gap-6 w-full max-w-xl shadow-2xl border-2 border-slate-700">
+                        <label className="text-xl font-bold text-yellow-300">Di cosa vuoi scrivere oggi?</label>
+                        <input 
+                            type="text" 
+                            value={title} 
+                            onChange={e => setTitle(e.target.value)}
+                            placeholder="Es: La mia gita in montagna..."
+                            className="editor-area text-center py-4 text-xl"
+                            autoFocus
+                        />
+                        <button onClick={startBrainstorming} disabled={!title.trim()} className="btn-magico w-full py-4 rounded-2xl font-bold text-white text-xl">
+                            INIZIAMO! 🚀
+                        </button>
+                    </div>
+                    <a href="index.html" className="text-slate-400 bg-slate-800 px-6 py-3 rounded-xl font-bold mt-4 border border-slate-700">🏠 MENU</a>
+                </div>
+            );
+
+            if(stage === 'brainstorm') return (
+                <div className="h-full flex flex-col p-4 gap-4 bg-slate-900">
+                    {/* Toolbar */}
+                    <div className="bg-slate-800 p-4 rounded-2xl flex justify-between items-center border-b-4 border-yellow-400 shadow-lg shrink-0">
+                        <div className="text-yellow-400 font-bold text-lg hidden sm:block">💡 FASE 1: LE IDEE</div>
+                        <div className="text-white font-bold truncate max-w-[200px] sm:max-w-xs text-center flex-1 mx-2">{title}</div>
+                        <button onClick={startDrafting} className="bg-green-500 hover:bg-green-400 px-4 py-2 rounded-xl font-bold text-white active:scale-95 transition-all">
+                            CONTINUA ➡️
+                        </button>
                     </div>
 
-                    {/* AREA PRINCIPALE */}
-                    <div className="flex-1 flex flex-col lg:flex-row gap-3 overflow-hidden">
-                        
-                        {/* EDITOR CON VISTA DOPPIA */}
-                        <div className="flex-1 flex flex-col bg-slate-950 rounded-2xl border-2 border-slate-700 overflow-hidden relative">
-                            <div className="p-2 bg-slate-800 border-b border-slate-700 flex justify-between items-center">
-                                <span className="text-sm text-slate-400 font-bold">
-                                    {viewMode === 'edit' ? '📝 SCRIVI IL TUO TESTO' : '👀 REVISIONE ERRORI'}
-                                </span>
-                                {viewMode === 'review' && (
-                                    <button 
-                                        onClick={() => setViewMode('edit')}
-                                        className="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded-lg text-white"
-                                    >
-                                        ✏️ Torna a modificare
+                    <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden">
+                        {/* Area Inserimento Idee */}
+                        <div className="w-full lg:w-1/3 bg-slate-800 p-6 rounded-3xl border-2 border-slate-700 flex flex-col gap-4 shrink-0">
+                            <h3 className="text-xl font-bold text-cyan-300">Aggiungi un'idea</h3>
+                            <p className="text-sm text-slate-400">Usa parole chiave o frasi brevi. Puoi anche usare la voce!</p>
+                            
+                            <div className="flex gap-2">
+                                <textarea 
+                                    value={currentIdeaInput} 
+                                    onChange={e => setCurrentIdeaInput(e.target.value)}
+                                    placeholder="Es: Zaino pesante..."
+                                    className="editor-area flex-1 min-h-[100px] text-lg"
+                                />
+                                {SpeechRecognition && (
+                                    <button onClick={toggleDictation} className={`mic-btn flex-shrink-0 mt-auto ${isRecording ? 'recording' : 'idle'}`} title="Dettatura Vocale">
+                                        🎙️
                                     </button>
                                 )}
                             </div>
-                            
-                            {viewMode === 'edit' ? (
-                                <textarea 
-                                    ref={textareaRef}
-                                    value={text} 
-                                    onChange={handleTextChange}
-                                    className="editor-area flex-1 bg-slate-950 p-4 text-white outline-none resize-none"
-                                    placeholder="Scrivi qui il tuo testo..."
-                                />
-                            ) : (
-                                <div className="flex-1 bg-slate-900 overflow-y-auto">
-                                    {renderHighlightedText()}
-                                </div>
-                            )}
-
-                            <div className="p-2 bg-slate-800 border-t border-slate-700 flex gap-2">
-                                <button 
-                                    onClick={handleCheck} 
-                                    disabled={loading || !text.trim()} 
-                                    className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 text-white font-bold py-3 rounded-xl active:scale-95 transition-all"
-                                >
-                                    {loading ? '⏳ CONTROLLO...' : (viewMode === 'edit' ? '🔍 CONTROLLA' : '🔄 RICONTROLLA')}
-                                </button>
-                            </div>
+                            <button onClick={addIdea} disabled={!currentIdeaInput.trim()} className="bg-blue-600 font-bold text-white py-3 rounded-xl active:scale-95 disabled:opacity-50 transition-transform">
+                                + CREA POST-IT
+                            </button>
                         </div>
 
-                        {/* RISULTATI A LATO */}
-                        {errors !== null && (
-                            <div className="w-full lg:w-80 flex flex-col bg-slate-800 rounded-2xl border-2 border-slate-600 overflow-hidden animate-fade-in">
-                                <div className="p-3 bg-slate-700 border-b border-slate-600 flex justify-between items-center">
-                                    <span className="font-bold text-yellow-400">
-                                        {errors.length === 0 ? '✅ PERFETTO!' : `⚠️ ERRORI (${errors.length})`}
-                                    </span>
-                                    {errors.length > 0 && (
-                                        <button 
-                                            onClick={fixAll}
-                                            className="bg-green-600 text-white text-sm px-3 py-1 rounded-lg font-bold active:scale-95"
-                                        >
-                                            Correggi tutti
-                                        </button>
-                                    )}
+                        {/* Lavagna Drag & Drop */}
+                        <div className="flex-1 bg-slate-900 rounded-3xl p-6 border-2 border-slate-700 overflow-y-auto">
+                            <h3 className="text-slate-500 font-bold text-center mb-6">Trascina i post-it per ordinarli dall'inizio alla fine della storia</h3>
+                            <div className="flex flex-col gap-3 pb-20">
+                                {ideas.map((idea, index) => (
+                                    <div 
+                                        key={idea.id} 
+                                        draggable 
+                                        onDragStart={e => handleDragStart(e, index)} 
+                                        onDragOver={e => e.preventDefault()} 
+                                        onDrop={e => handleDrop(e, index)} 
+                                        className="post-it flex justify-between items-center text-xl"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-slate-500 font-black opacity-50">#{index + 1}</span>
+                                            <span className="font-bold text-slate-900">{idea.text}</span>
+                                        </div>
+                                        <button onClick={() => removeIdea(idea.id)} className="text-red-500 hover:bg-red-200 rounded-full font-bold text-xl w-8 h-8 flex items-center justify-center transition-colors">✕</button>
+                                    </div>
+                                ))}
+                                {ideas.length === 0 && (
+                                    <div className="text-center text-slate-600 font-bold mt-10 text-xl border-2 border-dashed border-slate-700 p-10 rounded-2xl">
+                                        Ancora nessuna idea... usa la scatola qui a lato!
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            if(stage === 'draft') return (
+                <div className="h-full flex flex-col p-4 gap-4 bg-slate-900">
+                    <div className="bg-slate-800 p-4 rounded-2xl flex justify-between items-center border-b-4 border-blue-400 shadow-lg shrink-0">
+                        <div className="text-blue-400 font-bold text-lg hidden sm:block">📝 FASE 2: LA STESURA ({currentDraftIndex + 1}/{ideas.length})</div>
+                        <div className="text-white font-bold">{title}</div>
+                        <div className="w-[100px] hidden sm:block"></div> {/* Spacer for centering */}
+                    </div>
+
+                    <div className="flex-1 flex flex-col items-center justify-start max-w-4xl mx-auto w-full gap-6 mt-4">
+                        <div className="post-it w-full text-center text-2xl py-6 shadow-2xl">
+                            <span className="text-slate-500 text-lg absolute left-4 top-4">Idea {currentDraftIndex + 1}</span>
+                            " {ideas[currentDraftIndex].text} "
+                        </div>
+                        
+                        <div className="w-full text-center text-slate-400 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                            Scrivi il paragrafo partendo da questa idea. Usa la tastiera e non preoccuparti degli errori!
+                        </div>
+                        
+                        <textarea 
+                            autoFocus
+                            value={drafts[ideas[currentDraftIndex].id] || ""} 
+                            onChange={e => handleDraftChange(e.target.value)}
+                            placeholder="Inizia a scrivere qui..."
+                            className="editor-area flex-1 w-full text-xl sm:text-2xl p-6 shadow-inner"
+                        />
+                        
+                        <button onClick={nextDraft} disabled={!(drafts[ideas[currentDraftIndex].id] || "").trim()} className="btn-magico w-full py-5 rounded-2xl font-bold text-white text-xl sm:text-2xl mt-auto mb-4 shrink-0">
+                            {currentDraftIndex < ideas.length - 1 ? 'PROSSIMA IDEA ➡️' : 'FINITO! CONTROLLIAMO 🔍'}
+                        </button>
+                    </div>
+                </div>
+            );
+
+            if(stage === 'review') return (
+                <div className="h-full flex flex-col p-4 gap-4 bg-slate-900">
+                    <div className="bg-slate-800 p-4 rounded-2xl flex justify-between items-center border-b-4 border-purple-400 shadow-lg shrink-0">
+                        <div className="text-purple-400 font-bold text-lg">🔍 FASE 3: L'INVESTIGATORE</div>
+                        {!isChecking && errors.length > 0 && <div className="bg-purple-900 border border-purple-500 px-4 py-1 rounded-full text-purple-200 font-bold text-sm shadow-[0_0_15px_rgba(168,85,247,0.4)]">Sfida {currentErrorIndex + 1} di {errors.length}</div>}
+                    </div>
+
+                    <div className="flex-1 flex flex-col lg:flex-row gap-6 max-w-6xl mx-auto w-full overflow-hidden">
+                        <div className="flex-1 bg-slate-900 p-6 sm:p-8 rounded-3xl border-2 border-slate-700 overflow-y-auto shadow-inner relative">
+                            {isChecking ? (
+                                <div className="h-full flex flex-col items-center justify-center gap-6">
+                                    <div className="text-7xl animate-bounce">🤖</div>
+                                    <div className="text-2xl text-purple-400 font-bold animate-pulse text-center">L'AI sta analizzando il tuo testo...</div>
+                                </div>
+                            ) : renderReviewText()}
+                        </div>
+
+                        {!isChecking && errors.length > 0 && (
+                            <div className="w-full lg:w-96 bg-slate-800 p-6 rounded-3xl border-2 border-purple-500 flex flex-col justify-center items-center text-center gap-6 shadow-[0_0_30px_rgba(168,85,247,0.2)] shrink-0 overflow-y-auto">
+                                <div className="text-6xl drop-shadow-md">🕵️‍♂️</div>
+                                <div className="w-full">
+                                    <div className="text-slate-400 mb-2 text-sm font-bold uppercase tracking-wider">Indizio sull'errore:</div>
+                                    <div className="text-2xl sm:text-3xl text-red-400 font-bold line-through decoration-wavy break-words bg-red-900/20 py-2 rounded-xl border border-red-500/30">{errors[currentErrorIndex].original}</div>
+                                </div>
+                                <div className="text-3xl text-slate-600 animate-pulse">⬇️</div>
+                                <div className="w-full">
+                                    <div className="text-slate-400 mb-2 text-sm font-bold uppercase tracking-wider">La forma corretta è:</div>
+                                    <div className="text-3xl sm:text-4xl text-green-400 font-bold break-words bg-green-900/20 py-3 rounded-xl border border-green-500/30 shadow-[0_0_15px_rgba(74,222,128,0.2)]">{errors[currentErrorIndex].correction}</div>
                                 </div>
                                 
-                                <div className="scroll-area p-3">
-                                    {errors.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center py-8 text-center">
-                                            <div className="text-5xl mb-3">🎉</div>
-                                            <p className="text-green-400 font-bold text-lg">Nessun errore trovato!</p>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col gap-3">
-                                            {errors.map((e, i) => (
-                                                <div key={i} className="error-card bg-slate-900 p-3 rounded-xl border border-slate-700">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <span className={`${getErrorBadgeClass(e.type)} text-white text-xs px-2 py-1 rounded font-bold`}>
-                                                            {getErrorLabel(e.type)}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <span className="text-red-400 line-through decoration-wavy">{e.original}</span>
-                                                        <span className="text-slate-500">→</span>
-                                                        <span 
-                                                            className="text-green-400 font-bold cursor-pointer"
-                                                            onClick={() => fixError(i)}
-                                                        >
-                                                            {e.correction}
-                                                        </span>
-                                                    </div>
-                                                    <div className="text-sm text-slate-400 bg-slate-800 p-2 rounded-lg">
-                                                        💡 {e.explanation}
-                                                    </div>
-                                                    <button 
-                                                        onClick={() => fixError(i)}
-                                                        className="w-full mt-2 bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg text-sm active:scale-95"
-                                                    >
-                                                        ✓ Applica correzione
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                <div className="bg-slate-900 p-4 rounded-xl text-yellow-300 w-full font-bold border border-slate-700 shadow-inner mt-2">
+                                    <span className="text-xl">💡</span> {errors[currentErrorIndex].explanation}
                                 </div>
 
-                                {/* PULSANTI AZIONE */}
-                                <div className="p-3 bg-slate-700 border-t border-slate-600 flex gap-2">
-                                    <button 
-                                        onClick={() => speak(errors.length === 0 ? "Nessun errore trovato!" : `Hai ${errors.length} errori.`)}
-                                        className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 rounded-xl text-sm active:scale-95"
-                                    >
-                                        🔊 Leggi
-                                    </button>
-                                    <button 
-                                        onClick={() => setShowShareMenu(true)}
-                                        className="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-xl text-sm active:scale-95"
-                                    >
-                                        📤 Condividi
-                                    </button>
-                                </div>
+                                <button onClick={applyCorrection} className="btn-magico w-full py-4 rounded-xl font-bold text-white text-xl mt-2 shadow-lg">
+                                    APPLICA CORREZIONE ✨
+                                </button>
                             </div>
                         )}
                     </div>
-
-                    {/* MENU CONDIVISIONE */}
-                    {renderShareMenu()}
                 </div>
             );
+
+            if(stage === 'final') return (
+                <div className="h-full flex flex-col p-4 gap-4 bg-slate-900">
+                    <div className="bg-slate-800 p-4 rounded-2xl flex justify-between items-center border-b-4 border-green-400 shadow-lg shrink-0">
+                        <div className="text-green-400 font-bold text-lg">🎉 IL TUO CAPOLAVORO</div>
+                        <button onClick={() => window.location.reload()} className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-xl text-white font-bold active:scale-95 transition-all">Scrivi un altro</button>
+                    </div>
+
+                    <div className="flex-1 flex flex-col items-center justify-start max-w-4xl mx-auto w-full gap-6 mt-4">
+                        <h2 className="text-3xl sm:text-4xl font-black text-blue-400 text-center mb-2 drop-shadow-md">{title}</h2>
+                        
+                        <div className="bg-slate-800 p-6 sm:p-8 rounded-3xl border-2 border-slate-700 w-full overflow-y-auto max-h-[50vh] text-xl sm:text-2xl leading-loose text-gray-200 shadow-inner">
+                            {finalText.split('\n').map((par, i) => <p key={i} className="mb-6">{par}</p>)}
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-4 w-full mt-auto mb-4">
+                            <button onClick={() => speak(finalText)} className="flex-1 bg-purple-600 py-4 sm:py-5 rounded-2xl font-bold text-white text-lg sm:text-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 border-2 border-purple-400 transition-transform">
+                                <span className="text-2xl">🔊</span> ASCOLTA
+                            </button>
+                            <button onClick={exportPDF} className="flex-1 bg-red-600 py-4 sm:py-5 rounded-2xl font-bold text-white text-lg sm:text-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 border-2 border-red-400 transition-transform">
+                                <span className="text-2xl">📄</span> SCARICA PDF
+                            </button>
+                        </div>
+                    </div>
+                    {aiMessage && <div className="ai-bubble"><span className="text-3xl">🤖</span><span>{aiMessage}</span></div>}
+                </div>
+            );
+
+            return null;
         };
+
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
