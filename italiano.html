@@ -24,10 +24,8 @@
         .btn-magico:active { transform: scale(0.95); }
         .btn-magico:disabled { background: #475569; box-shadow: none; transform: none; cursor: not-allowed; opacity: 0.7; }
 
-        /* POST-IT DRAG & DROP */
         .post-it { background: linear-gradient(135deg, #fef08a, #fde047); color: #1e293b; border-radius: 12px; padding: 12px; box-shadow: 2px 4px 10px rgba(0,0,0,0.3); border-left: 6px solid #eab308; cursor: grab; transition: transform 0.2s; position: relative; }
         .post-it:active { cursor: grabbing; transform: scale(0.98); }
-        .post-it.dragging { opacity: 0.5; border: 2px dashed #3b82f6; }
 
         .editor-area { font-family: 'OpenDyslexic', Verdana, sans-serif; font-size: 1.2rem; line-height: 1.8; width: 100%; border-radius: 12px; padding: 16px; background: #1e293b; border: 2px solid #3b82f6; color: white; resize: none; min-height: 150px; }
         .editor-area:focus { outline: none; border-color: #facc15; box-shadow: 0 0 15px rgba(250,204,21,0.3); }
@@ -61,59 +59,83 @@
 
         const cleanTextForSpeech = (text) => {
             if (!text) return '';
-            return String(text).replace(/[*#_`~]/g, '').replace(/\n+/g, '. ').trim();
+            return String(text).replace(/[*#_`~"]/g, '').replace(/\n+/g, '. ').trim();
         };
 
-        // SPEECH RECOGNITION (Dettatura vocale nativa del browser)
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        // FIX AUDIO TRONCATO: array globale per impedire al Garbage Collector di distruggere l'audio
+        window.speechUtterances = [];
 
         const AI = {
             checkText: async (text) => {
                 const key = DB.getKey();
-                if(!key) throw new Error("Manca API Key! Vai su Home per inserirla.");
-                const prompt = `Sei un maestro incoraggiante. Analizza questo testo per un ragazzo con dislessia: "${text}"
+                if(!key) throw new Error("Manca API Key!");
+                const prompt = `Analizza questo testo per un ragazzo con dislessia: "${text}"
 Trova TUTTI gli errori di ortografia, punteggiatura e grammatica.
-Sii telegrafico e non usare parole difficili nella spiegazione.
-
-Rispondi SOLO con un array JSON (niente markdown) con questa struttura:
-[{"original":"parola sbagliata o frase", "correction":"parola o frase giusta", "explanation":"Breve motivo (es: ci vuole l'h, manca la doppia)"}]
-Se il testo è perfetto, restituisci: []`;
+Rispondi SOLO con un array JSON:
+[{"original":"parola sbagliata", "correction":"parola giusta", "explanation":"Breve motivo semplice"}]
+Se perfetto, restituisci: []`;
                 
-                try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                    });
-                    if(!res.ok) throw new Error("Errore API");
-                    const data = await res.json();
-                    const jsonText = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
-                    return JSON.parse(jsonText);
-                } catch(e) {
-                    console.error(e);
-                    throw new Error("Impossibile contattare l'intelligenza artificiale.");
-                }
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const data = await res.json();
+                return JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
+            },
+
+            // NUOVA FUNZIONE: Tocco Magico (Coesione del testo)
+            improveFluency: async (text) => {
+                const key = DB.getKey();
+                if(!key) throw new Error("Manca API Key!");
+                const prompt = `Sei un maestro di scrittura creativa.
+Un tuo studente con dislessia ha scritto questo testo unendo vari post-it, quindi le frasi potrebbero sembrare un po' slegate o telegrafiche:
+"${text}"
+
+Il tuo compito:
+Riscrivi il testo rendendolo più SCORREVOLE e ARMONICO. 
+Aggiungi "connettivi logici" (parole ponte come: improvvisamente, poi, allora, perciò, mentre, tuttavia, infine) per far scorrere la storia o il ragionamento.
+REGOLE TASSATIVE:
+1. NON stravolgere il significato originale.
+2. MANTIENI un vocabolario semplice, adatto a un ragazzo delle medie.
+3. NON aggiungere idee nuove, unisci solo meglio quelle esistenti.
+
+Rispondi SOLO con un JSON (niente markdown):
+{
+  "fluency_text": "il nuovo testo scorrevole",
+  "ai_comment": "Un breve messaggio vocale di 15 parole (es: 'Ho aggiunto parole come -poi- e -allora- per far scorrere meglio le frasi!')"
+}`;
+                
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const data = await res.json();
+                return JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim());
             }
         };
 
         const App = () => {
-            // STAGES: 'title', 'brainstorm', 'draft', 'review', 'final'
+            // STAGES aggiunti: 'style' tra review e final
             const [stage, setStage] = useState('title');
             const [title, setTitle] = useState('');
-            const [ideas, setIdeas] = useState([]); // {id, text}
+            const [ideas, setIdeas] = useState([]);
             const [currentIdeaInput, setCurrentIdeaInput] = useState('');
             const [isRecording, setIsRecording] = useState(false);
             
-            // Drafting (Stesura)
-            const [drafts, setDrafts] = useState({}); // { ideaId: "testo del paragrafo" }
+            const [drafts, setDrafts] = useState({});
             const [currentDraftIndex, setCurrentDraftIndex] = useState(0);
             
-            // Review (Investigatore)
             const [finalText, setFinalText] = useState('');
             const [errors, setErrors] = useState([]);
             const [currentErrorIndex, setCurrentErrorIndex] = useState(0);
             const [isChecking, setIsChecking] = useState(false);
 
-            // Audio & UI
+            // Variabili per la Fase 4 (Stilistica)
+            const [fluentText, setFluentText] = useState('');
+            const [styleComment, setStyleComment] = useState('');
+
             const [aiMessage, setAiMessage] = useState(null);
             const recognitionRef = useRef(null);
 
@@ -133,52 +155,50 @@ Se il testo è perfetto, restituisci: []`;
                 }
             }, []);
 
+            // FUNZIONE SPEAK ROBUSTA (Antitaglio)
             const speak = (text) => {
                 window.speechSynthesis.cancel();
                 setAiMessage(text);
                 const u = new SpeechSynthesisUtterance(cleanTextForSpeech(text));
                 u.lang = 'it-IT'; u.rate = 0.9;
                 
-                // Cerca di usare una voce italiana chiara (Google o Natural se disponibili)
                 const voices = window.speechSynthesis.getVoices();
                 const itVoices = voices.filter(v => v.lang.startsWith('it'));
                 const bestVoice = itVoices.find(v => v.name.includes('Natural') || v.name.includes('Google')) || itVoices[0];
                 if(bestVoice) u.voice = bestVoice;
                 
-                u.onend = () => setTimeout(() => setAiMessage(null), 2000);
+                u.onend = () => {
+                    setTimeout(() => setAiMessage(null), 1500);
+                    window.speechUtterances = window.speechUtterances.filter(utt => utt !== u); // Libera memoria solo alla fine
+                };
+                u.onerror = () => setAiMessage(null);
+
+                window.speechUtterances.push(u); // Ancora la voce globalmente
                 window.speechSynthesis.speak(u);
             };
 
             const toggleDictation = () => {
-                if(!recognitionRef.current) return alert("Dettatura vocale non supportata dal tuo browser. Prova Chrome o Edge.");
-                if(isRecording) { 
-                    recognitionRef.current.stop(); 
-                    setIsRecording(false); 
-                } else { 
-                    recognitionRef.current.start(); 
-                    setIsRecording(true); 
-                }
+                if(!recognitionRef.current) return alert("Dettatura vocale non supportata.");
+                if(isRecording) { recognitionRef.current.stop(); setIsRecording(false); }
+                else { recognitionRef.current.start(); setIsRecording(true); }
             };
 
-            // --- FASE 1: TITOLO ---
             const startBrainstorming = () => {
                 if(!title.trim()) return;
                 DB.addXP(10);
-                speak(`Ottimo titolo! Ora inseriamo le idee principali come fossero dei post-it.`);
+                speak(`Ottimo titolo! Ora inseriamo le idee principali usando il microfono o la tastiera.`);
                 setStage('brainstorm');
             };
 
-            // --- FASE 2: BRAINSTORMING E POST-IT ---
             const addIdea = () => {
                 if(!currentIdeaInput.trim()) return;
                 setIdeas([...ideas, { id: Date.now().toString(), text: currentIdeaInput.trim() }]);
                 setCurrentIdeaInput('');
-                DB.addXP(5); // Premia l'organizzazione
+                DB.addXP(5);
             };
 
             const removeIdea = (id) => setIdeas(ideas.filter(i => i.id !== id));
 
-            // Gestione Drag & Drop
             const handleDragStart = (e, index) => e.dataTransfer.setData('index', index);
             const handleDrop = (e, index) => {
                 const draggedIdx = parseInt(e.dataTransfer.getData('index'));
@@ -189,31 +209,26 @@ Se il testo è perfetto, restituisci: []`;
             };
 
             const startDrafting = () => {
-                if(ideas.length === 0) return speak("Aggiungi almeno un'idea prima di continuare!");
-                speak(`Perfetto! Hai organizzato la scaletta. Ora trasformiamo ogni post-it in una frase completa.`);
+                if(ideas.length === 0) return speak("Aggiungi almeno un'idea!");
+                speak(`Perfetto. Ora trasformiamo ogni post-it in una frase completa. Cerca di digitare i tasti!`);
                 setStage('draft');
             };
 
-            // --- FASE 3: STESURA ---
-            const handleDraftChange = (val) => {
-                setDrafts({ ...drafts, [ideas[currentDraftIndex].id]: val });
-            };
+            const handleDraftChange = (val) => setDrafts({ ...drafts, [ideas[currentDraftIndex].id]: val });
 
             const nextDraft = () => {
-                DB.addXP(15); // Premio maggiore per aver scritto con la tastiera
+                DB.addXP(15);
                 if(currentDraftIndex < ideas.length - 1) {
                     setCurrentDraftIndex(prev => prev + 1);
                     speak("Ottimo! Passiamo alla prossima idea.");
                 } else {
-                    // Unisce tutti i paragrafi in un testo unico
                     const combined = ideas.map(i => drafts[i.id] || "").filter(t => t.trim() !== "").join("\n\n");
                     setFinalText(combined);
-                    speak("Hai completato la stesura! Ora indago per vedere se si è nascosto qualche errore.");
+                    speak("Stesura completata! Ora indago per vedere se si è nascosto qualche errore.");
                     analyzeText(combined);
                 }
             };
 
-            // --- FASE 4: INVESTIGATORE (REVISIONE GAMIFICATA) ---
             const analyzeText = async (textToCheck) => {
                 setStage('review');
                 setIsChecking(true);
@@ -221,45 +236,66 @@ Se il testo è perfetto, restituisci: []`;
                     const errs = await AI.checkText(textToCheck);
                     if(!errs || errs.length === 0) {
                         setErrors([]);
-                        speak("Incredibile! Non ho trovato nessun errore. Sei un campione!");
                         DB.addXP(50);
-                        setTimeout(() => setStage('final'), 3000);
+                        startStyling(textToCheck); // Passa alla fase 4 se non ci sono errori
                     } else {
                         setErrors(errs);
                         setCurrentErrorIndex(0);
-                        speak(`Ottimo lavoro! Ci sono solo ${errs.length} piccoli dettagli da sistemare. Risolviamoli insieme!`);
+                        speak(`Ho trovato ${errs.length} dettagli da sistemare. Risolviamoli uno alla volta!`);
                     }
-                } catch(e) { 
-                    alert(e.message); 
-                    setStage('draft'); 
-                }
+                } catch(e) { alert("Errore di rete, riprova."); setStage('draft'); }
                 setIsChecking(false);
             };
 
             const applyCorrection = () => {
                 const currentErr = errors[currentErrorIndex];
-                // Sostituisce la prima occorrenza esatta dell'errore
                 const newText = finalText.replace(currentErr.original, currentErr.correction);
                 setFinalText(newText);
                 DB.addXP(10);
                 
-                speak(`Corretto! Abbiamo trasformato ${currentErr.original} in ${currentErr.correction}.`);
+                speak(`Corretto! ${currentErr.original} diventa ${currentErr.correction}.`);
                 
                 if(currentErrorIndex < errors.length - 1) {
                     setCurrentErrorIndex(prev => prev + 1);
                 } else {
-                    speak("Complimenti! Hai superato tutte le sfide ortografiche!");
-                    setStage('final');
+                    speak("Hai superato tutte le sfide ortografiche! Ora facciamo una magia...");
+                    startStyling(newText); // Correzioni finite, inizia Fase 4
                 }
             };
 
-            // Renderizza il testo mostrando *solo* l'errore corrente evidenziato
+            // FASE 4: STILISTICA
+            const startStyling = async (textBase) => {
+                setStage('style');
+                setIsChecking(true); // Uso lo spinner esistente
+                try {
+                    const res = await AI.improveFluency(textBase);
+                    setFluentText(res.fluency_text);
+                    setStyleComment(res.ai_comment);
+                    speak(res.ai_comment);
+                } catch(e) {
+                    // Fallback silenzioso se l'AI di stile fallisce
+                    setStage('final'); 
+                }
+                setIsChecking(false);
+            };
+
+            const acceptStyle = () => {
+                setFinalText(fluentText);
+                DB.addXP(30);
+                speak("Ottima scelta! Il testo scorre meravigliosamente.");
+                setStage('final');
+            };
+
+            const rejectStyle = () => {
+                speak("Nessun problema, la tua versione originale è già fantastica!");
+                setStage('final');
+            };
+
             const renderReviewText = () => {
                 if(errors.length === 0 || currentErrorIndex >= errors.length) return finalText;
                 const err = errors[currentErrorIndex];
-                
                 const parts = finalText.split(err.original);
-                if(parts.length === 1) return finalText; // Se non lo trova esattamente, mostra il testo normale
+                if(parts.length === 1) return finalText; 
 
                 return (
                     <div className="whitespace-pre-wrap text-xl leading-relaxed text-gray-300">
@@ -270,61 +306,36 @@ Se il testo è perfetto, restituisci: []`;
                 );
             };
 
-            // --- FASE 5: CAPOLAVORO E PDF ---
             const exportPDF = () => {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 
-                // Sfondo Scuro
-                doc.setFillColor(30, 41, 59); 
-                doc.rect(0, 0, 210, 297, 'F');
-                
-                // Titolo
-                doc.setTextColor(59, 130, 246);
-                doc.setFontSize(24);
+                doc.setFillColor(30, 41, 59); doc.rect(0, 0, 210, 297, 'F');
+                doc.setTextColor(59, 130, 246); doc.setFontSize(24);
                 doc.text(title, 105, 30, { align: 'center' });
                 
-                // Testo principale
-                doc.setTextColor(255, 255, 255);
-                doc.setFontSize(14);
+                doc.setTextColor(255, 255, 255); doc.setFontSize(14);
                 const splitText = doc.splitTextToSize(finalText, 170);
                 doc.text(splitText, 20, 50);
 
-                // Linea separatrice
-                doc.setDrawColor(74, 222, 128); 
-                doc.setLineWidth(1);
-                doc.line(20, 250, 190, 250);
-                
-                // Statistiche per l'insegnante
-                doc.setTextColor(148, 163, 184); 
-                doc.setFontSize(12);
-                doc.text(`Idee organizzate: ${ideas.length} | Sfide superate: ${errors.length}`, 105, 260, { align: 'center' });
-                doc.text(`Creato con EduGamer - Metodo Inclusivo`, 105, 270, { align: 'center' });
+                doc.setDrawColor(74, 222, 128); doc.setLineWidth(1); doc.line(20, 250, 190, 250);
+                doc.setTextColor(148, 163, 184); doc.setFontSize(12);
+                doc.text(`Idee: ${ideas.length} | Sfide vinte: ${errors.length}`, 105, 260, { align: 'center' });
+                doc.text(`Creato con EduGamer`, 105, 270, { align: 'center' });
 
                 doc.save(`${title.replace(/\s+/g, '_')}_EduGamer.pdf`);
                 DB.addXP(20);
-                speak("Il tuo capolavoro è stato scaricato in PDF!");
+                speak("Il capolavoro è stato scaricato!");
             };
 
-
-            // ================== RENDER UI ================== //
-            
+            // RENDER UI //
             if(stage === 'title') return (
                 <div className="h-full flex flex-col items-center justify-center p-6 gap-6 bg-slate-900">
                     <h1 className="text-4xl font-black text-blue-400 text-center drop-shadow-lg">TUTOR DI SCRITTURA ✍️</h1>
                     <div className="bg-slate-800 p-8 rounded-3xl flex flex-col items-center gap-6 w-full max-w-xl shadow-2xl border-2 border-slate-700">
                         <label className="text-xl font-bold text-yellow-300">Di cosa vuoi scrivere oggi?</label>
-                        <input 
-                            type="text" 
-                            value={title} 
-                            onChange={e => setTitle(e.target.value)}
-                            placeholder="Es: La mia gita in montagna..."
-                            className="editor-area text-center py-4 text-xl"
-                            autoFocus
-                        />
-                        <button onClick={startBrainstorming} disabled={!title.trim()} className="btn-magico w-full py-4 rounded-2xl font-bold text-white text-xl">
-                            INIZIAMO! 🚀
-                        </button>
+                        <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Es: La mia gita in montagna..." className="editor-area text-center py-4 text-xl" autoFocus />
+                        <button onClick={startBrainstorming} disabled={!title.trim()} className="btn-magico w-full py-4 rounded-2xl font-bold text-white text-xl">INIZIAMO! 🚀</button>
                     </div>
                     <a href="index.html" className="text-slate-400 bg-slate-800 px-6 py-3 rounded-xl font-bold mt-4 border border-slate-700">🏠 MENU</a>
                 </div>
@@ -332,64 +343,35 @@ Se il testo è perfetto, restituisci: []`;
 
             if(stage === 'brainstorm') return (
                 <div className="h-full flex flex-col p-4 gap-4 bg-slate-900">
-                    {/* Toolbar */}
                     <div className="bg-slate-800 p-4 rounded-2xl flex justify-between items-center border-b-4 border-yellow-400 shadow-lg shrink-0">
                         <div className="text-yellow-400 font-bold text-lg hidden sm:block">💡 FASE 1: LE IDEE</div>
                         <div className="text-white font-bold truncate max-w-[200px] sm:max-w-xs text-center flex-1 mx-2">{title}</div>
-                        <button onClick={startDrafting} className="bg-green-500 hover:bg-green-400 px-4 py-2 rounded-xl font-bold text-white active:scale-95 transition-all">
-                            CONTINUA ➡️
-                        </button>
+                        <button onClick={startDrafting} className="bg-green-500 hover:bg-green-400 px-4 py-2 rounded-xl font-bold text-white active:scale-95 transition-all">CONTINUA ➡️</button>
                     </div>
 
                     <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden">
-                        {/* Area Inserimento Idee */}
                         <div className="w-full lg:w-1/3 bg-slate-800 p-6 rounded-3xl border-2 border-slate-700 flex flex-col gap-4 shrink-0">
                             <h3 className="text-xl font-bold text-cyan-300">Aggiungi un'idea</h3>
-                            <p className="text-sm text-slate-400">Usa parole chiave o frasi brevi. Puoi anche usare la voce!</p>
-                            
+                            <p className="text-sm text-slate-400">Usa parole chiave. Usa il microfono per dettare!</p>
                             <div className="flex gap-2">
-                                <textarea 
-                                    value={currentIdeaInput} 
-                                    onChange={e => setCurrentIdeaInput(e.target.value)}
-                                    placeholder="Es: Zaino pesante..."
-                                    className="editor-area flex-1 min-h-[100px] text-lg"
-                                />
-                                {SpeechRecognition && (
-                                    <button onClick={toggleDictation} className={`mic-btn flex-shrink-0 mt-auto ${isRecording ? 'recording' : 'idle'}`} title="Dettatura Vocale">
-                                        🎙️
-                                    </button>
-                                )}
+                                <textarea value={currentIdeaInput} onChange={e => setCurrentIdeaInput(e.target.value)} placeholder="Es: Zaino pesante..." className="editor-area flex-1 min-h-[100px] text-lg" />
+                                {SpeechRecognition && <button onClick={toggleDictation} className={`mic-btn flex-shrink-0 mt-auto ${isRecording ? 'recording' : 'idle'}`}>🎙️</button>}
                             </div>
-                            <button onClick={addIdea} disabled={!currentIdeaInput.trim()} className="bg-blue-600 font-bold text-white py-3 rounded-xl active:scale-95 disabled:opacity-50 transition-transform">
+                            <button onClick={addIdea} disabled={!currentIdeaInput.trim()} className="bg-blue-600 font-bold text-white py-3 rounded-xl active:scale-95 disabled:opacity-50">
                                 + CREA POST-IT
                             </button>
                         </div>
 
-                        {/* Lavagna Drag & Drop */}
                         <div className="flex-1 bg-slate-900 rounded-3xl p-6 border-2 border-slate-700 overflow-y-auto">
-                            <h3 className="text-slate-500 font-bold text-center mb-6">Trascina i post-it per ordinarli dall'inizio alla fine della storia</h3>
+                            <h3 className="text-slate-500 font-bold text-center mb-6">Trascina i post-it per ordinarli dall'inizio alla fine</h3>
                             <div className="flex flex-col gap-3 pb-20">
                                 {ideas.map((idea, index) => (
-                                    <div 
-                                        key={idea.id} 
-                                        draggable 
-                                        onDragStart={e => handleDragStart(e, index)} 
-                                        onDragOver={e => e.preventDefault()} 
-                                        onDrop={e => handleDrop(e, index)} 
-                                        className="post-it flex justify-between items-center text-xl"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-slate-500 font-black opacity-50">#{index + 1}</span>
-                                            <span className="font-bold text-slate-900">{idea.text}</span>
-                                        </div>
-                                        <button onClick={() => removeIdea(idea.id)} className="text-red-500 hover:bg-red-200 rounded-full font-bold text-xl w-8 h-8 flex items-center justify-center transition-colors">✕</button>
+                                    <div key={idea.id} draggable onDragStart={e => handleDragStart(e, index)} onDragOver={e => e.preventDefault()} onDrop={e => handleDrop(e, index)} className="post-it flex justify-between items-center text-xl">
+                                        <div className="flex items-center gap-3"><span className="text-slate-500 font-black opacity-50">#{index + 1}</span><span className="font-bold text-slate-900">{idea.text}</span></div>
+                                        <button onClick={() => removeIdea(idea.id)} className="text-red-500 hover:bg-red-200 rounded-full font-bold text-xl w-8 h-8 flex items-center justify-center">✕</button>
                                     </div>
                                 ))}
-                                {ideas.length === 0 && (
-                                    <div className="text-center text-slate-600 font-bold mt-10 text-xl border-2 border-dashed border-slate-700 p-10 rounded-2xl">
-                                        Ancora nessuna idea... usa la scatola qui a lato!
-                                    </div>
-                                )}
+                                {ideas.length === 0 && <div className="text-center text-slate-600 font-bold mt-10 text-xl border-2 border-dashed border-slate-700 p-10 rounded-2xl">Aggiungi i tuoi post-it qui!</div>}
                             </div>
                         </div>
                     </div>
@@ -401,7 +383,7 @@ Se il testo è perfetto, restituisci: []`;
                     <div className="bg-slate-800 p-4 rounded-2xl flex justify-between items-center border-b-4 border-blue-400 shadow-lg shrink-0">
                         <div className="text-blue-400 font-bold text-lg hidden sm:block">📝 FASE 2: LA STESURA ({currentDraftIndex + 1}/{ideas.length})</div>
                         <div className="text-white font-bold">{title}</div>
-                        <div className="w-[100px] hidden sm:block"></div> {/* Spacer for centering */}
+                        <div className="w-[100px] hidden sm:block"></div>
                     </div>
 
                     <div className="flex-1 flex flex-col items-center justify-start max-w-4xl mx-auto w-full gap-6 mt-4">
@@ -409,19 +391,10 @@ Se il testo è perfetto, restituisci: []`;
                             <span className="text-slate-500 text-lg absolute left-4 top-4">Idea {currentDraftIndex + 1}</span>
                             " {ideas[currentDraftIndex].text} "
                         </div>
-                        
                         <div className="w-full text-center text-slate-400 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
-                            Scrivi il paragrafo partendo da questa idea. Usa la tastiera e non preoccuparti degli errori!
+                            Espandi l'idea usando la tastiera. Gli errori li sistemiamo dopo!
                         </div>
-                        
-                        <textarea 
-                            autoFocus
-                            value={drafts[ideas[currentDraftIndex].id] || ""} 
-                            onChange={e => handleDraftChange(e.target.value)}
-                            placeholder="Inizia a scrivere qui..."
-                            className="editor-area flex-1 w-full text-xl sm:text-2xl p-6 shadow-inner"
-                        />
-                        
+                        <textarea autoFocus value={drafts[ideas[currentDraftIndex].id] || ""} onChange={e => handleDraftChange(e.target.value)} placeholder="Scrivi la frase qui..." className="editor-area flex-1 w-full text-xl sm:text-2xl p-6 shadow-inner" />
                         <button onClick={nextDraft} disabled={!(drafts[ideas[currentDraftIndex].id] || "").trim()} className="btn-magico w-full py-5 rounded-2xl font-bold text-white text-xl sm:text-2xl mt-auto mb-4 shrink-0">
                             {currentDraftIndex < ideas.length - 1 ? 'PROSSIMA IDEA ➡️' : 'FINITO! CONTROLLIAMO 🔍'}
                         </button>
@@ -433,42 +406,83 @@ Se il testo è perfetto, restituisci: []`;
                 <div className="h-full flex flex-col p-4 gap-4 bg-slate-900">
                     <div className="bg-slate-800 p-4 rounded-2xl flex justify-between items-center border-b-4 border-purple-400 shadow-lg shrink-0">
                         <div className="text-purple-400 font-bold text-lg">🔍 FASE 3: L'INVESTIGATORE</div>
-                        {!isChecking && errors.length > 0 && <div className="bg-purple-900 border border-purple-500 px-4 py-1 rounded-full text-purple-200 font-bold text-sm shadow-[0_0_15px_rgba(168,85,247,0.4)]">Sfida {currentErrorIndex + 1} di {errors.length}</div>}
+                        {!isChecking && errors.length > 0 && <div className="bg-purple-900 border border-purple-500 px-4 py-1 rounded-full text-purple-200 font-bold text-sm">Sfida {currentErrorIndex + 1} di {errors.length}</div>}
                     </div>
 
                     <div className="flex-1 flex flex-col lg:flex-row gap-6 max-w-6xl mx-auto w-full overflow-hidden">
-                        <div className="flex-1 bg-slate-900 p-6 sm:p-8 rounded-3xl border-2 border-slate-700 overflow-y-auto shadow-inner relative">
+                        <div className="flex-1 bg-slate-900 p-6 sm:p-8 rounded-3xl border-2 border-slate-700 overflow-y-auto shadow-inner">
                             {isChecking ? (
-                                <div className="h-full flex flex-col items-center justify-center gap-6">
-                                    <div className="text-7xl animate-bounce">🤖</div>
-                                    <div className="text-2xl text-purple-400 font-bold animate-pulse text-center">L'AI sta analizzando il tuo testo...</div>
-                                </div>
+                                <div className="h-full flex flex-col items-center justify-center gap-6"><div className="text-7xl animate-bounce">🤖</div><div className="text-2xl text-purple-400 font-bold animate-pulse text-center">Analizzo il testo...</div></div>
                             ) : renderReviewText()}
                         </div>
 
                         {!isChecking && errors.length > 0 && (
-                            <div className="w-full lg:w-96 bg-slate-800 p-6 rounded-3xl border-2 border-purple-500 flex flex-col justify-center items-center text-center gap-6 shadow-[0_0_30px_rgba(168,85,247,0.2)] shrink-0 overflow-y-auto">
+                            <div className="w-full lg:w-96 bg-slate-800 p-6 rounded-3xl border-2 border-purple-500 flex flex-col justify-center items-center text-center gap-6 shadow-2xl shrink-0 overflow-y-auto">
                                 <div className="text-6xl drop-shadow-md">🕵️‍♂️</div>
                                 <div className="w-full">
-                                    <div className="text-slate-400 mb-2 text-sm font-bold uppercase tracking-wider">Indizio sull'errore:</div>
-                                    <div className="text-2xl sm:text-3xl text-red-400 font-bold line-through decoration-wavy break-words bg-red-900/20 py-2 rounded-xl border border-red-500/30">{errors[currentErrorIndex].original}</div>
+                                    <div className="text-slate-400 mb-2 text-sm font-bold uppercase">Indizio sull'errore:</div>
+                                    <div className="text-2xl sm:text-3xl text-red-400 font-bold line-through decoration-wavy break-words bg-red-900/20 py-2 rounded-xl">{errors[currentErrorIndex].original}</div>
                                 </div>
                                 <div className="text-3xl text-slate-600 animate-pulse">⬇️</div>
                                 <div className="w-full">
-                                    <div className="text-slate-400 mb-2 text-sm font-bold uppercase tracking-wider">La forma corretta è:</div>
-                                    <div className="text-3xl sm:text-4xl text-green-400 font-bold break-words bg-green-900/20 py-3 rounded-xl border border-green-500/30 shadow-[0_0_15px_rgba(74,222,128,0.2)]">{errors[currentErrorIndex].correction}</div>
+                                    <div className="text-slate-400 mb-2 text-sm font-bold uppercase">Forma corretta:</div>
+                                    <div className="text-3xl sm:text-4xl text-green-400 font-bold break-words bg-green-900/20 py-3 rounded-xl shadow-lg">{errors[currentErrorIndex].correction}</div>
                                 </div>
-                                
                                 <div className="bg-slate-900 p-4 rounded-xl text-yellow-300 w-full font-bold border border-slate-700 shadow-inner mt-2">
-                                    <span className="text-xl">💡</span> {errors[currentErrorIndex].explanation}
+                                    💡 {errors[currentErrorIndex].explanation}
                                 </div>
-
                                 <button onClick={applyCorrection} className="btn-magico w-full py-4 rounded-xl font-bold text-white text-xl mt-2 shadow-lg">
                                     APPLICA CORREZIONE ✨
                                 </button>
                             </div>
                         )}
                     </div>
+                </div>
+            );
+
+            // FASE 4: STILE/FLUIDITÀ (NOVITÀ)
+            if(stage === 'style') return (
+                <div className="h-full flex flex-col p-4 gap-4 bg-slate-900">
+                    <div className="bg-slate-800 p-4 rounded-2xl flex items-center border-b-4 border-pink-400 shadow-lg shrink-0 justify-center">
+                        <div className="text-pink-400 font-bold text-xl">✨ FASE 4: LA MAGIA DELLO SCRITTORE</div>
+                    </div>
+
+                    <div className="flex-1 flex flex-col items-center justify-center max-w-5xl mx-auto w-full gap-6">
+                        {isChecking ? (
+                            <div className="flex flex-col items-center gap-6"><div className="text-7xl animate-spin">🪄</div><div className="text-2xl text-pink-400 font-bold animate-pulse text-center">L'AI sta unendo le frasi in un racconto fluido...</div></div>
+                        ) : (
+                            <>
+                                <p className="text-slate-300 text-center text-lg max-w-2xl bg-slate-800 p-4 rounded-xl border border-slate-700">
+                                    Ho aggiunto qualche "parola ponte" (come: allora, poi, mentre) per far scorrere meglio le tue fantastiche idee. Scegli quale versione ti piace di più!
+                                </p>
+                                
+                                <div className="flex flex-col md:flex-row w-full gap-6 h-full min-h-[300px]">
+                                    {/* Testo Originale */}
+                                    <div className="flex-1 flex flex-col bg-slate-800 border-2 border-slate-600 rounded-2xl overflow-hidden opacity-80">
+                                        <div className="bg-slate-700 p-3 text-center font-bold text-slate-300">La tua versione originale</div>
+                                        <div className="p-6 overflow-y-auto text-lg leading-relaxed text-slate-300">
+                                            {finalText.split('\n').map((par, i) => <p key={i} className="mb-4">{par}</p>)}
+                                        </div>
+                                        <button onClick={rejectStyle} className="mt-auto bg-slate-600 p-4 font-bold text-white hover:bg-slate-500">
+                                            ✋ TIENI LA MIA
+                                        </button>
+                                    </div>
+
+                                    {/* Testo Fluido */}
+                                    <div className="flex-1 flex flex-col bg-slate-900 border-2 border-pink-500 rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(236,72,153,0.3)]">
+                                        <div className="bg-pink-900/50 p-3 text-center font-bold text-pink-300">La versione fluida (Magica ✨)</div>
+                                        <div className="p-6 overflow-y-auto text-lg leading-relaxed text-white">
+                                            {fluentText.split('\n').map((par, i) => <p key={i} className="mb-4">{par}</p>)}
+                                        </div>
+                                        <button onClick={acceptStyle} className="mt-auto bg-pink-600 p-4 font-bold text-white hover:bg-pink-500 text-xl">
+                                            ✨ ACCETTA LA MAGIA
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                    {aiMessage && <div className="ai-bubble"><span className="text-3xl">🤖</span><span>{aiMessage}</span></div>}
                 </div>
             );
 
