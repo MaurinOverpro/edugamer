@@ -9,1180 +9,215 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
     <style>
         * { box-sizing: border-box; }
-        body { 
-            background-color: #0a0e17; color: white; 
-            font-family: 'Verdana', sans-serif; 
-            margin: 0; height: 100dvh; width: 100vw;
-            overflow: hidden; position: fixed; top: 0; left: 0;
-        }
-        .scroll-area {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            overflow: scroll; -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
-            background-image: radial-gradient(#1e293b 2px, transparent 2px);
-            background-size: 40px 40px;
-        }
-        .map-canvas {
-            width: 3000px; height: 3000px; position: relative;
-            min-width: 3000px; min-height: 3000px;
-        }
-        .node-base {
-            position: absolute; display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            text-align: center; padding: 14px; border-radius: 25px;
-            cursor: grab; z-index: 20;
-            transition: box-shadow 0.3s, border-color 0.3s;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-            user-select: none; background: rgba(15, 23, 42, 0.95);
-            touch-action: none; /* Permette il drag su mobile */
-        }
+        body { background-color: #0a0e17; color: white; font-family: 'Verdana', sans-serif; margin: 0; height: 100dvh; width: 100vw; overflow: hidden; position: fixed; top: 0; left: 0; }
+        .scroll-area { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: scroll; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; background-image: radial-gradient(#1e293b 2px, transparent 2px); background-size: 40px 40px; }
+        .map-canvas { width: 3000px; height: 3000px; position: relative; min-width: 3000px; min-height: 3000px; }
+        .node-base { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 14px; border-radius: 25px; cursor: grab; z-index: 20; transition: box-shadow 0.3s, border-color 0.3s; box-shadow: 0 10px 30px rgba(0,0,0,0.6); user-select: none; background: rgba(15, 23, 42, 0.95); touch-action: none; }
         .node-base:active { cursor: grabbing; transform: scale(0.95); transition: transform 0.1s; }
-        .node-central { 
-            background: linear-gradient(135deg, #2563eb, #1d4ed8); 
-            border: 6px solid #60a5fa; width: 240px; height: 240px; 
-            border-radius: 50%; font-size: 1.5rem; font-weight: bold;
-            box-shadow: 0 0 60px rgba(37, 99, 235, 0.6);
-        }
-        .node-satellite { 
-            border: 3px solid #94a3b8; width: 200px; min-height: 150px; font-size: 1rem;
-        }
-        .node-selected {
-            border-color: #facc15 !important;
-            box-shadow: 0 0 50px rgba(250, 204, 21, 0.8) !important;
-            animation: pulse-yellow 1.5s infinite; z-index: 50;
-        }
-        .node-explored {
-            border-color: #22d3ee !important;
-            background: rgba(8, 47, 73, 0.95) !important;
-            box-shadow: 0 0 30px rgba(34, 211, 238, 0.4) !important;
-        }
-        .node-next-to-explore {
-            border-color: #facc15 !important;
-            box-shadow: 0 0 40px rgba(250, 204, 21, 0.6) !important;
-            animation: pulse-yellow 1.5s infinite;
-        }
-        .node-connected {
-            border-color: #4ade80 !important; background: #064e3b !important;
-            box-shadow: 0 0 40px rgba(74, 222, 128, 0.6) !important;
-        }
-        @keyframes pulse-yellow {
-            0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7); }
-            70% { box-shadow: 0 0 0 20px rgba(250, 204, 21, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
-        }
-        @keyframes pulse-green {
-            0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(74, 222, 128, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
-        }
+        .node-central { background: linear-gradient(135deg, #2563eb, #1d4ed8); border: 6px solid #60a5fa; width: 240px; height: 240px; border-radius: 50%; font-size: 1.5rem; font-weight: bold; box-shadow: 0 0 60px rgba(37, 99, 235, 0.6); }
+        .node-satellite { border: 3px solid #94a3b8; width: 200px; min-height: 150px; font-size: 1rem; }
+        .node-selected { border-color: #facc15 !important; box-shadow: 0 0 50px rgba(250, 204, 21, 0.8) !important; animation: pulse-yellow 1.5s infinite; z-index: 50; }
+        .node-explored { border-color: #22d3ee !important; background: rgba(8, 47, 73, 0.95) !important; box-shadow: 0 0 30px rgba(34, 211, 238, 0.4) !important; }
+        .node-connected { border-color: #4ade80 !important; background: #064e3b !important; box-shadow: 0 0 40px rgba(74, 222, 128, 0.6) !important; }
+        @keyframes pulse-yellow { 0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(250, 204, 21, 0); } 100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); } }
+        @keyframes pulse-green { 0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(74, 222, 128, 0); } 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); } }
         .node-icon { font-size: 2.5rem; line-height: 1; margin-bottom: 6px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
         .node-central .node-icon { font-size: 3.5rem; margin-bottom: 10px; }
-        .neon-line {
-            stroke-dasharray: 1000; stroke-dashoffset: 1000;
-            animation: draw 1s forwards ease-out;
-            filter: drop-shadow(0 0 10px #4ade80);
-        }
+        .neon-line { stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: draw 1s forwards ease-out; filter: drop-shadow(0 0 10px #4ade80); }
         @keyframes draw { to { stroke-dashoffset: 0; } }
-        .btn-upload-big {
-            background: linear-gradient(45deg, #3b82f6, #2563eb);
-            border: 2px solid #60a5fa; box-shadow: 0 0 30px rgba(59, 130, 246, 0.4);
-            transition: all 0.3s ease;
-        }
+        .btn-upload-big { background: linear-gradient(45deg, #3b82f6, #2563eb); border: 2px solid #60a5fa; box-shadow: 0 0 30px rgba(59, 130, 246, 0.4); transition: all 0.3s ease; }
         .btn-upload-big:active { transform: scale(0.95); }
-        .ai-bubble {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: #1e293b; border: 2px solid #a855f7;
-            padding: 15px 30px; border-radius: 50px; color: #e9d5ff;
-            font-size: 1.2rem; font-weight: bold;
-            display: flex; align-items: center; gap: 15px; z-index: 100;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-            width: 90%; max-width: 700px; justify-content: center;
-            animation: slide-up 0.3s ease-out;
-        }
+        .ai-bubble { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1e293b; border: 2px solid #a855f7; padding: 15px 30px; border-radius: 50px; color: #e9d5ff; font-size: 1.2rem; font-weight: bold; display: flex; align-items: center; gap: 15px; z-index: 100; box-shadow: 0 10px 40px rgba(0,0,0,0.8); width: 90%; max-width: 700px; justify-content: center; animation: slide-up 0.3s ease-out; }
         @keyframes slide-up { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
         .map-viewport { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; }
-        .share-btn {
-            display: flex; align-items: center; justify-content: center; gap: 6px;
-            padding: 10px 14px; border-radius: 12px; font-weight: bold; font-size: 0.9rem;
-            transition: all 0.2s;
-        }
+        .share-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 14px; border-radius: 12px; font-weight: bold; font-size: 0.9rem; transition: all 0.2s; }
         .share-btn:active { transform: scale(0.95); }
-        .pdf-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
-            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 200;
-        }
+        .pdf-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 200; }
         .pdf-spinner { width: 60px; height: 60px; border: 6px solid #3b82f6; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Progress bar */
         .progress-bar-bg { background: #1e293b; border-radius: 999px; height: 10px; overflow: hidden; }
-        .progress-bar-fill {
-            height: 100%; border-radius: 999px;
-            background: linear-gradient(90deg, #3b82f6, #22d3ee);
-            transition: width 0.5s ease;
-        }
+        .progress-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #3b82f6, #22d3ee); transition: width 0.5s ease; }
 
-        /* === REVIEW SCREEN === */
-        .review-container {
-            flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
-            padding: 20px; padding-bottom: 120px;
-        }
-        .review-icon-row {
-            display: flex; align-items: center; gap: 16px;
-            padding: 14px 0; position: relative;
-            min-height: 80px;
-        }
-        .review-icon-row.just-revealed {
-            animation: fadeInRow 0.5s ease-out;
-        }
+        /* === REVIEW (Free Order + Drag + Tap) === */
+        .review-container { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px; padding-bottom: 120px; }
+        .review-icon-row { display: flex; align-items: center; gap: 16px; padding: 14px 0; position: relative; min-height: 80px; transition: opacity 0.15s; }
+        .review-icon-row.dragging { opacity: 0.4; }
         @keyframes fadeInRow { from { opacity: 0.5; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        .review-icon-btn {
-            width: 68px; height: 68px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 2.2rem; flex-shrink: 0;
-            border: 3px solid #475569; background: #1e293b;
-            transition: all 0.3s; cursor: pointer;
-            touch-action: manipulation;
-            position: relative; z-index: 10;
-        }
-        .review-icon-btn.active {
-            border-color: #facc15; box-shadow: 0 0 25px rgba(250, 204, 21, 0.6);
-            animation: pulse-yellow 1.5s infinite;
-        }
-        .review-icon-btn.revealed {
-            border-color: #22d3ee; background: #082f49;
-            box-shadow: 0 0 15px rgba(34, 211, 238, 0.4);
-            cursor: default;
-        }
-        .review-icon-btn.locked { opacity: 0.25; cursor: not-allowed; }
-        .review-text-box {
-            flex: 1; background: rgba(8, 47, 73, 0.6); border: 2px solid #22d3ee;
-            border-radius: 16px; padding: 12px 16px;
-            animation: slideInText 0.4s ease-out;
-        }
+        .review-icon-btn { width: 68px; height: 68px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; flex-shrink: 0; border: 3px solid #475569; background: #1e293b; transition: all 0.3s; cursor: pointer; touch-action: none; position: relative; z-index: 10; }
+        .review-icon-btn.revealed { border-color: #22d3ee; background: #082f49; box-shadow: 0 0 15px rgba(34, 211, 238, 0.4); }
+        .review-icon-btn.unrevealed { border-color: #facc15; box-shadow: 0 0 15px rgba(250, 204, 21, 0.3); }
+        .review-text-box { flex: 1; background: rgba(8, 47, 73, 0.6); border: 2px solid #22d3ee; border-radius: 16px; padding: 12px 16px; animation: slideInText 0.4s ease-out; }
         @keyframes slideInText { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-
-        /* Gamer connector line between icons */
-        .review-connector {
-            position: absolute; left: 33px; top: -14px;
-            width: 4px; height: 28px; z-index: 5;
-            background: linear-gradient(to bottom, #4ade80, #22d3ee);
-            box-shadow: 0 0 12px #4ade80, 0 0 4px #22d3ee;
-            border-radius: 2px;
-            animation: growConnector 0.4s ease-out;
-        }
+        .review-connector { position: absolute; left: 33px; top: -14px; width: 4px; height: 28px; z-index: 5; background: linear-gradient(to bottom, #4ade80, #22d3ee); box-shadow: 0 0 12px #4ade80, 0 0 4px #22d3ee; border-radius: 2px; animation: growConnector 0.4s ease-out; }
         @keyframes growConnector { from { height: 0; opacity: 0; } to { height: 28px; opacity: 1; } }
 
-        /* === PODCAST SCREEN === */
-        .podcast-container {
-            flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
-            padding: 20px; padding-bottom: 140px;
-        }
-        .podcast-bubble {
-            max-width: 82%; padding: 14px 18px; border-radius: 20px;
-            margin-bottom: 12px; position: relative;
-            animation: bubbleIn 0.4s ease-out;
-            font-size: 1.05rem; line-height: 1.5;
-        }
+        /* === PODCAST === */
+        .podcast-container { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px; padding-bottom: 140px; }
+        .podcast-bubble { max-width: 82%; padding: 14px 18px; border-radius: 20px; margin-bottom: 12px; position: relative; animation: bubbleIn 0.4s ease-out; font-size: 1.05rem; line-height: 1.5; }
         @keyframes bubbleIn { from { opacity: 0; transform: translateY(16px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        .podcast-bubble.prof {
-            background: linear-gradient(135deg, #1e3a5f, #1e293b);
-            border: 2px solid #3b82f6; margin-right: auto;
-            border-bottom-left-radius: 6px; color: #bfdbfe;
-        }
-        .podcast-bubble.student {
-            background: linear-gradient(135deg, #1a3c34, #0f2922);
-            border: 2px solid #10b981; margin-left: auto;
-            border-bottom-right-radius: 6px; color: #a7f3d0;
-        }
-        .podcast-bubble.speaking {
-            box-shadow: 0 0 20px rgba(250, 204, 21, 0.4);
-            border-color: #facc15 !important;
-        }
-        .podcast-speaker {
-            font-size: 0.78rem; font-weight: bold; margin-bottom: 4px;
-            display: flex; align-items: center; gap: 6px;
-        }
+        .podcast-bubble.prof { background: linear-gradient(135deg, #1e3a5f, #1e293b); border: 2px solid #3b82f6; margin-right: auto; border-bottom-left-radius: 6px; color: #bfdbfe; }
+        .podcast-bubble.student { background: linear-gradient(135deg, #1a3c34, #0f2922); border: 2px solid #10b981; margin-left: auto; border-bottom-right-radius: 6px; color: #a7f3d0; }
+        .podcast-bubble.speaking { box-shadow: 0 0 20px rgba(250, 204, 21, 0.4); border-color: #facc15 !important; }
+        .podcast-speaker { font-size: 0.78rem; font-weight: bold; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
         .podcast-bubble.prof .podcast-speaker { color: #60a5fa; }
         .podcast-bubble.student .podcast-speaker { color: #34d399; }
-        .podcast-controls {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: rgba(15, 23, 42, 0.95); border-top: 2px solid #334155;
-            padding: 12px 20px; display: flex; align-items: center; gap: 12px;
-            justify-content: center; z-index: 100;
-            backdrop-filter: blur(10px);
-        }
-        .podcast-play-btn {
-            width: 56px; height: 56px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.6rem; border: 3px solid;
-            transition: all 0.2s; cursor: pointer;
-            touch-action: manipulation;
-        }
+        .podcast-controls { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(15, 23, 42, 0.95); border-top: 2px solid #334155; padding: 12px 20px; display: flex; align-items: center; gap: 12px; justify-content: center; z-index: 100; backdrop-filter: blur(10px); }
+        .podcast-play-btn { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; border: 3px solid; transition: all 0.2s; cursor: pointer; touch-action: manipulation; }
         .podcast-play-btn:active { transform: scale(0.9); }
         .podcast-progress-text { color: #94a3b8; font-size: 0.85rem; font-weight: bold; }
-        @keyframes micPulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.5); }
-            50% { box-shadow: 0 0 0 12px rgba(250, 204, 21, 0); }
-        }
-        .podcast-generating {
-            display: flex; flex-direction: column; align-items: center;
-            justify-content: center; gap: 20px; height: 100%;
-        }
+        @keyframes micPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.5); } 50% { box-shadow: 0 0 0 12px rgba(250, 204, 21, 0); } }
+        .podcast-generating { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; height: 100%; }
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useRef, useEffect, useCallback } = React;
-        
         const MODEL = "gemini-2.5-flash-lite";
-
         const DB = {
             getKey: () => localStorage.getItem('gemini_api_key'),
-            addXP: (amount) => {
-                const next = parseInt(localStorage.getItem('edu_xp') || '0') + amount;
-                localStorage.setItem('edu_xp', next.toString());
-                window.dispatchEvent(new Event('xpChanged'));
-                return next;
-            },
-            save: (data) => localStorage.setItem('lavagna_interactive_v5', JSON.stringify(data)),
-            load: () => JSON.parse(localStorage.getItem('lavagna_interactive_v5') || 'null'),
-            clear: () => localStorage.removeItem('lavagna_interactive_v5')
+            addXP: (a) => { const n = parseInt(localStorage.getItem('edu_xp')||'0')+a; localStorage.setItem('edu_xp', n.toString()); window.dispatchEvent(new Event('xpChanged')); return n; },
+            save: (d) => localStorage.setItem('lavagna_interactive_v6', JSON.stringify(d)),
+            load: () => JSON.parse(localStorage.getItem('lavagna_interactive_v6')||'null'),
+            clear: () => localStorage.removeItem('lavagna_interactive_v6')
         };
-
         const AI = {
-            analyzeMap: async (images) => {
-                const key = DB.getKey();
-                if(!key) throw new Error("Manca API Key! Vai su Home.");
-                const parts = images.map(img => ({ inlineData: { mimeType: "image/jpeg", data: img.split(',')[1] } }));
-                
-                const prompt = `Analizza queste pagine per uno studente delle medie con DSA (dislessia).
-Crea una MAPPA MENTALE chiara e SINTETICA.
-
-ISTRUZIONI CRITICHE:
-1. Identifica il TEMA PRINCIPALE e scegli un'EMOJI che lo rappresenti
-2. Estrai 6-8 CONCETTI CHIAVE
-3. Per ogni concetto:
-   - Scrivi una DEFINIZIONE BREVISSIMA: MASSIMO 8-10 PAROLE (obbligatorio!)
-   - Scegli un'EMOJI RAPPRESENTATIVA del concetto
-
-TONO: Diretto e chiaro, adatto a studente medie. No tono infantile.
-
-Rispondi SOLO con JSON (senza markdown):
-{
-  "theme": "Titolo Tema",
-  "themeIcon": "emoji_tema",
-  "nodes": [
-    { "id": 1, "label": "Nome", "icon": "emoji", "content": "Max 8-10 parole di spiegazione" }
-  ]
-}`;
-
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, ...parts] }] })
-                });
-                if(!res.ok) throw new Error("Errore AI");
-                const data = await res.json();
-                let text = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
-                return JSON.parse(text);
-            },
-
-            explainConnection: async (label1, label2, maxWords) => {
-                const key = DB.getKey();
-                if(!key) return `${label1} e ${label2} sono collegati.`;
-                const prompt = `Spiega la relazione logica tra "${label1}" e "${label2}".
-REQUISITI TASSATIVI: La tua spiegazione deve essere lunga MASSIMO ${maxWords} parole. Sii conciso.
-Tono informativo, adatto a studente medie. NO tono infantile.
-Rispondi SOLO con la frase.`;
-                try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                    });
-                    const data = await res.json();
-                    return data.candidates[0].content.parts[0].text;
-                } catch(e) { return `${label1} e ${label2} sono collegati.`; }
-            },
-
-            generateNarrative: async (theme, exploredNodes, connectionExplanations) => {
-                const key = DB.getKey();
-                if(!key || connectionExplanations.length === 0) return null;
-                const conceptsList = exploredNodes.map(n => `${n.icon} ${n.label}: ${n.content}`).join('\n');
-                const connectionsList = connectionExplanations.map(c => 
-                    `${c.fromIcon} ${c.from} <-> ${c.toIcon} ${c.to}: ${c.explanation}`).join('\n');
-
-                const prompt = `Sei un insegnante che prepara un riassunto per uno studente con DSA (dislessia) delle medie.
-Tema: ${theme}
-Concetti esplorati:\n${conceptsList}
-Collegamenti trovati:\n${connectionsList}
-
-Scrivi un RIASSUNTO BREVE e COERENTE che:
-1. Unisca i concetti e i collegamenti in un testo fluido
-2. Usi frasi CORTE (max 12 parole ciascuna)
-3. Vada a capo spesso
-4. Sia lungo al massimo 10-12 frasi totali
-5. NON usi elenchi puntati, solo testo continuo
-6. Sia informativo, NON infantile
-Rispondi SOLO con il testo del riassunto.`;
-
-                try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                    });
-                    const data = await res.json();
-                    return data.candidates[0].content.parts[0].text.replace(/```/g, '').trim();
-                } catch(e) { return null; }
-            },
-
-            generatePodcast: async (theme, themeIcon, exploredNodes, connectionExplanations) => {
-                const key = DB.getKey();
-                if(!key) return null;
-                const conceptsList = exploredNodes.map((n,i) => `${i+1}. ${n.icon} ${n.label}: ${n.content}`).join('\n');
-                const connectionsList = connectionExplanations.map(c => 
-                    `${c.from} ↔ ${c.to}: ${c.explanation}`).join('\n');
-
-                const prompt = `Sei uno sceneggiatore. Scrivi un DIALOGO DIDATTICO tra due personaggi per uno studente con DSA delle medie.
-
-PERSONAGGI:
-- "prof": Un tutor amichevole ma competente. Spiega con esempi concreti e domande stimolanti.
-- "studente": Uno studente curioso che fa domande intelligenti, collega le idee, a volte si stupisce.
-
-TEMA: ${theme}
-CONCETTI:\n${conceptsList}
-${connectionsList ? `COLLEGAMENTI:\n${connectionsList}` : ''}
-
-REGOLE TASSATIVE:
-1. Il dialogo deve coprire TUTTI i concetti
-2. Ogni battuta: MASSIMO 25 parole. Frasi CORTE e CHIARE.
-3. Tra 12 e 18 battute totali (alternando prof e studente)
-4. Tono: informale ma informativo. MAI infantile.
-5. In italiano naturale e scorrevole
-
-Rispondi SOLO con JSON (senza markdown):
-[
-  { "speaker": "prof", "text": "..." },
-  { "speaker": "studente", "text": "..." }
-]`;
-
-                try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                    });
-                    const data = await res.json();
-                    let text = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
-                    return JSON.parse(text);
-                } catch(e) { console.error('Podcast error:', e); return null; }
-            }
+            analyzeMap: async (images) => { const key=DB.getKey(); if(!key) throw new Error("Manca API Key!"); const parts=images.map(img=>({inlineData:{mimeType:"image/jpeg",data:img.split(',')[1]}})); const prompt=`Analizza queste pagine per uno studente delle medie con DSA (dislessia). Crea una MAPPA MENTALE chiara e SINTETICA.\nISTRUZIONI CRITICHE:\n1. Identifica il TEMA PRINCIPALE e scegli un'EMOJI\n2. Estrai 6-8 CONCETTI CHIAVE\n3. Per ogni concetto: DEFINIZIONE BREVISSIMA MASSIMO 8-10 PAROLE + EMOJI RAPPRESENTATIVA\nTONO: Diretto e chiaro, adatto a studente medie. No tono infantile.\nRispondi SOLO con JSON (senza markdown):\n{"theme":"Titolo","themeIcon":"emoji","nodes":[{"id":1,"label":"Nome","icon":"emoji","content":"Max 8-10 parole"}]}`; const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt},...parts]}]})}); if(!res.ok) throw new Error("Errore AI"); const data=await res.json(); return JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g,'').trim()); },
+            explainConnection: async (l1,l2,mw) => { const key=DB.getKey(); if(!key) return `${l1} e ${l2} sono collegati.`; try { const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:`Spiega la relazione logica tra "${l1}" e "${l2}". MASSIMO ${mw} parole. Tono informativo per studente medie. Rispondi SOLO con la frase.`}]}]})}); const data=await res.json(); return data.candidates[0].content.parts[0].text; } catch(e) { return `${l1} e ${l2} sono collegati.`; } },
+            generateNarrative: async (theme,eNodes,cExpls) => { const key=DB.getKey(); if(!key||cExpls.length===0) return null; const cl=eNodes.map(n=>`${n.icon} ${n.label}: ${n.content}`).join('\n'); const cn=cExpls.map(c=>`${c.fromIcon} ${c.from} <-> ${c.toIcon} ${c.to}: ${c.explanation}`).join('\n'); try { const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:`Sei un insegnante. Tema: ${theme}\nConcetti:\n${cl}\nCollegamenti:\n${cn}\nScrivi RIASSUNTO BREVE: frasi CORTE (max 12 parole), max 10-12 frasi, testo continuo, NO elenchi. Rispondi SOLO con il testo.`}]}]})}); const data=await res.json(); return data.candidates[0].content.parts[0].text.replace(/```/g,'').trim(); } catch(e) { return null; } },
+            generatePodcast: async (theme,icon,eNodes,cExpls) => { const key=DB.getKey(); if(!key) return null; const cl=eNodes.map((n,i)=>`${i+1}. ${n.icon} ${n.label}: ${n.content}`).join('\n'); const cn=cExpls.map(c=>`${c.from} - ${c.to}: ${c.explanation}`).join('\n'); try { const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:`Scrivi DIALOGO DIDATTICO tra "prof" (tutor amichevole) e "studente" (curioso). TEMA: ${theme}\nCONCETTI:\n${cl}\n${cn?`COLLEGAMENTI:\n${cn}`:''}\nREGOLE: 1. Copri TUTTI i concetti 2. Max 25 parole per battuta 3. 12-18 battute alternando 4. Tono informale, MAI infantile 5. Italiano naturale 6. Usa VIRGOLE per pause naturali\nRispondi SOLO JSON: [{"speaker":"prof","text":"..."},{"speaker":"studente","text":"..."}]`}]}]})}); const data=await res.json(); return JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g,'').trim()); } catch(e) { return null; } }
         };
+        const cleanTextForSpeech = (text) => { if(!text) return ''; return String(text).replace(/[*#_`~]/g,'').replace(/[\u{1F300}-\u{1F9FF}]/gu,'').replace(/[\u{2600}-\u{26FF}]/gu,'').replace(/[\u{2700}-\u{27BF}]/gu,'').replace(/[\u{1F600}-\u{1F64F}]/gu,'').replace(/[\u{1F680}-\u{1F6FF}]/gu,'').replace(/[\u{1F1E0}-\u{1F1FF}]/gu,'').replace(/[\u{2300}-\u{23FF}]/gu,'').replace(/[\u{2B50}]/gu,'').replace(/[\u{1F4D0}-\u{1F4FF}]/gu,'').replace(/[\u{270F}-\u{2712}]/gu,'').replace(/[\u{2705}]/gu,'').replace(/[\u{1F9E0}]/gu,'').replace(/[\u{1F50D}]/gu,'').replace(/\n+/g,'. ').replace(/\.+/g,'.').replace(/\s+/g,' ').trim(); };
+        const emojiToDataURL = (emoji, size=48) => { const c=document.createElement('canvas'),s=2; c.width=size*s; c.height=size*s; const ctx=c.getContext('2d'); ctx.scale(s,s); ctx.font=`${size*0.85}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(emoji,size/2,size/2); return c.toDataURL('image/png'); };
 
-        // === UTILITIES ===
-        const cleanTextForSpeech = (text) => {
-            if (!text) return '';
-            return String(text)
-                .replace(/[*#_`~]/g, '')
-                .replace(/[\u{1F300}-\u{1F9FF}]/gu, '').replace(/[\u{2600}-\u{26FF}]/gu, '')
-                .replace(/[\u{2700}-\u{27BF}]/gu, '').replace(/[\u{1F600}-\u{1F64F}]/gu, '')
-                .replace(/[\u{1F680}-\u{1F6FF}]/gu, '').replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')
-                .replace(/[\u{2300}-\u{23FF}]/gu, '').replace(/[\u{2B50}]/gu, '')
-                .replace(/[\u{1F4D0}-\u{1F4FF}]/gu, '').replace(/[\u{270F}-\u{2712}]/gu, '')
-                .replace(/[\u{2705}]/gu, '').replace(/[\u{1F9E0}]/gu, '').replace(/[\u{1F50D}]/gu, '')
-                .replace(/\n+/g, '. ').replace(/\.+/g, '.').replace(/\s+/g, ' ').trim();
-        };
+        // PDF (compact, unchanged logic)
+        const generatePDF = async (mapData,nodes,exploredNodes,connectionExplanations,onProgress) => { const{jsPDF}=window.jspdf; const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'}); const W=210,H=297,margin=18,contentW=W-margin*2; const COL={black:[30,30,30],darkGray:[60,60,70],medGray:[120,120,130],lightGray:[200,200,205],veryLight:[240,242,245],white:[255,255,255],blue:[37,99,235],bluePale:[219,234,254],green:[22,101,52],orange:[154,52,18],orangePale:[255,237,213],purple:[88,28,135]}; const TS=24,HS=16,BS=13,SS=11; const today=new Date().toLocaleDateString('it-IT',{weekday:'long',year:'numeric',month:'long',day:'numeric'}); const sc=(c)=>doc.setTextColor(...c),sf=(c)=>doc.setFillColor(...c),sd=(c)=>doc.setDrawColor(...c); const ae=(e,x,y,s=8)=>{try{doc.addImage(emojiToDataURL(e,48),'PNG',x,y,s,s);return true;}catch(e){return false;}}; const wt=(t,mw,fs)=>{doc.setFontSize(fs);return doc.splitTextToSize(t,mw);}; onProgress?.('Genero copertina...'); sf(COL.blue);doc.rect(0,0,W,8,'F'); ae(mapData.themeIcon||'📚',W/2-12,30,24); let ty=62;sc(COL.black);doc.setFont('helvetica','bold'); let tfs=TS,tl=wt(mapData.theme,contentW-20,tfs); if(tl.length>2){tfs=TS-4;tl=wt(mapData.theme,contentW-20,tfs);} doc.setFontSize(tfs);tl.forEach(l=>{doc.text(l,W/2,ty,{align:'center'});ty+=tfs*0.45;}); sd(COL.blue);doc.setLineWidth(0.8);doc.line(W/2-30,ty+4,W/2+30,ty+4); doc.setFontSize(BS);doc.setFont('helvetica','normal');sc(COL.medGray); doc.text('MAPPA MENTALE',W/2,ty+16,{align:'center'}); doc.text(today,W/2,ty+26,{align:'center'}); const sY=ty+45;sf(COL.bluePale);doc.roundedRect(margin+20,sY,contentW-40,40,6,6,'F'); doc.setFontSize(BS);sc(COL.blue);doc.setFont('helvetica','bold'); doc.text(`Concetti: ${exploredNodes.length} / ${nodes.length-1}`,W/2,sY+15,{align:'center'}); doc.text(`Collegamenti: ${connectionExplanations.length}`,W/2,sY+28,{align:'center'}); doc.setFontSize(SS);sc(COL.medGray);doc.text('Creato con EduGamer',W/2,H-20,{align:'center'}); onProgress?.('Aggiungo concetti...'); doc.addPage(); sf(COL.green);doc.roundedRect(margin,14,contentW,14,4,4,'F'); sc(COL.white);doc.setFont('helvetica','bold');doc.setFontSize(HS); doc.text('CONCETTI DELLA MAPPA',W/2,24,{align:'center'}); let y=38; nodes.filter(n=>!n.isCentral).forEach(node=>{ const lmW=contentW-26;doc.setFont('helvetica','bold'); const ll=wt(node.label,lmW,BS+1); doc.setFont('helvetica','normal');const cl=wt(node.content||'',lmW,BS); const lH=ll.length*6,cH=Math.min(cl.length,2)*5.5,cardH=Math.max(28,6+lH+cH+4); if(y>H-cardH-10){doc.addPage();y=20;} sf(COL.veryLight);doc.roundedRect(margin,y,contentW,cardH,4,4,'F'); sf(COL.blue);doc.rect(margin,y,3.5,cardH,'F'); ae(node.icon||'📌',margin+7,y+(cardH-10)/2,10); const tX=margin+21;let tY=y+8;sc(COL.blue);doc.setFont('helvetica','bold');doc.setFontSize(BS+1); ll.forEach(l=>{doc.text(l,tX,tY);tY+=6;});tY+=1; sc(COL.darkGray);doc.setFont('helvetica','normal');doc.setFontSize(BS); cl.forEach((l,i)=>{if(i<2){doc.text(l,tX,tY);tY+=5.5;}}); y+=cardH+5; }); if(connectionExplanations.length>0){ onProgress?.('Aggiungo collegamenti...'); doc.addPage(); sf(COL.orange);doc.roundedRect(margin,14,contentW,14,4,4,'F'); sc(COL.white);doc.setFont('helvetica','bold');doc.setFontSize(HS); doc.text('COLLEGAMENTI SCOPERTI',W/2,24,{align:'center'}); y=38; connectionExplanations.forEach(conn=>{ const icoS=7,icoM=3,iPd=8,halfW=(contentW-20)/2; doc.setFont('helvetica','bold');let lfs=BS; let l1=wt(conn.from,halfW-icoS-icoM-4,lfs),l2=wt(conn.to,halfW-icoS-icoM-4,lfs); if(l1.length>2||l2.length>2){lfs=BS-2;l1=wt(conn.from,halfW-icoS-icoM-4,lfs);l2=wt(conn.to,halfW-icoS-icoM-4,lfs);} const mLR=Math.max(l1.length,l2.length),lBH=mLR*(lfs*0.5); doc.setFont('helvetica','normal'); const eL=wt(cleanTextForSpeech(conn.explanation),contentW-16,BS); const eH=Math.min(eL.length,3)*5.5,tRH=Math.max(icoS,lBH)+4,cH2=iPd+tRH+4+eH+iPd; if(y>H-cH2-10){doc.addPage();y=20;} sf(COL.orangePale);doc.roundedRect(margin,y,contentW,cH2,4,4,'F'); const rY=y+iPd; ae(conn.fromIcon||'📌',margin+5,rY+(tRH-icoS)/2-1,icoS); const ltX=margin+5+icoS+icoM;sc(COL.orange);doc.setFont('helvetica','bold');doc.setFontSize(lfs); let ltY2=rY+(tRH-lBH)/2+lfs*0.35;l1.forEach(l=>{doc.text(l,ltX,ltY2);ltY2+=lfs*0.5;}); const aCX=W/2,aCY=rY+tRH/2;sd(COL.orange);doc.setLineWidth(0.6); doc.line(aCX-8,aCY,aCX+8,aCY); doc.line(aCX-8,aCY,aCX-5,aCY-1.5);doc.line(aCX-8,aCY,aCX-5,aCY+1.5); doc.line(aCX+8,aCY,aCX+5,aCY-1.5);doc.line(aCX+8,aCY,aCX+5,aCY+1.5); ae(conn.toIcon||'📌',margin+contentW-5-icoS,rY+(tRH-icoS)/2-1,icoS); const rtMX=margin+contentW-5-icoS-icoM;sc(COL.orange);doc.setFont('helvetica','bold');doc.setFontSize(lfs); let rtY2=rY+(tRH-lBH)/2+lfs*0.35;l2.forEach(l=>{doc.text(l,rtMX,rtY2,{align:'right'});rtY2+=lfs*0.5;}); const spY=rY+tRH+2;sd(COL.lightGray);doc.setLineWidth(0.2);doc.line(margin+10,spY,margin+contentW-10,spY); let eY2=spY+5;sc(COL.darkGray);doc.setFont('helvetica','normal');doc.setFontSize(BS); eL.forEach((l,i)=>{if(i<3){doc.text(l,W/2,eY2,{align:'center'});eY2+=5.5;}}); y+=cH2+5; }); } if(connectionExplanations.length>=2){ onProgress?.('Genero riassunto...'); const narrative=await AI.generateNarrative(mapData.theme,exploredNodes,connectionExplanations); if(narrative){ doc.addPage();sf(COL.purple);doc.roundedRect(margin,14,contentW,14,4,4,'F'); sc(COL.white);doc.setFont('helvetica','bold');doc.setFontSize(HS); doc.text('RIASSUNTO',W/2,24,{align:'center'}); ae(mapData.themeIcon||'📚',W/2-5,33,10); sc(COL.black);doc.setFont('helvetica','bold'); let nfs=BS+2,nl=wt(mapData.theme,contentW-20,nfs); if(nl.length>2){nfs=BS;nl=wt(mapData.theme,contentW-20,nfs);} doc.setFontSize(nfs);let ntY=48;nl.forEach(l=>{doc.text(l,W/2,ntY,{align:'center'});ntY+=nfs*0.45;}); sd(COL.purple);doc.setLineWidth(0.5);doc.line(margin+20,ntY+3,W-margin-20,ntY+3); y=ntY+12;const cN=cleanTextForSpeech(narrative),pars=cN.split(/\.\s+/).filter(p=>p.trim()); let iIdx=0; pars.forEach((p,pi)=>{ const fp=p.endsWith('.')?p:p+'.';const pl=wt(fp,contentW-18,BS+1); if(y+pl.length*7>H-25){doc.addPage();y=20;} if(pi%2===0&&exploredNodes[iIdx]){ae(exploredNodes[iIdx].icon||'📌',margin,y-1,6);iIdx=(iIdx+1)%exploredNodes.length;} sc(COL.darkGray);doc.setFont('helvetica','normal');doc.setFontSize(BS+1); pl.forEach(l=>{doc.text(l,margin+10,y);y+=7;});y+=4; }); } } return doc; };
 
-        const emojiToDataURL = (emoji, size = 48) => {
-            const canvas = document.createElement('canvas');
-            const scale = 2;
-            canvas.width = size * scale; canvas.height = size * scale;
-            const ctx = canvas.getContext('2d');
-            ctx.scale(scale, scale);
-            ctx.font = `${size * 0.85}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", serif`;
-            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(emoji, size / 2, size / 2);
-            return canvas.toDataURL('image/png');
-        };
-
-        // === PDF GENERATOR ===
-        const generatePDF = async (mapData, nodes, exploredNodes, connectionExplanations, onProgress) => {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-            const W = 210, H = 297, margin = 18, contentW = W - margin * 2;
-            const COL = {
-                black:[30,30,30], darkGray:[60,60,70], medGray:[120,120,130],
-                lightGray:[200,200,205], veryLight:[240,242,245], white:[255,255,255],
-                blue:[37,99,235], bluePale:[219,234,254], green:[22,101,52],
-                orange:[154,52,18], orangePale:[255,237,213], purple:[88,28,135],
-            };
-            const TITLE_SIZE=24,HEADING_SIZE=16,BODY_SIZE=13,SMALL_SIZE=11,ICON_PX=48;
-            const today=new Date().toLocaleDateString('it-IT',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-            const setCol=(c)=>doc.setTextColor(...c),setFill=(c)=>doc.setFillColor(...c),setDraw=(c)=>doc.setDrawColor(...c);
-            const addEmojiImg=(emoji,x,y,size=8)=>{try{doc.addImage(emojiToDataURL(emoji,ICON_PX),'PNG',x,y,size,size);return true;}catch(e){return false;}};
-            const wrapText=(text,maxW,fs)=>{doc.setFontSize(fs);return doc.splitTextToSize(text,maxW);};
-
-            onProgress?.('Genero copertina...');
-            // === COPERTINA ===
-            setFill(COL.blue);doc.rect(0,0,W,8,'F');
-            const themeIcon=mapData.themeIcon||'📚';
-            addEmojiImg(themeIcon,W/2-12,30,24);
-            let ty=62;setCol(COL.black);doc.setFont('helvetica','bold');
-            let tfs=TITLE_SIZE,tl=wrapText(mapData.theme,contentW-20,tfs);
-            if(tl.length>2){tfs=TITLE_SIZE-4;tl=wrapText(mapData.theme,contentW-20,tfs);}
-            doc.setFontSize(tfs);tl.forEach(l=>{doc.text(l,W/2,ty,{align:'center'});ty+=tfs*0.45;});
-            setDraw(COL.blue);doc.setLineWidth(0.8);doc.line(W/2-30,ty+4,W/2+30,ty+4);
-            doc.setFontSize(BODY_SIZE);doc.setFont('helvetica','normal');setCol(COL.medGray);
-            doc.text('MAPPA MENTALE',W/2,ty+16,{align:'center'});
-            doc.text(today,W/2,ty+26,{align:'center'});
-            const sY=ty+45;setFill(COL.bluePale);doc.roundedRect(margin+20,sY,contentW-40,40,6,6,'F');
-            const totalN=nodes.length-1;doc.setFontSize(BODY_SIZE);setCol(COL.blue);doc.setFont('helvetica','bold');
-            doc.text(`Concetti esplorati: ${exploredNodes.length} / ${totalN}`,W/2,sY+15,{align:'center'});
-            doc.text(`Collegamenti trovati: ${connectionExplanations.length}`,W/2,sY+28,{align:'center'});
-            doc.setFontSize(SMALL_SIZE);setCol(COL.medGray);doc.text('Creato con EduGamer',W/2,H-20,{align:'center'});
-
-            // === CONCETTI ===
-            onProgress?.('Aggiungo concetti...');doc.addPage();
-            setFill(COL.green);doc.roundedRect(margin,14,contentW,14,4,4,'F');
-            setCol(COL.white);doc.setFont('helvetica','bold');doc.setFontSize(HEADING_SIZE);
-            doc.text('CONCETTI DELLA MAPPA',W/2,24,{align:'center'});
-            let y=38;const satNodes=nodes.filter(n=>!n.isCentral);
-            satNodes.forEach(node=>{
-                const lmW=contentW-26;doc.setFont('helvetica','bold');
-                const ll=wrapText(node.label,lmW,BODY_SIZE+1);
-                doc.setFont('helvetica','normal');const cl=wrapText(node.content||'',lmW,BODY_SIZE);
-                const lH=ll.length*6,cH=Math.min(cl.length,2)*5.5,cardH=Math.max(28,6+lH+cH+4);
-                if(y>H-cardH-10){doc.addPage();y=20;}
-                setFill(COL.veryLight);doc.roundedRect(margin,y,contentW,cardH,4,4,'F');
-                setFill(COL.blue);doc.rect(margin,y,3.5,cardH,'F');
-                addEmojiImg(node.icon||'📌',margin+7,y+(cardH-10)/2,10);
-                const tX=margin+21;let tY=y+8;setCol(COL.blue);doc.setFont('helvetica','bold');doc.setFontSize(BODY_SIZE+1);
-                ll.forEach(l=>{doc.text(l,tX,tY);tY+=6;});tY+=1;
-                setCol(COL.darkGray);doc.setFont('helvetica','normal');doc.setFontSize(BODY_SIZE);
-                cl.forEach((l,i)=>{if(i<2){doc.text(l,tX,tY);tY+=5.5;}});
-                y+=cardH+5;
-            });
-
-            // === COLLEGAMENTI ===
-            if(connectionExplanations.length>0){
-                onProgress?.('Aggiungo collegamenti...');doc.addPage();
-                setFill(COL.orange);doc.roundedRect(margin,14,contentW,14,4,4,'F');
-                setCol(COL.white);doc.setFont('helvetica','bold');doc.setFontSize(HEADING_SIZE);
-                doc.text('COLLEGAMENTI SCOPERTI',W/2,24,{align:'center'});
-                y=38;
-                connectionExplanations.forEach(conn=>{
-                    const icoS=7,icoM=3,iPd=8,halfW=(contentW-20)/2;
-                    doc.setFont('helvetica','bold');let lfs=BODY_SIZE;
-                    let l1=wrapText(conn.from,halfW-icoS-icoM-4,lfs),l2=wrapText(conn.to,halfW-icoS-icoM-4,lfs);
-                    if(l1.length>2||l2.length>2){lfs=BODY_SIZE-2;l1=wrapText(conn.from,halfW-icoS-icoM-4,lfs);l2=wrapText(conn.to,halfW-icoS-icoM-4,lfs);}
-                    const mLR=Math.max(l1.length,l2.length),lBH=mLR*(lfs*0.5);
-                    doc.setFont('helvetica','normal');
-                    const eL=wrapText(cleanTextForSpeech(conn.explanation),contentW-16,BODY_SIZE);
-                    const eH=Math.min(eL.length,3)*5.5,tRH=Math.max(icoS,lBH)+4,cH=iPd+tRH+4+eH+iPd;
-                    if(y>H-cH-10){doc.addPage();y=20;}
-                    setFill(COL.orangePale);doc.roundedRect(margin,y,contentW,cH,4,4,'F');
-                    const rY=y+iPd;
-                    addEmojiImg(conn.fromIcon||'📌',margin+5,rY+(tRH-icoS)/2-1,icoS);
-                    const ltX=margin+5+icoS+icoM;setCol(COL.orange);doc.setFont('helvetica','bold');doc.setFontSize(lfs);
-                    let ltY2=rY+(tRH-lBH)/2+lfs*0.35;l1.forEach(l=>{doc.text(l,ltX,ltY2);ltY2+=lfs*0.5;});
-                    const aCX=W/2,aCY=rY+tRH/2;setDraw(COL.orange);doc.setLineWidth(0.6);
-                    doc.line(aCX-8,aCY,aCX+8,aCY);
-                    doc.line(aCX-8,aCY,aCX-5,aCY-1.5);doc.line(aCX-8,aCY,aCX-5,aCY+1.5);
-                    doc.line(aCX+8,aCY,aCX+5,aCY-1.5);doc.line(aCX+8,aCY,aCX+5,aCY+1.5);
-                    const rEX=margin+contentW-5-icoS;
-                    addEmojiImg(conn.toIcon||'📌',rEX,rY+(tRH-icoS)/2-1,icoS);
-                    const rtMX=rEX-icoM;setCol(COL.orange);doc.setFont('helvetica','bold');doc.setFontSize(lfs);
-                    let rtY2=rY+(tRH-lBH)/2+lfs*0.35;l2.forEach(l=>{doc.text(l,rtMX,rtY2,{align:'right'});rtY2+=lfs*0.5;});
-                    const spY=rY+tRH+2;setDraw(COL.lightGray);doc.setLineWidth(0.2);
-                    doc.line(margin+10,spY,margin+contentW-10,spY);
-                    let eY2=spY+5;setCol(COL.darkGray);doc.setFont('helvetica','normal');doc.setFontSize(BODY_SIZE);
-                    eL.forEach((l,i)=>{if(i<3){doc.text(l,W/2,eY2,{align:'center'});eY2+=5.5;}});
-                    y+=cH+5;
-                });
-            }
-
-            // === RIASSUNTO ===
-            if(connectionExplanations.length>=2){
-                onProgress?.('Genero riassunto...');
-                const narrative=await AI.generateNarrative(mapData.theme,exploredNodes,connectionExplanations);
-                if(narrative){
-                    doc.addPage();setFill(COL.purple);doc.roundedRect(margin,14,contentW,14,4,4,'F');
-                    setCol(COL.white);doc.setFont('helvetica','bold');doc.setFontSize(HEADING_SIZE);
-                    doc.text('RIASSUNTO',W/2,24,{align:'center'});
-                    addEmojiImg(mapData.themeIcon||'📚',W/2-5,33,10);
-                    const nTY2=48;setCol(COL.black);doc.setFont('helvetica','bold');
-                    let nfs=BODY_SIZE+2,nl=wrapText(mapData.theme,contentW-20,nfs);
-                    if(nl.length>2){nfs=BODY_SIZE;nl=wrapText(mapData.theme,contentW-20,nfs);}
-                    doc.setFontSize(nfs);let ntY3=nTY2;nl.forEach(l=>{doc.text(l,W/2,ntY3,{align:'center'});ntY3+=nfs*0.45;});
-                    setDraw(COL.purple);doc.setLineWidth(0.5);doc.line(margin+20,ntY3+3,W-margin-20,ntY3+3);
-                    y=ntY3+12;const cN=cleanTextForSpeech(narrative),pars=cN.split(/\.\s+/).filter(p=>p.trim());
-                    let iIdx=0;
-                    pars.forEach((p,pi)=>{
-                        const fp=p.endsWith('.')?p:p+'.';const pl=wrapText(fp,contentW-18,BODY_SIZE+1);
-                        if(y+pl.length*7>H-25){doc.addPage();y=20;}
-                        if(pi%2===0&&exploredNodes[iIdx]){addEmojiImg(exploredNodes[iIdx].icon||'📌',margin,y-1,6);iIdx=(iIdx+1)%exploredNodes.length;}
-                        setCol(COL.darkGray);doc.setFont('helvetica','normal');doc.setFontSize(BODY_SIZE+1);
-                        pl.forEach(l=>{doc.text(l,margin+10,y);y+=7;});y+=4;
-                    });
-                    if(y<H-30){setDraw(COL.lightGray);doc.setLineWidth(0.3);doc.line(margin+20,y+5,W-margin-20,y+5);
-                    doc.setFontSize(SMALL_SIZE);setCol(COL.medGray);doc.text('Riassunto generato da AI basato sulla tua esplorazione',W/2,y+14,{align:'center'});}
-                }
-            }
-            return doc;
-        };
-
-        // ============================================================
         // === MAIN APP ===
-        // ============================================================
         const App = () => {
-            const [stage, setStage] = useState('upload');
-            const [images, setImages] = useState([]);
-            const [mapData, setMapData] = useState(null);
-            const [nodes, setNodes] = useState([]);
-            const [lines, setLines] = useState([]);
-            const [selectedNode, setSelectedNode] = useState(null);
-            const [aiMessage, setAiMessage] = useState(null);
-            const scrollRef = useRef(null);
+            const [stage,setStage]=useState('upload'); const [images,setImages]=useState([]); const [mapData,setMapData]=useState(null); const [nodes,setNodes]=useState([]); const [lines,setLines]=useState([]); const [selectedNode,setSelectedNode]=useState(null); const [aiMessage,setAiMessage]=useState(null); const scrollRef=useRef(null);
+            const [dragNodeId,setDragNodeId]=useState(null); const dragRef=useRef({startX:0,startY:0,initX:0,initY:0,hasMoved:false});
+            const [exploredOrder,setExploredOrder]=useState([]); const [exploredNodes,setExploredNodes]=useState([]); const [connectionExplanations,setConnectionExplanations]=useState([]);
+            // REVIEW: free order
+            const [reviewOrder,setReviewOrder]=useState([]); const [reviewRevealed,setReviewRevealed]=useState([]); const [reviewDragIdx,setReviewDragIdx]=useState(null); const reviewDragRef=useRef({startY:0,idx:0,hasMoved:false});
+            const [showShareMenu,setShowShareMenu]=useState(false); const [pdfProgress,setPdfProgress]=useState(null);
+            const [podcastLines,setPodcastLines]=useState([]); const [podcastPlaying,setPodcastPlaying]=useState(false); const [podcastIndex,setPodcastIndex]=useState(-1); const [podcastGenerating,setPodcastGenerating]=useState(false); const podcastPlayingRef=useRef(false); const podcastIndexRef=useRef(-1);
+            const [profVoiceName,setProfVoiceName]=useState(''); const [studentVoiceName,setStudentVoiceName]=useState(''); const [showVoiceSettings,setShowVoiceSettings]=useState(false); const [availableVoices,setAvailableVoices]=useState([]);
 
-            // Drag & Drop State
-            const [dragNodeId, setDragNodeId] = useState(null);
-            const dragRef = useRef({ startX: 0, startY: 0, initX: 0, initY: 0, hasMoved: false });
+            const satNodes=nodes.filter(n=>!n.isCentral); const totalSatellites=satNodes.length;
+            const allRevealed=reviewOrder.length>0&&reviewRevealed.length>=reviewOrder.length;
 
-            // Esplorazione Libera
-            const [exploredOrder, setExploredOrder] = useState([]); 
-            const [exploredNodes, setExploredNodes] = useState([]); 
-            const [connectionExplanations, setConnectionExplanations] = useState([]);
+            useEffect(()=>{ const lv=()=>{ const v=window.speechSynthesis.getVoices(),it=v.filter(x=>x.lang.startsWith('it')); setAvailableVoices(it); if(it.length>0&&!profVoiceName){ const f=(t)=>it.find(x=>x.name.toLowerCase().includes(t.toLowerCase())); const m=f('Cosimo')||f('Luca')||f('Diego'),fe=f('Elsa')||f('Alice')||f('Federica')||f('Isabella'),g=f('Google'); if(m&&fe){setProfVoiceName(m.name);setStudentVoiceName(fe.name);} else if(m&&g){setProfVoiceName(m.name);setStudentVoiceName(g.name);} else if(fe&&g){setProfVoiceName(g.name);setStudentVoiceName(fe.name);} else if(g){setProfVoiceName(g.name);setStudentVoiceName(g.name);} else if(it.length>=2){setProfVoiceName(it[0].name);setStudentVoiceName(it[1].name);} else if(it.length===1){setProfVoiceName(it[0].name);setStudentVoiceName(it[0].name);} } }; lv(); window.speechSynthesis.onvoiceschanged=lv; },[]);
 
-            const [reviewRevealedCount, setReviewRevealedCount] = useState(0);
-            const [showShareMenu, setShowShareMenu] = useState(false);
-            const [pdfProgress, setPdfProgress] = useState(null);
+            useEffect(()=>{ try{ const s=DB.load(); if(s&&s.nodes){ setMapData(s.mapData);setNodes(s.nodes);setLines(s.lines||[]);setExploredOrder(s.exploredOrder||[]);setExploredNodes(s.exploredNodes||[]);setConnectionExplanations(s.connectionExplanations||[]); setReviewOrder(s.reviewOrder||[]);setReviewRevealed(s.reviewRevealed||[]); setPodcastLines(s.podcastLines||[]);setStage(s.stage||'explore'); } }catch(e){DB.clear();} },[]);
+            useEffect(()=>{ if(nodes.length) DB.save({mapData,nodes,lines,exploredOrder,exploredNodes,connectionExplanations,reviewOrder,reviewRevealed,podcastLines,stage}); },[nodes,lines,exploredOrder,exploredNodes,connectionExplanations,reviewOrder,reviewRevealed,podcastLines,stage]);
 
-            // Podcast
-            const [podcastLines, setPodcastLines] = useState([]);
-            const [podcastPlaying, setPodcastPlaying] = useState(false);
-            const [podcastIndex, setPodcastIndex] = useState(-1);
-            const [podcastGenerating, setPodcastGenerating] = useState(false);
-            const podcastPlayingRef = useRef(false);
-            const podcastIndexRef = useRef(-1);
-            const [profVoiceName, setProfVoiceName] = useState('');
-            const [studentVoiceName, setStudentVoiceName] = useState('');
-            const [showVoiceSettings, setShowVoiceSettings] = useState(false);
-            const [availableVoices, setAvailableVoices] = useState([]);
+            const centerMap=useCallback(()=>{ const el=scrollRef.current; if(!el) return; el.scrollLeft=Math.max(0,1500-window.innerWidth/2); el.scrollTop=Math.max(0,1500-window.innerHeight/2); },[]);
+            useEffect(()=>{ if(stage==='explore'||stage==='connect') requestAnimationFrame(()=>requestAnimationFrame(()=>centerMap())); },[stage,centerMap]);
 
-            const satNodes = nodes.filter(n => !n.isCentral);
-            const totalSatellites = satNodes.length;
-            const allExplored = totalSatellites > 0 && exploredOrder.length >= totalSatellites;
-            const allRevealed = reviewRevealedCount >= exploredNodes.length;
+            const getBestItVoice=()=>{ const v=window.speechSynthesis.getVoices(),it=v.filter(x=>x.lang.startsWith('it')); return it.find(x=>x.name.includes('Natural')||x.name.includes('Neural'))||it.find(x=>x.name.includes('Google'))||it[0]||null; };
+            const speak=(text)=>{ window.speechSynthesis.cancel(); setAiMessage(text); const c=cleanTextForSpeech(text),u=new SpeechSynthesisUtterance(c); u.lang='it-IT';u.rate=0.95; const v=getBestItVoice();if(v)u.voice=v; u.onend=()=>setTimeout(()=>setAiMessage(null),2500); window.speechSynthesis.speak(u); };
+            const speakAndWait=(text)=>new Promise(resolve=>{ const w=()=>{ if(window.speechSynthesis.speaking){setTimeout(w,100);return;} setAiMessage(text); const c=cleanTextForSpeech(text); if(!c){resolve();return;} const u=new SpeechSynthesisUtterance(c); u.lang='it-IT';u.rate=0.95; const v=getBestItVoice();if(v)u.voice=v; let r=false; const d=()=>{if(r)return;r=true;setTimeout(()=>setAiMessage(null),1500);setTimeout(resolve,500);}; u.onend=d;u.onerror=d; setTimeout(d,Math.max(4000,c.length*80)); window.speechSynthesis.speak(u); }; w(); });
+            const speakPodcastLine=(text,speaker)=>new Promise(resolve=>{ const w=()=>{ if(window.speechSynthesis.speaking){setTimeout(w,100);return;} const voices=window.speechSynthesis.getVoices(),c=cleanTextForSpeech(text),u=new SpeechSynthesisUtterance(c); u.lang='it-IT'; const tn=speaker==='prof'?profVoiceName:studentVoiceName,on=speaker==='prof'?studentVoiceName:profVoiceName,same=!tn||!on||tn===on; if(tn){const f=voices.find(v=>v.name===tn);if(f)u.voice=f;} if(same){u.pitch=speaker==='prof'?0.65:1.5;u.rate=speaker==='prof'?0.85:1.02;}else{u.pitch=speaker==='prof'?0.9:1.1;u.rate=speaker==='prof'?0.92:0.98;} let r=false; const d=()=>{if(r)return;r=true;setTimeout(resolve,350);}; u.onend=d;u.onerror=d; setTimeout(d,Math.max(3000,c.length*80)); window.speechSynthesis.speak(u); }; w(); });
 
-            useEffect(() => {
-                const loadVoices = () => {
-                    const voices = window.speechSynthesis.getVoices();
-                    const itVoices = voices.filter(v => v.lang.startsWith('it'));
-                    setAvailableVoices(itVoices);
-                    if(itVoices.length > 0 && !profVoiceName) {
-                        const males = itVoices.find(v => v.name.toLowerCase().includes('cosimo') || v.name.toLowerCase().includes('luca') || v.name.toLowerCase().includes('diego'));
-                        const females = itVoices.find(v => v.name.toLowerCase().includes('elsa') || v.name.toLowerCase().includes('alice') || v.name.toLowerCase().includes('federica') || v.name.toLowerCase().includes('isabella'));
-                        const google = itVoices.find(v => v.name.toLowerCase().includes('google'));
-                        if(males && females) { setProfVoiceName(males.name); setStudentVoiceName(females.name); }
-                        else if(males && google) { setProfVoiceName(males.name); setStudentVoiceName(google.name); }
-                        else if(females && google) { setProfVoiceName(google.name); setStudentVoiceName(females.name); }
-                        else if(google) { setProfVoiceName(google.name); setStudentVoiceName(google.name); }
-                        else if(itVoices.length >= 2) { setProfVoiceName(itVoices[0].name); setStudentVoiceName(itVoices[1].name); }
-                        else if(itVoices.length === 1) { setProfVoiceName(itVoices[0].name); setStudentVoiceName(itVoices[0].name); }
-                    }
-                };
-                loadVoices();
-                window.speechSynthesis.onvoiceschanged = loadVoices;
-            }, []);
+            const generatePodcast=async()=>{ setPodcastGenerating(true);setStage('podcast');setPodcastLines([]);setPodcastIndex(-1);setPodcastPlaying(false);podcastPlayingRef.current=false;podcastIndexRef.current=-1; try{const l=await AI.generatePodcast(mapData?.theme,mapData?.themeIcon,exploredNodes,connectionExplanations);if(l&&Array.isArray(l)&&l.length>0){setPodcastLines(l);DB.addXP(40);}else{alert("Errore podcast.");setStage('review');}}catch(e){alert("Errore: "+e.message);setStage('review');}setPodcastGenerating(false);};
+            const playPodcast=async()=>{ if(podcastPlaying){podcastPlayingRef.current=false;setPodcastPlaying(false);window.speechSynthesis.cancel();return;} podcastPlayingRef.current=true;setPodcastPlaying(true); let si=podcastIndexRef.current+1; if(si>=podcastLines.length){si=0;setPodcastIndex(-1);podcastIndexRef.current=-1;} for(let i=si;i<podcastLines.length;i++){if(!podcastPlayingRef.current)break;setPodcastIndex(i);podcastIndexRef.current=i;setTimeout(()=>{const el=document.getElementById(`pb-${i}`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},100);await speakPodcastLine(podcastLines[i].text,podcastLines[i].speaker);if(!podcastPlayingRef.current)break;} podcastPlayingRef.current=false;setPodcastPlaying(false);};
 
-            useEffect(() => {
-                try {
-                    const saved = DB.load();
-                    if(saved && saved.nodes) {
-                        setMapData(saved.mapData); setNodes(saved.nodes);
-                        setLines(saved.lines || []);
-                        setExploredOrder(saved.exploredOrder || []);
-                        setExploredNodes(saved.exploredNodes || []);
-                        setConnectionExplanations(saved.connectionExplanations || []);
-                        setReviewRevealedCount(saved.reviewRevealedCount || 0);
-                        setPodcastLines(saved.podcastLines || []);
-                        setStage(saved.stage || 'explore');
-                    }
-                } catch(e) { DB.clear(); }
-            }, []);
+            const addImage=(e)=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=(ev)=>setImages(p=>[...p,ev.target.result]);r.readAsDataURL(f);};
+            const start=async()=>{ if(!images.length)return; setStage('scanning'); try{const data=await AI.analyzeMap(images);setMapData(data);const cx=1500,cy=1500,rad=420;const central={id:0,label:data.theme,icon:data.themeIcon||'📚',content:"Argomento Principale",x:cx-120,y:cy-120,w:240,h:240,isCentral:true};const sats=data.nodes.map((n,i)=>{const a=(i/data.nodes.length)*2*Math.PI-Math.PI/2;return{...n,id:i+1,icon:n.icon||'📌',x:cx+rad*Math.cos(a)-100,y:cy+rad*Math.sin(a)-75,w:200,h:150,isCentral:false};});setNodes([central,...sats]);setLines([]);setConnectionExplanations([]);setExploredNodes([]);setExploredOrder([]);setReviewOrder([]);setReviewRevealed([]);DB.addXP(50);setStage('explore');}catch(e){alert("Errore: "+e.message);setStage('upload');} };
 
-            useEffect(() => {
-                if(nodes.length) DB.save({
-                    mapData, nodes, lines, exploredOrder,
-                    exploredNodes, connectionExplanations, reviewRevealedCount, podcastLines, stage
-                });
-            }, [nodes, lines, exploredOrder, exploredNodes, connectionExplanations, reviewRevealedCount, podcastLines, stage]);
+            // Map drag
+            const onNPD=(e,node)=>{e.stopPropagation();e.target.setPointerCapture(e.pointerId);setDragNodeId(node.id);dragRef.current={startX:e.clientX,startY:e.clientY,initX:node.x,initY:node.y,hasMoved:false};};
+            const onNPM=(e)=>{if(dragNodeId===null)return;const dx=e.clientX-dragRef.current.startX,dy=e.clientY-dragRef.current.startY;if(Math.abs(dx)>5||Math.abs(dy)>5){dragRef.current.hasMoved=true;setNodes(p=>p.map(n=>n.id===dragNodeId?{...n,x:dragRef.current.initX+dx,y:dragRef.current.initY+dy}:n));}};
+            const onNPU=(e,node)=>{if(dragNodeId===null)return;e.target.releasePointerCapture(e.pointerId);const moved=dragRef.current.hasMoved;setDragNodeId(null);if(!moved){if(stage==='explore')handleExploreClick(node);else if(stage==='connect')handleConnectClick(node);}};
 
-            const centerMap = useCallback(() => {
-                const el = scrollRef.current; if (!el) return;
-                el.scrollLeft = Math.max(0, 1500 - window.innerWidth / 2);
-                el.scrollTop = Math.max(0, 1500 - window.innerHeight / 2);
-            }, []);
+            const handleExploreClick=async(node)=>{ if(node.isCentral){speak(`Tema: ${cleanTextForSpeech(node.label)}. Scegli quale concetto esplorare!`);return;} if(exploredOrder.includes(node.id)){speak(cleanTextForSpeech(node.label)+". "+cleanTextForSpeech(node.content));return;} const cl=cleanTextForSpeech(node.label),cc=cleanTextForSpeech(node.content); const no=[...exploredOrder,node.id]; setExploredOrder(no); setExploredNodes(p=>[...p,{id:node.id,label:node.label,content:node.content,icon:node.icon}]); DB.addXP(15); if(no.length>=totalSatellites){window.speechSynthesis.cancel();await speakAndWait(cl+". "+cc);await speakAndWait("Complimenti! Hai esplorato tutto. Ora collega le idee!");setStage('connect');}else{speak(cl+". "+cc);} };
+            const handleConnectClick=async(node)=>{ if(node.isCentral){speak("Tocca due concetti per collegarli!");return;} if(!selectedNode){setSelectedNode(node);speak(cleanTextForSpeech(node.label));return;} if(selectedNode.id===node.id){setSelectedNode(null);return;} const exists=lines.some(l=>(l.from===selectedNode.id&&l.to===node.id)||(l.from===node.id&&l.to===selectedNode.id)); if(!exists){setLines(p=>[...p,{from:selectedNode.id,to:node.id}]);DB.addXP(20);const l1=cleanTextForSpeech(selectedNode.label),l2=cleanTextForSpeech(node.label);const dx=selectedNode.x-node.x,dy=selectedNode.y-node.y,dist=Math.sqrt(dx*dx+dy*dy);let wl=Math.max(8,Math.min(25,Math.floor(25-(dist/60))));window.speechSynthesis.cancel();await speakAndWait(`${l1},  e,  ${l2}`);setAiMessage("🤔 Cerco il collegamento...");const expl=await AI.explainConnection(l1,l2,wl);if(expl&&typeof expl==='string'){setConnectionExplanations(p=>[...p,{from:selectedNode.label,to:node.label,fromIcon:selectedNode.icon||'📌',toIcon:node.icon||'📌',explanation:expl}]);speak(expl);}else{speak(`${selectedNode.label} e ${node.label} sono collegati!`);}}else{speak("Sono già collegati!");} setSelectedNode(null); };
 
-            useEffect(() => {
-                if(stage === 'explore' || stage === 'connect') {
-                    requestAnimationFrame(() => requestAnimationFrame(() => centerMap()));
-                }
-            }, [stage, centerMap]);
+            // REVIEW: free
+            const enterReview=()=>{setReviewOrder([...exploredNodes]);setReviewRevealed([]);setStage('review');};
+            const handleReviewTap=(nodeId)=>{ if(reviewRevealed.includes(nodeId)){const n=reviewOrder.find(x=>x.id===nodeId);if(n)speak(cleanTextForSpeech(n.label)+". "+cleanTextForSpeech(n.content));return;} setReviewRevealed(p=>[...p,nodeId]); const n=reviewOrder.find(x=>x.id===nodeId); if(n){speak(cleanTextForSpeech(n.label)+". "+cleanTextForSpeech(n.content));DB.addXP(5);} };
+            const onRPD=(e,idx)=>{e.stopPropagation();setReviewDragIdx(idx);reviewDragRef.current={startY:e.clientY,idx,hasMoved:false};};
+            const onRPM=(e)=>{if(reviewDragIdx===null)return;const dy=e.clientY-reviewDragRef.current.startY;if(Math.abs(dy)>15){reviewDragRef.current.hasMoved=true;const rh=80,is=Math.round(dy/rh),oi=reviewDragRef.current.idx,ni=Math.max(0,Math.min(reviewOrder.length-1,oi+is));if(ni!==oi){const no=[...reviewOrder];const[m]=no.splice(oi,1);no.splice(ni,0,m);setReviewOrder(no);reviewDragRef.current.idx=ni;reviewDragRef.current.startY=e.clientY;}}};
+            const onRPU=(e,nodeId)=>{const moved=reviewDragRef.current.hasMoved;setReviewDragIdx(null);if(!moved)handleReviewTap(nodeId);};
 
-            const speak = (text) => {
-                window.speechSynthesis.cancel();
-                setAiMessage(text);
-                const clean = cleanTextForSpeech(text);
-                const u = new SpeechSynthesisUtterance(clean);
-                u.lang = 'it-IT'; u.rate = 0.95;
-                const voices = window.speechSynthesis.getVoices();
-                const itVoices = voices.filter(v => v.lang.startsWith('it'));
-                const natural = itVoices.find(v => v.name.includes('Natural') || v.name.includes('Neural'));
-                const google = itVoices.find(v => v.name.includes('Google'));
-                if (natural) u.voice = natural;
-                else if (google) u.voice = google;
-                else if (itVoices.length) u.voice = itVoices[0];
-                u.onend = () => setTimeout(() => setAiMessage(null), 2500);
-                window.speechSynthesis.speak(u);
-            };
+            const reset=()=>{if(confirm("Creare nuova mappa?")){window.speechSynthesis.cancel();podcastPlayingRef.current=false;DB.clear();setImages([]);setMapData(null);setNodes([]);setLines([]);setConnectionExplanations([]);setExploredNodes([]);setExploredOrder([]);setReviewOrder([]);setReviewRevealed([]);setSelectedNode(null);setPodcastLines([]);setPodcastIndex(-1);setPodcastPlaying(false);setPodcastGenerating(false);setStage('upload');}};
+            const saveAsPDF=async()=>{setShowShareMenu(false);setPdfProgress('Preparo PDF...');try{const doc=await generatePDF(mapData,nodes,exploredNodes,connectionExplanations,m=>setPdfProgress(m));doc.save(`${(mapData?.theme||'mappa').replace(/[^\w\s]/g,'').replace(/\s+/g,'_').substring(0,30)}_${new Date().toISOString().slice(0,10)}.pdf`);setPdfProgress(null);DB.addXP(30);}catch(e){alert('Errore PDF: '+e.message);setPdfProgress(null);}};
+            const getSummaryText=()=>{if(!mapData)return'';let t=`MAPPA: ${mapData.theme}\n\nCONCETTI:\n`;exploredNodes.forEach((n,i)=>{t+=`${i+1}. ${n.icon} ${n.label}: ${n.content}\n`;});if(connectionExplanations.length){t+='\nCOLLEGAMENTI:\n';connectionExplanations.forEach((c,i)=>{t+=`${i+1}. ${c.from} <-> ${c.to}: ${c.explanation}\n`;});}t+='\nCreato con EduGamer';return t;};
+            const renderShareMenu=()=>{if(!showShareMenu)return null;return(<div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={()=>setShowShareMenu(false)}><div className="bg-slate-800 rounded-2xl p-4 w-full max-w-sm border-2 border-slate-600" onClick={e=>e.stopPropagation()}><h3 className="text-xl font-bold text-center text-white mb-4">📤 Esporta</h3><div className="flex flex-col gap-3"><button onClick={saveAsPDF} className="share-btn bg-red-600 text-white text-lg">📄 PDF</button><button onClick={()=>{window.open(`https://wa.me/?text=${encodeURIComponent(getSummaryText())}`,'_blank');setShowShareMenu(false);}} className="share-btn bg-green-600 text-white">💬 WhatsApp</button><button onClick={()=>setShowShareMenu(false)} className="share-btn bg-slate-600 text-white mt-2">✕ Chiudi</button></div></div></div>);};
 
-            const speakAndWait = (text) => {
-                return new Promise((resolve) => {
-                    const waitForIdle = () => {
-                        if(window.speechSynthesis.speaking) { setTimeout(waitForIdle, 100); return; }
-                        setAiMessage(text);
-                        const clean = cleanTextForSpeech(text);
-                        if(!clean) { resolve(); return; }
-                        const u = new SpeechSynthesisUtterance(clean);
-                        u.lang = 'it-IT'; u.rate = 0.95;
-                        const voices = window.speechSynthesis.getVoices();
-                        const itVoices = voices.filter(v => v.lang.startsWith('it'));
-                        const natural = itVoices.find(v => v.name.includes('Natural') || v.name.includes('Neural'));
-                        const google = itVoices.find(v => v.name.includes('Google'));
-                        if (natural) u.voice = natural;
-                        else if (google) u.voice = google;
-                        else if (itVoices.length) u.voice = itVoices[0];
-                        
-                        let resolved = false;
-                        const done = () => {
-                            if(resolved) return;
-                            resolved = true;
-                            setTimeout(() => setAiMessage(null), 1500);
-                            setTimeout(resolve, 500);
-                        };
-                        u.onend = done; u.onerror = done;
-                        const safetyMs = Math.max(4000, clean.length * 80);
-                        setTimeout(done, safetyMs);
-                        window.speechSynthesis.speak(u);
-                    };
-                    waitForIdle();
-                });
-            };
+            const renderCanvas=(mode)=>(<div className="scroll-area" ref={scrollRef}><div className="map-canvas"><svg className="absolute inset-0 pointer-events-none z-10" style={{width:'3000px',height:'3000px'}}>{lines.map((line,i)=>{const n1=nodes.find(n=>n.id===line.from),n2=nodes.find(n=>n.id===line.to);if(!n1||!n2)return null;return<line key={i} x1={n1.x+n1.w/2} y1={n1.y+n1.h/2} x2={n2.x+n2.w/2} y2={n2.y+n2.h/2} stroke="#4ade80" strokeWidth="8" strokeLinecap="round" className="neon-line"/>;})}</svg>{nodes.map(node=>{const isSel=selectedNode?.id===node.id,isExp=exploredOrder.includes(node.id),isCon=lines.some(l=>l.from===node.id||l.to===node.id);let nc=`node-base ${node.isCentral?'node-central':'node-satellite'}`;if(mode==='explore'&&isExp&&!node.isCentral)nc+=' node-explored';if(mode==='connect'){if(isSel)nc+=' node-selected';if(isCon&&!node.isCentral)nc+=' node-connected';}const oi=exploredOrder.indexOf(node.id);return(<div key={node.id} className={nc} style={{left:node.x,top:node.y,width:node.w,height:node.h}} onPointerDown={e=>onNPD(e,node)} onPointerMove={onNPM} onPointerUp={e=>onNPU(e,node)} onPointerCancel={e=>onNPU(e,node)}>{!node.isCentral&&oi>=0&&(<div style={{position:'absolute',top:-8,right:-8,width:28,height:28,borderRadius:'50%',background:'#22d3ee',color:'#0a0e17',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:'bold',fontSize:'0.85rem',zIndex:60,border:'2px solid #0a0e17'}}>{oi+1}</div>)}<div className="node-icon">{node.icon||'📌'}</div><div className="font-bold text-yellow-300 leading-tight text-sm">{node.label}</div>{(!node.isCentral&&(isExp||mode==='connect'))&&(<div className="text-xs text-gray-200 line-clamp-2 leading-snug mt-1 font-medium">{node.content}</div>)}</div>);})}</div></div>);
 
-            const speakPodcastLine = (text, speaker) => {
-                return new Promise((resolve) => {
-                    const waitAndSpeak = () => {
-                        if(window.speechSynthesis.speaking) { setTimeout(waitAndSpeak, 100); return; }
-                        const voices = window.speechSynthesis.getVoices();
-                        const clean = cleanTextForSpeech(text);
-                        const u = new SpeechSynthesisUtterance(clean);
-                        u.lang = 'it-IT';
-                        
-                        const targetName = speaker === 'prof' ? profVoiceName : studentVoiceName;
-                        const otherName = speaker === 'prof' ? studentVoiceName : profVoiceName;
-                        const sameVoice = !targetName || !otherName || targetName === otherName;
-                        
-                        if(targetName) { const found = voices.find(v => v.name === targetName); if(found) u.voice = found; }
-                        
-                        if(sameVoice) {
-                            u.pitch = speaker === 'prof' ? 0.65 : 1.5;
-                            u.rate = speaker === 'prof' ? 0.85 : 1.02;
-                        } else {
-                            u.pitch = speaker === 'prof' ? 0.9 : 1.1;
-                            u.rate = speaker === 'prof' ? 0.92 : 0.98;
-                        }
-                        
-                        let resolved = false;
-                        const done = () => { if(resolved) return; resolved = true; setTimeout(resolve, 350); };
-                        u.onend = done; u.onerror = done;
-                        setTimeout(done, Math.max(3000, clean.length * 80));
-                        window.speechSynthesis.speak(u);
-                    };
-                    waitAndSpeak();
-                });
-            };
+            // === STAGES ===
+            if(stage==='upload') return(<div className="h-full flex flex-col items-center justify-center p-6 gap-6"><h1 className="text-4xl font-black text-green-400 tracking-tighter">LAVAGNA MAGICA ✨</h1><div className="border-2 border-dashed border-slate-600 p-8 rounded-3xl flex flex-col items-center gap-6 bg-slate-800/50 w-full max-w-2xl shadow-2xl"><div className="flex gap-2 overflow-auto max-w-full p-2 min-h-[90px]">{images.length===0?<span className="text-slate-500 m-auto">Nessuna foto ancora...</span>:images.map((src,i)=><img key={i} src={src} className="h-24 rounded-xl border-2 border-slate-500 shadow-lg"/>)}</div><label className="btn-upload-big w-full py-6 rounded-2xl font-bold text-2xl cursor-pointer text-white flex items-center justify-center gap-3 shadow-xl"><input type="file" onChange={addImage} className="hidden" accept="image/*"/> 📷 SCATTA FOTO</label>{images.length>0&&(<button onClick={start} className="w-full bg-green-600 py-5 rounded-2xl font-bold text-white text-xl animate-pulse shadow-xl active:scale-95">🚀 CREA LA MAPPA!</button>)}</div><a href="index.html" className="text-slate-400 bg-slate-800 px-6 py-3 rounded-xl font-bold">🏠 MENU</a></div>);
+            if(stage==='scanning') return(<div className="h-full flex flex-col items-center justify-center gap-6"><div className="w-24 h-24 border-8 border-green-500 border-t-transparent rounded-full animate-spin"></div><h2 className="text-green-400 font-bold text-3xl animate-pulse">STO LEGGENDO... 🧠</h2></div>);
+            if(stage==='explore') return(<div className="h-screen w-screen flex flex-col overflow-hidden" style={{position:'fixed',top:0,left:0}}><div className="flex-shrink-0 p-3 flex gap-3 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg"><a href="index.html" className="bg-slate-700 px-4 py-2 rounded-xl text-white font-bold text-xl">🏠</a><div className="flex-1 mx-2"><div className="text-center text-cyan-400 font-bold text-sm mb-1">👆 SCOPRI I CONCETTI ({exploredOrder.length}/{totalSatellites})</div><div className="progress-bar-bg"><div className="progress-bar-fill" style={{width:`${totalSatellites>0?(exploredOrder.length/totalSatellites)*100:0}%`}}></div></div></div><button onClick={centerMap} className="bg-blue-600 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-blue-400">🎯</button><button onClick={reset} className="bg-red-600 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-red-400">🔄</button></div><div className="map-viewport flex-1">{renderCanvas('explore')}{aiMessage&&<div className="ai-bubble"><span className="text-3xl">🤖</span><span>{aiMessage}</span></div>}</div></div>);
+            if(stage==='connect') return(<div className="h-screen w-screen flex flex-col overflow-hidden" style={{position:'fixed',top:0,left:0}}><div className="flex-shrink-0 p-3 flex gap-3 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg"><a href="index.html" className="bg-slate-700 px-4 py-2 rounded-xl text-white font-bold text-xl">🏠</a><div className="flex-1 text-center"><div className="text-yellow-400 font-bold text-sm animate-pulse">{selectedNode?"👇 TOCCA UN ALTRO PER COLLEGARLI!":"🔗 COLLEGA I CONCETTI"}</div>{connectionExplanations.length>0&&(<div className="text-cyan-400 text-xs mt-1">{connectionExplanations.length} collegament{connectionExplanations.length===1?'o':'i'}</div>)}</div><button onClick={centerMap} className="bg-blue-600 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-blue-400">🎯</button><button onClick={enterReview} className="bg-purple-600 px-4 py-3 rounded-xl text-white font-bold shadow-lg border-2 border-purple-400 text-sm" style={{animation:connectionExplanations.length>=2?'pulse-green 2s infinite':'none'}}>🧠 RIPASSA</button><button onClick={reset} className="bg-red-600 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-red-400">🔄</button></div><div className="map-viewport flex-1">{renderCanvas('connect')}{aiMessage&&<div className="ai-bubble"><span className="text-3xl">🤖</span><span>{aiMessage}</span></div>}</div>{renderShareMenu()}{pdfProgress&&<div className="pdf-overlay"><div className="pdf-spinner mb-6"></div><p className="text-blue-300 font-bold text-xl">{pdfProgress}</p></div>}</div>);
 
-            const generatePodcast = async () => {
-                setPodcastGenerating(true); setStage('podcast');
-                setPodcastLines([]); setPodcastIndex(-1); setPodcastPlaying(false);
-                podcastPlayingRef.current = false; podcastIndexRef.current = -1;
-                try {
-                    const lines = await AI.generatePodcast(mapData?.theme, mapData?.themeIcon, exploredNodes, connectionExplanations);
-                    if(lines && Array.isArray(lines) && lines.length > 0) {
-                        setPodcastLines(lines); DB.addXP(40);
-                    } else { alert("Errore generazione podcast. Riprova."); setStage('review'); }
-                } catch(e) { alert("Errore: " + e.message); setStage('review'); }
-                setPodcastGenerating(false);
-            };
-
-            const playPodcast = async () => {
-                if(podcastPlaying) { podcastPlayingRef.current = false; setPodcastPlaying(false); window.speechSynthesis.cancel(); return; }
-                podcastPlayingRef.current = true; setPodcastPlaying(true);
-                let startIdx = podcastIndexRef.current + 1;
-                if(startIdx >= podcastLines.length) { startIdx = 0; setPodcastIndex(-1); podcastIndexRef.current = -1; }
-
-                for(let i = startIdx; i < podcastLines.length; i++) {
-                    if(!podcastPlayingRef.current) break;
-                    const line = podcastLines[i];
-                    setPodcastIndex(i); podcastIndexRef.current = i;
-                    setTimeout(() => { const el = document.getElementById(`podcast-bubble-${i}`); if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
-                    await speakPodcastLine(line.text, line.speaker);
-                    if(!podcastPlayingRef.current) break;
-                }
-                podcastPlayingRef.current = false; setPodcastPlaying(false);
-            };
-
-            const addImage = (e) => {
-                const f = e.target.files[0]; if(!f) return;
-                const r = new FileReader(); r.onload = (evt) => setImages(p => [...p, evt.target.result]); r.readAsDataURL(f);
-            };
-
-            const start = async () => {
-                if(!images.length) return;
-                setStage('scanning');
-                try {
-                    const data = await AI.analyzeMap(images);
-                    setMapData(data);
-                    const cx = 1500, cy = 1500, radius = 420;
-                    const central = { id: 0, label: data.theme, icon: data.themeIcon || '📚', content: "Argomento Principale", x: cx-120, y: cy-120, w: 240, h: 240, isCentral: true };
-                    const sats = data.nodes.map((n, i) => {
-                        const angle = (i / data.nodes.length) * 2 * Math.PI - Math.PI/2;
-                        return { ...n, id: i+1, icon: n.icon || '📌', x: cx + radius * Math.cos(angle) - 100, y: cy + radius * Math.sin(angle) - 75, w: 200, h: 150, isCentral: false };
-                    });
-                    setNodes([central, ...sats]);
-                    setLines([]); setConnectionExplanations([]); setExploredNodes([]); setExploredOrder([]); setReviewRevealedCount(0);
-                    DB.addXP(50); setStage('explore');
-                } catch(e) { alert("Errore: " + e.message); setStage('upload'); }
-            };
-
-            // === DRAG & DROP HANDLERS ===
-            const onNodePointerDown = (e, node) => {
-                e.stopPropagation(); e.target.setPointerCapture(e.pointerId);
-                setDragNodeId(node.id);
-                dragRef.current = { startX: e.clientX, startY: e.clientY, initX: node.x, initY: node.y, hasMoved: false };
-            };
-
-            const onNodePointerMove = (e) => {
-                if(dragNodeId === null) return;
-                const dx = e.clientX - dragRef.current.startX;
-                const dy = e.clientY - dragRef.current.startY;
-                if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-                    dragRef.current.hasMoved = true;
-                    setNodes(prev => prev.map(n => n.id === dragNodeId ? { ...n, x: dragRef.current.initX + dx, y: dragRef.current.initY + dy } : n));
-                }
-            };
-
-            const onNodePointerUp = (e, node) => {
-                if(dragNodeId === null) return;
-                e.target.releasePointerCapture(e.pointerId);
-                const moved = dragRef.current.hasMoved;
-                setDragNodeId(null);
-                if (!moved) {
-                    if (stage === 'explore') handleExploreClick(node);
-                    else if (stage === 'connect') handleConnectClick(node);
-                }
-            };
-
-            const handleExploreClick = async (node) => {
-                if(node.isCentral) {
-                    speak(`Tema: ${cleanTextForSpeech(node.label)}. Scegli tu quale concetto esplorare per primo e trascina le schede!`);
-                    return;
-                }
-                
-                if(exploredOrder.includes(node.id)) {
-                    speak(cleanTextForSpeech(node.label) + ". " + cleanTextForSpeech(node.content));
-                    return;
-                }
-
-                const cleanLabel = cleanTextForSpeech(node.label);
-                const cleanContent = cleanTextForSpeech(node.content);
-                const newOrder = [...exploredOrder, node.id];
-                
-                setExploredOrder(newOrder);
-                setExploredNodes(prev => [...prev, { id: node.id, label: node.label, content: node.content, icon: node.icon }]);
-                DB.addXP(15);
-
-                if(newOrder.length >= totalSatellites) {
-                    window.speechSynthesis.cancel();
-                    await speakAndWait(cleanLabel + ". " + cleanContent);
-                    await speakAndWait("Complimenti! Hai esplorato tutto a modo tuo. Ora collega le idee avvicinando le schede!");
-                    setStage('connect');
-                } else {
-                    speak(cleanLabel + ". " + cleanContent);
-                }
-            };
-
-            const handleConnectClick = async (node) => {
-                if(node.isCentral) { speak("Tocca due concetti per collegarli tra loro!"); return; }
-                if(!selectedNode) { setSelectedNode(node); speak(cleanTextForSpeech(node.label)); return; }
-                if(selectedNode.id === node.id) { setSelectedNode(null); return; }
-
-                const exists = lines.some(l => (l.from===selectedNode.id && l.to===node.id) || (l.from===node.id && l.to===selectedNode.id));
-                if(!exists) {
-                    setLines(prev => [...prev, { from: selectedNode.id, to: node.id }]);
-                    DB.addXP(20);
-                    
-                    const label1 = cleanTextForSpeech(selectedNode.label);
-                    const label2 = cleanTextForSpeech(node.label);
-                    
-                    // CALCOLO DISTANZA EUCLIDEA PER LE PAROLE
-                    const dx = selectedNode.x - node.x;
-                    const dy = selectedNode.y - node.y;
-                    const distance = Math.sqrt(dx*dx + dy*dy);
-                    let wordLimit = Math.floor(25 - (distance / 60));
-                    wordLimit = Math.max(8, Math.min(25, wordLimit)); 
-                    
-                    window.speechSynthesis.cancel();
-                    await speakAndWait(`${label1},  e,  ${label2}`);
-                    setAiMessage("🤔 Cerco il collegamento...");
-                    
-                    const explanation = await AI.explainConnection(label1, label2, wordLimit);
-                    if(explanation && typeof explanation === 'string') {
-                        setConnectionExplanations(prev => [...prev, { from: selectedNode.label, to: node.label, fromIcon: selectedNode.icon||'📌', toIcon: node.icon||'📌', explanation }]);
-                        speak(explanation);
-                    } else { speak(`${selectedNode.label} e ${node.label} sono collegati!`); }
-                } else { speak("Sono già collegati!"); }
-                setSelectedNode(null);
-            };
-
-            const handleReviewClick = (index) => {
-                if(index !== reviewRevealedCount) return;
-                const node = exploredNodes[index];
-                if(!node) return;
-                setReviewRevealedCount(index + 1);
-                speak(cleanTextForSpeech(node.label) + ". " + cleanTextForSpeech(node.content));
-                DB.addXP(5);
-            };
-
-            const reset = () => {
-                if(confirm("Creare nuova mappa?")) {
-                    window.speechSynthesis.cancel(); podcastPlayingRef.current = false;
-                    DB.clear(); setImages([]); setMapData(null); setNodes([]); setLines([]);
-                    setConnectionExplanations([]); setExploredNodes([]); setExploredOrder([]); setReviewRevealedCount(0); setSelectedNode(null);
-                    setPodcastLines([]); setPodcastIndex(-1); setPodcastPlaying(false); setPodcastGenerating(false); setStage('upload');
-                }
-            };
-
-            const saveAsPDF = async () => {
-                setShowShareMenu(false); setPdfProgress('Preparo il PDF...');
-                try {
-                    const doc = await generatePDF(mapData, nodes, exploredNodes, connectionExplanations, (msg) => setPdfProgress(msg));
-                    const cleanTheme = mapData?.theme?.replace(/[^\w\s]/g,'')?.replace(/\s+/g,'_')?.substring(0,30)||'mappa';
-                    doc.save(`${cleanTheme}_${new Date().toISOString().slice(0,10)}.pdf`);
-                    setPdfProgress(null); DB.addXP(30);
-                } catch(e) { console.error('Errore PDF:',e); alert('Errore PDF: '+e.message); setPdfProgress(null); }
-            };
-
-            const getSummaryText = () => {
-                if(!mapData) return '';
-                let t = `MAPPA MENTALE: ${mapData.theme}\n\nCONCETTI:\n`;
-                exploredNodes.forEach((n,i)=>{t+=`${i+1}. ${n.icon} ${n.label}: ${n.content}\n`;});
-                if(connectionExplanations.length){
-                    t+='\nCOLLEGAMENTI:\n';
-                    connectionExplanations.forEach((c,i)=>{t+=`${i+1}. ${c.from} <-> ${c.to}: ${c.explanation}\n`;});
-                }
-                t+='\nCreato con EduGamer';
-                return t;
-            };
-
-            const renderShareMenu = () => {
-                if(!showShareMenu) return null;
-                return (
-                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={()=>setShowShareMenu(false)}>
-                        <div className="bg-slate-800 rounded-2xl p-4 w-full max-w-sm border-2 border-slate-600" onClick={e=>e.stopPropagation()}>
-                            <h3 className="text-xl font-bold text-center text-white mb-4">📤 Esporta Mappa</h3>
-                            <div className="flex flex-col gap-3">
-                                <button onClick={saveAsPDF} className="share-btn bg-red-600 text-white text-lg">📄 Scarica PDF</button>
-                                <button onClick={()=>{window.open(`https://wa.me/?text=${encodeURIComponent(getSummaryText())}`,'_blank');setShowShareMenu(false);}} className="share-btn bg-green-600 text-white">💬 WhatsApp</button>
-                                <button onClick={()=>setShowShareMenu(false)} className="share-btn bg-slate-600 text-white mt-2">✕ Chiudi</button>
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
-            const renderCanvas = (mode) => (
-                <div className="scroll-area" ref={scrollRef}>
-                    <div className="map-canvas">
-                        <svg className="absolute inset-0 pointer-events-none z-10" style={{width:'3000px',height:'3000px'}}>
-                            {lines.map((line,i)=>{
-                                const n1=nodes.find(n=>n.id===line.from),n2=nodes.find(n=>n.id===line.to);
-                                if(!n1||!n2) return null;
-                                return <line key={i} x1={n1.x+n1.w/2} y1={n1.y+n1.h/2} x2={n2.x+n2.w/2} y2={n2.y+n2.h/2} stroke="#4ade80" strokeWidth="8" strokeLinecap="round" className="neon-line"/>;
-                            })}
-                        </svg>
-
-                        {nodes.map(node => {
-                            const isSel = selectedNode?.id === node.id;
-                            const isExplored = exploredOrder.includes(node.id);
-                            const isConnected = lines.some(l=>l.from===node.id||l.to===node.id);
-
-                            let nodeClass = `node-base ${node.isCentral ? 'node-central' : 'node-satellite'}`;
-                            if(mode === 'explore') {
-                                if(isExplored && !node.isCentral) nodeClass += ' node-explored';
-                            }
-                            if(mode === 'connect') {
-                                if(isSel) nodeClass += ' node-selected';
-                                if(isConnected && !node.isCentral) nodeClass += ' node-connected';
-                            }
-
-                            const orderIndex = exploredOrder.indexOf(node.id);
-
-                            return (
-                                <div key={node.id} className={nodeClass}
-                                    style={{left:node.x, top:node.y, width:node.w, height:node.h}}
-                                    onPointerDown={(e) => onNodePointerDown(e, node)}
-                                    onPointerMove={onNodePointerMove}
-                                    onPointerUp={(e) => onNodePointerUp(e, node)}
-                                    onPointerCancel={(e) => onNodePointerUp(e, node)}
-                                >
-                                    {!node.isCentral && orderIndex >= 0 && (
-                                        <div style={{
-                                            position:'absolute', top: -8, right: -8, width: 28, height: 28, borderRadius: '50%',
-                                            background: '#22d3ee', color: '#0a0e17', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            fontWeight: 'bold', fontSize: '0.85rem', zIndex: 60, border: '2px solid #0a0e17'
-                                        }}>{orderIndex + 1}</div>
-                                    )}
-                                    <div className="node-icon">{node.icon||'📌'}</div>
-                                    <div className="font-bold text-yellow-300 leading-tight text-sm">{node.label}</div>
-                                    {(!node.isCentral && (isExplored || mode==='connect')) && (
-                                        <div className="text-xs text-gray-200 line-clamp-2 leading-snug mt-1 font-medium">{node.content}</div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            );
-
-            if(stage === 'upload') return (
-                <div className="h-full flex flex-col items-center justify-center p-6 gap-6">
-                    <h1 className="text-4xl font-black text-green-400 tracking-tighter">LAVAGNA MAGICA ✨</h1>
-                    <div className="border-2 border-dashed border-slate-600 p-8 rounded-3xl flex flex-col items-center gap-6 bg-slate-800/50 w-full max-w-2xl shadow-2xl">
-                        <div className="flex gap-2 overflow-auto max-w-full p-2 min-h-[90px]">
-                            {images.length===0 ? <span className="text-slate-500 m-auto">Nessuna foto ancora...</span> : 
-                            images.map((src,i)=><img key={i} src={src} className="h-24 rounded-xl border-2 border-slate-500 shadow-lg"/>)}
-                        </div>
-                        <label className="btn-upload-big w-full py-6 rounded-2xl font-bold text-2xl cursor-pointer text-white flex items-center justify-center gap-3 shadow-xl">
-                            <input type="file" onChange={addImage} className="hidden" accept="image/*"/> 📷 SCATTA FOTO
-                        </label>
-                        {images.length > 0 && (
-                            <button onClick={start} className="w-full bg-green-600 hover:bg-green-500 py-5 rounded-2xl font-bold text-white text-xl animate-pulse shadow-xl transform active:scale-95">🚀 CREA LA MAPPA!</button>
-                        )}
-                    </div>
-                    <a href="index.html" className="text-slate-400 bg-slate-800 px-6 py-3 rounded-xl font-bold">🏠 MENU</a>
-                </div>
-            );
-
-            if(stage === 'scanning') return (
-                <div className="h-full flex flex-col items-center justify-center gap-6">
-                    <div className="w-24 h-24 border-8 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-                    <h2 className="text-green-400 font-bold text-3xl animate-pulse">STO LEGGENDO... 🧠</h2>
-                </div>
-            );
-
-            if(stage === 'explore') return (
-                <div className="h-screen w-screen flex flex-col overflow-hidden" style={{position:'fixed',top:0,left:0}}>
-                    <div className="flex-shrink-0 p-3 flex gap-3 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg">
-                        <a href="index.html" className="bg-slate-700 px-4 py-2 rounded-xl text-white font-bold text-xl">🏠</a>
-                        <div className="flex-1 mx-2">
-                            <div className="text-center text-cyan-400 font-bold text-sm mb-1">
-                                👆 SCOPRI ED ESPLORA I CONCETTI ({exploredOrder.length}/{totalSatellites})
-                            </div>
-                            <div className="progress-bar-bg">
-                                <div className="progress-bar-fill" style={{width: `${totalSatellites>0 ? (exploredOrder.length/totalSatellites)*100 : 0}%`}}></div>
-                            </div>
-                        </div>
-                        <button onClick={centerMap} className="bg-blue-600 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-blue-400">🎯</button>
-                        <button onClick={reset} className="bg-red-600 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-red-400">🔄</button>
-                    </div>
-                    <div className="map-viewport flex-1">
-                        {renderCanvas('explore')}
-                        {aiMessage && <div className="ai-bubble"><span className="text-3xl">🤖</span><span>{aiMessage}</span></div>}
-                    </div>
-                </div>
-            );
-
-            if(stage === 'connect') return (
-                <div className="h-screen w-screen flex flex-col overflow-hidden" style={{position:'fixed',top:0,left:0}}>
-                    <div className="flex-shrink-0 p-3 flex gap-3 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg">
-                        <a href="index.html" className="bg-slate-700 px-4 py-2 rounded-xl text-white font-bold text-xl">🏠</a>
-                        <div className="flex-1 text-center">
-                            <div className="text-yellow-400 font-bold text-sm animate-pulse">
-                                {selectedNode ? "👇 TOCCA UN ALTRO PER COLLEGARLI!" : "🔗 COLLEGA I CONCETTI VICINI"}
-                            </div>
-                            {connectionExplanations.length > 0 && (
-                                <div className="text-cyan-400 text-xs mt-1">
-                                    {connectionExplanations.length} collegament{connectionExplanations.length===1?'o':'i'}
-                                </div>
-                            )}
-                        </div>
-                        <button onClick={centerMap} className="bg-blue-600 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-blue-400">🎯</button>
-                        <button onClick={()=>{setReviewRevealedCount(0);setStage('review');}} 
-                            className="bg-purple-600 px-4 py-3 rounded-xl text-white font-bold shadow-lg border-2 border-purple-400 text-sm"
-                            style={{animation: connectionExplanations.length >= 2 ? 'pulse-green 2s infinite' : 'none'}}>
-                            🧠 RIPASSA
-                        </button>
-                        <button onClick={reset} className="bg-red-600 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-red-400">🔄</button>
-                    </div>
-                    <div className="map-viewport flex-1">
-                        {renderCanvas('connect')}
-                        {aiMessage && <div className="ai-bubble"><span className="text-3xl">🤖</span><span>{aiMessage}</span></div>}
-                    </div>
-                    {renderShareMenu()}
-                    {pdfProgress && <div className="pdf-overlay"><div className="pdf-spinner mb-6"></div><p className="text-blue-300 font-bold text-xl">{pdfProgress}</p></div>}
-                </div>
-            );
-
-            if(stage === 'review') return (
-                <div className="h-screen w-screen flex flex-col overflow-hidden" style={{position:'fixed',top:0,left:0,background:'#0a0e17'}}>
+            // === REVIEW (FREE ORDER) ===
+            if(stage==='review') return(
+                <div className="h-screen w-screen flex flex-col overflow-hidden" style={{position:'fixed',top:0,left:0,background:'#0a0e17'}} onPointerMove={onRPM} onPointerUp={()=>setReviewDragIdx(null)}>
                     <div className="flex-shrink-0 p-3 flex gap-3 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg">
                         <button onClick={()=>setStage('connect')} className="bg-slate-700 px-4 py-2 rounded-xl text-white font-bold text-lg">← Mappa</button>
-                        <div className="flex-1 mx-2">
-                            <div className="text-center text-cyan-400 font-bold text-sm mb-1">
-                                {allRevealed ? "🎉 RIPASSO COMPLETATO!" : `🧠 RIPASSO: ${reviewRevealedCount}/${exploredNodes.length}`}
-                            </div>
-                            <div className="progress-bar-bg">
-                                <div className="progress-bar-fill" style={{width: `${exploredNodes.length>0 ? (reviewRevealedCount/exploredNodes.length)*100 : 0}%`}}></div>
-                            </div>
-                        </div>
+                        <div className="flex-1 mx-2"><div className="text-center text-cyan-400 font-bold text-sm mb-1">{allRevealed?"🎉 RIPASSO COMPLETATO!":`🧠 RIPASSO LIBERO: ${reviewRevealed.length}/${reviewOrder.length}`}</div><div className="progress-bar-bg"><div className="progress-bar-fill" style={{width:`${reviewOrder.length>0?(reviewRevealed.length/reviewOrder.length)*100:0}%`}}></div></div></div>
                         <button onClick={reset} className="bg-red-600 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-red-400">🔄</button>
                     </div>
                     <div className="review-container">
-                        <div className="text-center mb-6 mt-2">
-                            <span className="text-5xl">{mapData?.themeIcon || '📚'}</span>
+                        <div className="text-center mb-4 mt-2">
+                            <span className="text-5xl">{mapData?.themeIcon||'📚'}</span>
                             <h2 className="text-xl font-bold text-yellow-300 mt-3">{mapData?.theme}</h2>
-                            <p className="text-slate-400 text-sm mt-1">Tocca le icone una alla volta, dall'alto</p>
+                            <p className="text-slate-400 text-sm mt-1">{allRevealed?"Ascolta il podcast o esporta il lavoro.":"Trascina le icone per riordinarle. Tocca per scoprire."}</p>
                         </div>
-                        {exploredNodes.map((node, i) => {
-                            const isRevealed = i < reviewRevealedCount;
-                            const isActive = i === reviewRevealedCount;
-                            const isLocked = i > reviewRevealedCount;
-                            return (
-                                <div key={node.id} className={`review-icon-row ${isRevealed && i === reviewRevealedCount - 1 ? 'just-revealed' : ''}`}>
-                                    {i > 0 && isRevealed && <div className="review-connector"></div>}
-                                    <div className={`review-icon-btn ${isActive?'active':''} ${isRevealed?'revealed':''} ${isLocked?'locked':''}`} onClick={() => handleReviewClick(i)}>
-                                        {node.icon || '📌'}
-                                    </div>
-                                    {isRevealed && (
-                                        <div className="review-text-box">
-                                            <div className="text-cyan-300 font-bold text-base">{node.label}</div>
-                                            <div className="text-gray-300 text-sm mt-1">{node.content}</div>
-                                        </div>
-                                    )}
-                                    {isActive && !isRevealed && (<div className="flex-1 text-yellow-400 text-sm font-bold animate-pulse pl-2">👆 Tocca per scoprire...</div>)}
+                        {reviewOrder.map((node,i)=>{
+                            const isRev=reviewRevealed.includes(node.id);
+                            const isDrag=reviewDragIdx===i;
+                            const prevRev=i>0&&isRev&&reviewRevealed.includes(reviewOrder[i-1]?.id);
+                            return(
+                                <div key={node.id} className={`review-icon-row ${isDrag?'dragging':''}`}>
+                                    {prevRev&&<div className="review-connector"></div>}
+                                    <div className={`review-icon-btn ${isRev?'revealed':'unrevealed'}`}
+                                        onPointerDown={e=>onRPD(e,i)} onPointerUp={e=>onRPU(e,node.id)}
+                                        style={{cursor:'grab'}}>{node.icon||'📌'}</div>
+                                    {isRev?(<div className="review-text-box"><div className="text-cyan-300 font-bold text-base">{node.label}</div><div className="text-gray-300 text-sm mt-1">{node.content}</div></div>):(<div className="flex-1 text-sm pl-2 flex items-center gap-2"><span className="text-yellow-400/60">👆</span><span style={{color:'#475569'}}>tocca per scoprire</span></div>)}
                                 </div>
                             );
                         })}
-                        {allRevealed && (
+                        {allRevealed&&(
                             <div className="mt-10 flex flex-col gap-4 items-center pb-8">
                                 <div className="text-center text-green-400 font-bold text-xl animate-pulse">✅ Ripasso completato!</div>
-                                <button onClick={generatePodcast} className="bg-purple-600 text-white font-bold px-10 py-4 rounded-2xl text-lg shadow-xl transform active:scale-95 border-2 border-purple-400" style={{animation: 'micPulse 2s infinite'}}>
-                                    🎙️ ASCOLTA IL PODCAST
-                                </button>
-                                <button onClick={saveAsPDF} className="bg-red-600 text-white font-bold px-10 py-4 rounded-2xl text-lg shadow-xl transform active:scale-95 border-2 border-red-400">
-                                    📄 Scarica PDF
-                                </button>
-                                <button onClick={()=>setShowShareMenu(true)} className="bg-green-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl transform active:scale-95 border-2 border-green-400">
-                                    📤 Condividi
-                                </button>
+                                <button onClick={generatePodcast} className="bg-purple-600 text-white font-bold px-10 py-4 rounded-2xl text-lg shadow-xl active:scale-95 border-2 border-purple-400" style={{animation:'micPulse 2s infinite'}}>🎙️ ASCOLTA IL PODCAST</button>
+                                <button onClick={saveAsPDF} className="bg-red-600 text-white font-bold px-10 py-4 rounded-2xl text-lg shadow-xl active:scale-95 border-2 border-red-400">📄 Scarica PDF</button>
+                                <button onClick={()=>setShowShareMenu(true)} className="bg-green-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl active:scale-95 border-2 border-green-400">📤 Condividi</button>
                             </div>
                         )}
                     </div>
-                    {aiMessage && <div className="ai-bubble"><span className="text-3xl">🤖</span><span>{aiMessage}</span></div>}
-                    {renderShareMenu()}
-                    {pdfProgress && <div className="pdf-overlay"><div className="pdf-spinner mb-6"></div><p className="text-blue-300 font-bold text-xl">{pdfProgress}</p></div>}
+                    {aiMessage&&<div className="ai-bubble"><span className="text-3xl">🤖</span><span>{aiMessage}</span></div>}
+                    {renderShareMenu()}{pdfProgress&&<div className="pdf-overlay"><div className="pdf-spinner mb-6"></div><p className="text-blue-300 font-bold text-xl">{pdfProgress}</p></div>}
                 </div>
             );
 
-            if(stage === 'podcast') return (
+            // === PODCAST ===
+            if(stage==='podcast') return(
                 <div className="h-screen w-screen flex flex-col overflow-hidden" style={{position:'fixed',top:0,left:0,background:'#0a0e17'}}>
                     <div className="flex-shrink-0 p-3 flex gap-3 border-b border-slate-700 bg-slate-800 items-center z-50 shadow-lg">
                         <button onClick={()=>{window.speechSynthesis.cancel();podcastPlayingRef.current=false;setPodcastPlaying(false);setStage('review');}} className="bg-slate-700 px-4 py-2 rounded-xl text-white font-bold text-lg">← Ripasso</button>
-                        <div className="flex-1 text-center">
-                            <div className="text-purple-400 font-bold text-sm">🎙️ PODCAST DIDATTICO</div>
-                            {podcastLines.length > 0 && (<div className="text-slate-400 text-xs mt-1">{podcastIndex >= 0 ? `${podcastIndex + 1}/${podcastLines.length}` : `${podcastLines.length} battute`}</div>)}
-                        </div>
+                        <div className="flex-1 text-center"><div className="text-purple-400 font-bold text-sm">🎙️ PODCAST DIDATTICO</div>{podcastLines.length>0&&(<div className="text-slate-400 text-xs mt-1">{podcastIndex>=0?`${podcastIndex+1}/${podcastLines.length}`:`${podcastLines.length} battute`}</div>)}</div>
                         <button onClick={reset} className="bg-red-600 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-red-400">🔄</button>
                         <button onClick={()=>setShowVoiceSettings(!showVoiceSettings)} className="bg-slate-600 px-3 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-slate-400 text-lg">🔊</button>
                     </div>
-
-                    {showVoiceSettings && (
-                        <div className="flex-shrink-0 bg-slate-900 border-b border-slate-600 p-3">
-                            <div className="text-slate-300 text-xs font-bold mb-2 text-center">SELEZIONA LE VOCI</div>
-                            <div className="flex gap-3 items-center justify-center flex-wrap">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-blue-400 text-sm font-bold">🎓Prof:</span>
-                                    <select value={profVoiceName} onChange={e => setProfVoiceName(e.target.value)} className="bg-slate-700 text-white text-sm rounded-lg px-2 py-1 border border-slate-500 max-w-[180px]">
-                                        {availableVoices.map(v => (<option key={'p-'+v.name} value={v.name}>{v.name.replace('Microsoft ', '').replace(' Online (Natural) - Italian (Italy)', '').replace('Google ', 'G: ')}</option>))}
-                                    </select>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-emerald-400 text-sm font-bold">💡Stud:</span>
-                                    <select value={studentVoiceName} onChange={e => setStudentVoiceName(e.target.value)} className="bg-slate-700 text-white text-sm rounded-lg px-2 py-1 border border-slate-500 max-w-[180px]">
-                                        {availableVoices.map(v => (<option key={'s-'+v.name} value={v.name}>{v.name.replace('Microsoft ', '').replace(' Online (Natural) - Italian (Italy)', '').replace('Google ', 'G: ')}</option>))}
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
+                    {showVoiceSettings&&(<div className="flex-shrink-0 bg-slate-900 border-b border-slate-600 p-3"><div className="text-slate-300 text-xs font-bold mb-2 text-center">SELEZIONA LE VOCI</div><div className="flex gap-3 items-center justify-center flex-wrap"><div className="flex items-center gap-2"><span className="text-blue-400 text-sm font-bold">🎓Prof:</span><select value={profVoiceName} onChange={e=>setProfVoiceName(e.target.value)} className="bg-slate-700 text-white text-sm rounded-lg px-2 py-1 border border-slate-500 max-w-[180px]">{availableVoices.map(v=>(<option key={'p-'+v.name} value={v.name}>{v.name.replace('Microsoft ','').replace(' Online (Natural) - Italian (Italy)','').replace('Google ','G: ')}</option>))}</select></div><div className="flex items-center gap-2"><span className="text-emerald-400 text-sm font-bold">💡Stud:</span><select value={studentVoiceName} onChange={e=>setStudentVoiceName(e.target.value)} className="bg-slate-700 text-white text-sm rounded-lg px-2 py-1 border border-slate-500 max-w-[180px]">{availableVoices.map(v=>(<option key={'s-'+v.name} value={v.name}>{v.name.replace('Microsoft ','').replace(' Online (Natural) - Italian (Italy)','').replace('Google ','G: ')}</option>))}</select></div></div><div className="text-slate-500 text-xs text-center mt-2">{availableVoices.length} voci italiane{availableVoices.length<=1&&<span className="text-yellow-500 block mt-1">⚠️ Solo 1 voce. {/Android/i.test(navigator.userAgent)?"Android: Impostazioni → Lingua → Sintesi vocale":(/iPhone|iPad/i.test(navigator.userAgent)?"iOS: Impostazioni → Accessibilità → Voci":"Windows: Impostazioni → Ora e lingua → Voce")}</span>}</div></div>)}
+                    {podcastGenerating?(<div className="podcast-generating"><div className="w-20 h-20 rounded-full animate-spin" style={{borderWidth:'6px',borderStyle:'solid',borderColor:'#a855f7',borderTopColor:'transparent'}}></div><div className="text-purple-400 font-bold text-xl animate-pulse">Creo il podcast... 🎙️</div></div>):(
+                        <div className="podcast-container"><div className="text-center mb-6 mt-2"><span className="text-4xl">{mapData?.themeIcon||'📚'}</span><h2 className="text-lg font-bold text-purple-300 mt-2">{mapData?.theme}</h2></div>{podcastLines.map((line,i)=>{const isVis=podcastIndex===-1||i<=podcastIndex;const isSpk=i===podcastIndex&&podcastPlaying;if(!isVis&&podcastIndex>=0)return null;const np=podcastIndex===-1;return(<div key={i} id={`pb-${i}`} className={`podcast-bubble ${line.speaker} ${isSpk?'speaking':''}`} style={{opacity:np?0.5:(i<=podcastIndex?1:0.3),transition:'opacity 0.3s'}}><div className="podcast-speaker">{line.speaker==='prof'?'🎓 Prof':'💡 Studente'}</div><div>{line.text}</div></div>);})}{podcastIndex>=podcastLines.length-1&&!podcastPlaying&&podcastLines.length>0&&(<div className="text-center mt-6 mb-4"><div className="text-green-400 font-bold text-lg">✅ Podcast completato!</div></div>)}</div>
                     )}
-
-                    {podcastGenerating ? (
-                        <div className="podcast-generating">
-                            <div className="w-20 h-20 border-6 border-purple-500 border-t-transparent rounded-full animate-spin" style={{borderWidth:'6px'}}></div>
-                            <div className="text-purple-400 font-bold text-xl animate-pulse">Creo il podcast... 🎙️</div>
-                        </div>
-                    ) : (
-                        <div className="podcast-container">
-                            <div className="text-center mb-6 mt-2">
-                                <span className="text-4xl">{mapData?.themeIcon || '📚'}</span>
-                                <h2 className="text-lg font-bold text-purple-300 mt-2">{mapData?.theme}</h2>
-                            </div>
-                            {podcastLines.map((line, i) => {
-                                const isVisible = podcastIndex === -1 || i <= podcastIndex;
-                                const isSpeaking = i === podcastIndex && podcastPlaying;
-                                if(!isVisible && podcastIndex >= 0) return null;
-                                const neverPlayed = podcastIndex === -1;
-                                return (
-                                    <div key={i} id={`podcast-bubble-${i}`} className={`podcast-bubble ${line.speaker} ${isSpeaking ? 'speaking' : ''}`} style={{ opacity: neverPlayed ? 0.5 : (i <= podcastIndex ? 1 : 0.3), transition: 'opacity 0.3s' }}>
-                                        <div className="podcast-speaker">{line.speaker === 'prof' ? '🎓 Prof' : '💡 Studente'}</div>
-                                        <div>{line.text}</div>
-                                    </div>
-                                );
-                            })}
-                            {podcastIndex >= podcastLines.length - 1 && !podcastPlaying && podcastLines.length > 0 && (
-                                <div className="text-center mt-6 mb-4"><div className="text-green-400 font-bold text-lg">✅ Podcast completato!</div></div>
-                            )}
-                        </div>
-                    )}
-
-                    {!podcastGenerating && podcastLines.length > 0 && (
-                        <div className="podcast-controls">
-                            <div className="podcast-progress-text">{podcastIndex >= 0 ? `${podcastIndex + 1}` : '0'} / {podcastLines.length}</div>
-                            <div className={`podcast-play-btn ${podcastPlaying ? 'bg-yellow-500 border-yellow-400 text-black' : 'bg-purple-600 border-purple-400 text-white'}`} onClick={playPodcast}>{podcastPlaying ? '⏸' : '▶'}</div>
-                            <button onClick={()=>{window.speechSynthesis.cancel();podcastPlayingRef.current=false;setPodcastPlaying(false);setPodcastIndex(-1);podcastIndexRef.current=-1;}} className="text-slate-400 font-bold text-sm bg-slate-700 px-4 py-2 rounded-xl">↩ Riavvolgi</button>
-                        </div>
-                    )}
+                    {!podcastGenerating&&podcastLines.length>0&&(<div className="podcast-controls"><div className="podcast-progress-text">{podcastIndex>=0?`${podcastIndex+1}`:'0'} / {podcastLines.length}</div><div className={`podcast-play-btn ${podcastPlaying?'bg-yellow-500 border-yellow-400 text-black':'bg-purple-600 border-purple-400 text-white'}`} onClick={playPodcast}>{podcastPlaying?'⏸':'▶'}</div><button onClick={()=>{window.speechSynthesis.cancel();podcastPlayingRef.current=false;setPodcastPlaying(false);setPodcastIndex(-1);podcastIndexRef.current=-1;}} className="text-slate-400 font-bold text-sm bg-slate-700 px-4 py-2 rounded-xl">↩ Riavvolgi</button></div>)}
                 </div>
             );
             return null;
         };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        const root=ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App/>);
     </script>
     <script src="game-system.js"></script>
 </body>
