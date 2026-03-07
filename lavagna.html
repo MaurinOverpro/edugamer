@@ -123,7 +123,86 @@
             const getBestItVoice=()=>{ const v=window.speechSynthesis.getVoices(),it=v.filter(x=>x.lang.startsWith('it')); return it.find(x=>x.name.includes('Natural')||x.name.includes('Neural'))||it.find(x=>x.name.includes('Google'))||it[0]||null; };
             const speak=(text)=>{ window.speechSynthesis.cancel(); setAiMessage(text); const c=cleanTextForSpeech(text),u=new SpeechSynthesisUtterance(c); u.lang='it-IT';u.rate=0.95; const v=getBestItVoice();if(v)u.voice=v; u.onend=()=>setTimeout(()=>setAiMessage(null),2500); window.speechSynthesis.speak(u); };
             const speakAndWait=(text)=>new Promise(resolve=>{ const w=()=>{ if(window.speechSynthesis.speaking){setTimeout(w,100);return;} setAiMessage(text); const c=cleanTextForSpeech(text); if(!c){resolve();return;} const u=new SpeechSynthesisUtterance(c); u.lang='it-IT';u.rate=0.95; const v=getBestItVoice();if(v)u.voice=v; let r=false; const d=()=>{if(r)return;r=true;setTimeout(()=>setAiMessage(null),1500);setTimeout(resolve,500);}; u.onend=d;u.onerror=d; setTimeout(d,Math.max(4000,c.length*80)); window.speechSynthesis.speak(u); }; w(); });
-            const speakPodcastLine=(text,speaker)=>new Promise(resolve=>{ const w=()=>{ if(window.speechSynthesis.speaking){setTimeout(w,100);return;} const voices=window.speechSynthesis.getVoices(),c=cleanTextForSpeech(text),u=new SpeechSynthesisUtterance(c); u.lang='it-IT'; const tn=speaker==='prof'?profVoiceName:studentVoiceName,on=speaker==='prof'?studentVoiceName:profVoiceName,same=!tn||!on||tn===on; if(tn){const f=voices.find(v=>v.name===tn);if(f)u.voice=f;} if(same){u.pitch=speaker==='prof'?0.65:1.5;u.rate=speaker==='prof'?0.85:1.02;}else{u.pitch=speaker==='prof'?0.9:1.1;u.rate=speaker==='prof'?0.92:0.98;} setPodcastCharIdx(0); u.onboundary=(ev)=>{if(ev.name==='word') setPodcastCharIdx(ev.charIndex);}; let r=false; const d=()=>{if(r)return;r=true;setPodcastCharIdx(-1);setTimeout(resolve,350);}; u.onend=d;u.onerror=d; setTimeout(d,Math.max(3000,c.length*80)); window.speechSynthesis.speak(u); }; w(); });
+            const speakPodcastLine=(text,speaker)=>new Promise(resolve=>{
+                const w=()=>{
+                    if(window.speechSynthesis.speaking){setTimeout(w,100);return;}
+                    const voices=window.speechSynthesis.getVoices();
+                    const cleanText=cleanTextForSpeech(text);
+                    const tn=speaker==='prof'?profVoiceName:studentVoiceName;
+                    const on=speaker==='prof'?studentVoiceName:profVoiceName;
+                    const sameVoice=!tn||!on||tn===on;
+
+                    // Build the spoken text: add narrator label if same voice (Android)
+                    let spokenText=cleanText;
+                    if(sameVoice){
+                        const label=speaker==='prof'?'Professore.':'Studente.';
+                        spokenText=label+' '+cleanText;
+                    }
+
+                    const u=new SpeechSynthesisUtterance(spokenText);
+                    u.lang='it-IT';
+
+                    if(tn){const f=voices.find(v=>v.name===tn);if(f)u.voice=f;}
+
+                    if(sameVoice){
+                        // Android: NO pitch warping. Only subtle rate difference.
+                        u.pitch=1.0;
+                        u.rate=speaker==='prof'?0.88:0.95;
+                    }else{
+                        // Windows/iOS: two different voices, gentle tuning
+                        u.pitch=speaker==='prof'?0.9:1.1;
+                        u.rate=speaker==='prof'?0.92:0.98;
+                    }
+
+                    // KARAOKE: try onboundary, fallback to timer
+                    let boundaryFired=false;
+                    const totalChars=cleanText.length;
+                    // Estimate speech duration: ~75ms per char at rate 0.9
+                    const estimatedMs=Math.max(2000, totalChars*(75/u.rate));
+                    let timerInterval=null;
+                    let startTime=0;
+
+                    // Timer-based fallback for karaoke (Android)
+                    const startTimerFallback=()=>{
+                        startTime=Date.now();
+                        // If sameVoice, offset for the narrator label duration
+                        const labelOffset=sameVoice?(speaker==='prof'?'Professore. ':'Studente. ').length*75/u.rate:0;
+                        timerInterval=setInterval(()=>{
+                            if(boundaryFired){clearInterval(timerInterval);return;}
+                            const elapsed=Date.now()-startTime-labelOffset;
+                            if(elapsed<0){setPodcastCharIdx(0);return;}
+                            const progress=Math.min(elapsed/estimatedMs,1);
+                            const charPos=Math.floor(progress*totalChars);
+                            setPodcastCharIdx(charPos);
+                        },120);
+                    };
+
+                    setPodcastCharIdx(0);
+                    u.onboundary=(ev)=>{
+                        if(ev.name==='word'){
+                            boundaryFired=true;
+                            if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
+                            // Offset charIndex by narrator label if present
+                            const labelLen=sameVoice?(speaker==='prof'?'Professore. ':'Studente. ').length:0;
+                            const adjusted=ev.charIndex-labelLen;
+                            if(adjusted>=0) setPodcastCharIdx(adjusted);
+                        }
+                    };
+
+                    let resolved=false;
+                    const done=()=>{
+                        if(resolved)return;resolved=true;
+                        if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
+                        setPodcastCharIdx(-1);
+                        // Longer pause between speakers when same voice
+                        setTimeout(resolve,sameVoice?600:350);
+                    };
+                    u.onend=done;u.onerror=done;
+                    u.onstart=()=>{startTimerFallback();};
+                    setTimeout(done,Math.max(3000,spokenText.length*85));
+                    window.speechSynthesis.speak(u);
+                };w();
+            });
 
             const generatePodcast=async()=>{ setPodcastGenerating(true);setStage('podcast');setPodcastLines([]);setPodcastIndex(-1);setPodcastPlaying(false);setPodcastCharIdx(-1);podcastPlayingRef.current=false;podcastIndexRef.current=-1; try{const l=await AI.generatePodcast(mapData?.theme,mapData?.themeIcon,exploredNodes,connectionExplanations);if(l&&Array.isArray(l)&&l.length>0){setPodcastLines(l);DB.addXP(40);}else{alert("Errore podcast.");setStage('review');}}catch(e){alert("Errore: "+e.message);setStage('review');}setPodcastGenerating(false);};
             const playPodcast=async()=>{ if(podcastPlaying){podcastPlayingRef.current=false;setPodcastPlaying(false);setPodcastCharIdx(-1);window.speechSynthesis.cancel();return;} podcastPlayingRef.current=true;setPodcastPlaying(true); let si=podcastIndexRef.current+1; if(si>=podcastLines.length){si=0;setPodcastIndex(-1);podcastIndexRef.current=-1;} for(let i=si;i<podcastLines.length;i++){if(!podcastPlayingRef.current)break;setPodcastIndex(i);podcastIndexRef.current=i;setTimeout(()=>{const el=document.getElementById(`pb-${i}`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},100);await speakPodcastLine(podcastLines[i].text,podcastLines[i].speaker);if(!podcastPlayingRef.current)break;} podcastPlayingRef.current=false;setPodcastPlaying(false);};
@@ -210,7 +289,7 @@
                         <button onClick={reset} className="bg-red-600 px-4 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-red-400">🔄</button>
                         <button onClick={()=>setShowVoiceSettings(!showVoiceSettings)} className="bg-slate-600 px-3 py-2 rounded-xl text-white font-bold shadow-lg border-2 border-slate-400 text-lg">🔊</button>
                     </div>
-                    {showVoiceSettings&&(<div className="flex-shrink-0 bg-slate-900 border-b border-slate-600 p-3"><div className="text-slate-300 text-xs font-bold mb-2 text-center">SELEZIONA LE VOCI</div><div className="flex gap-3 items-center justify-center flex-wrap"><div className="flex items-center gap-2"><span className="text-blue-400 text-sm font-bold">🎓Prof:</span><select value={profVoiceName} onChange={e=>setProfVoiceName(e.target.value)} className="bg-slate-700 text-white text-sm rounded-lg px-2 py-1 border border-slate-500 max-w-[180px]">{availableVoices.map(v=>(<option key={'p-'+v.name} value={v.name}>{v.name.replace('Microsoft ','').replace(' Online (Natural) - Italian (Italy)','').replace('Google ','G: ')}</option>))}</select></div><div className="flex items-center gap-2"><span className="text-emerald-400 text-sm font-bold">💡Stud:</span><select value={studentVoiceName} onChange={e=>setStudentVoiceName(e.target.value)} className="bg-slate-700 text-white text-sm rounded-lg px-2 py-1 border border-slate-500 max-w-[180px]">{availableVoices.map(v=>(<option key={'s-'+v.name} value={v.name}>{v.name.replace('Microsoft ','').replace(' Online (Natural) - Italian (Italy)','').replace('Google ','G: ')}</option>))}</select></div></div><div className="text-slate-500 text-xs text-center mt-2">{availableVoices.length} voci italiane{availableVoices.length<=1&&<span className="text-yellow-500 block mt-1">⚠️ Solo 1 voce. {/Android/i.test(navigator.userAgent)?"Android: Impostazioni → Lingua → Sintesi vocale":(/iPhone|iPad/i.test(navigator.userAgent)?"iOS: Impostazioni → Accessibilità → Voci":"Windows: Impostazioni → Ora e lingua → Voce")}</span>}</div></div>)}
+                    {showVoiceSettings&&(<div className="flex-shrink-0 bg-slate-900 border-b border-slate-600 p-3"><div className="text-slate-300 text-xs font-bold mb-2 text-center">SELEZIONA LE VOCI</div><div className="flex gap-3 items-center justify-center flex-wrap"><div className="flex items-center gap-2"><span className="text-blue-400 text-sm font-bold">🎓Prof:</span><select value={profVoiceName} onChange={e=>setProfVoiceName(e.target.value)} className="bg-slate-700 text-white text-sm rounded-lg px-2 py-1 border border-slate-500 max-w-[180px]">{availableVoices.map(v=>(<option key={'p-'+v.name} value={v.name}>{v.name.replace('Microsoft ','').replace(' Online (Natural) - Italian (Italy)','').replace('Google ','G: ')}</option>))}</select></div><div className="flex items-center gap-2"><span className="text-emerald-400 text-sm font-bold">💡Stud:</span><select value={studentVoiceName} onChange={e=>setStudentVoiceName(e.target.value)} className="bg-slate-700 text-white text-sm rounded-lg px-2 py-1 border border-slate-500 max-w-[180px]">{availableVoices.map(v=>(<option key={'s-'+v.name} value={v.name}>{v.name.replace('Microsoft ','').replace(' Online (Natural) - Italian (Italy)','').replace('Google ','G: ')}</option>))}</select></div></div><div className="text-slate-500 text-xs text-center mt-2">{availableVoices.length} voci italiane{availableVoices.length<=1&&<span className="text-yellow-500 block mt-1">Una sola voce: uso la modalit\u00e0 narratore con etichette parlate</span>}</div></div>)}
                     {podcastGenerating?(<div className="podcast-generating"><div className="w-20 h-20 rounded-full animate-spin" style={{borderWidth:'6px',borderStyle:'solid',borderColor:'#a855f7',borderTopColor:'transparent'}}></div><div className="text-purple-400 font-bold text-xl animate-pulse">Creo il podcast... 🎙️</div></div>):(
                         <div className="podcast-container"><div className="text-center mb-6 mt-2"><span className="text-4xl">{mapData?.themeIcon||'📚'}</span><h2 className="text-lg font-bold text-purple-300 mt-2">{mapData?.theme}</h2></div>{podcastLines.map((line,i)=>{const isVis=podcastIndex===-1||i<=podcastIndex;const isSpk=i===podcastIndex&&podcastPlaying;if(!isVis&&podcastIndex>=0)return null;const np=podcastIndex===-1;
                             // Karaoke: split words and highlight spoken ones
