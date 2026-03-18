@@ -85,6 +85,17 @@
 
         .api-key-row button:hover { background: #3a3a5a; }
 
+        .info-box {
+            background: #1a2a1a;
+            border: 1px solid #2a4a2a;
+            border-radius: 8px;
+            padding: 0.8rem;
+            margin-top: 0.8rem;
+            font-size: 0.75rem;
+            color: #6a9a6a;
+            line-height: 1.5;
+        }
+
         .input-section {
             background: #16213e;
             border-radius: 12px;
@@ -273,6 +284,11 @@
                 <input type="password" id="apiKey" placeholder="sk-..." />
                 <button onclick="toggleKeyVisibility()">Mostra</button>
             </div>
+            <div class="info-box">
+                ℹ️ Questo test usa un proxy CORS (corsproxy.io) per aggirare le restrizioni del browser.
+                La tua API key transita attraverso questo servizio terzo. Va bene per un test, ma per
+                l'integrazione definitiva in EduGamer useremo una soluzione diversa (es. Firebase Cloud Function).
+            </div>
         </div>
 
         <!-- Text Input -->
@@ -356,7 +372,15 @@ Esempio: 'Il ciclo dell'acqua comprende quattro fasi principali: evaporazione, c
     </div>
 
     <script>
+        // Proxy CORS per aggirare le restrizioni del browser
+        const CORS_PROXY = 'https://corsproxy.io/?';
         const API_BASE = 'https://api.napkin.ai/v1';
+
+        // Funzione helper per fare fetch attraverso il proxy
+        function proxiedFetch(url, options = {}) {
+            const proxiedUrl = CORS_PROXY + encodeURIComponent(url);
+            return fetch(proxiedUrl, options);
+        }
 
         function toggleKeyVisibility() {
             const input = document.getElementById('apiKey');
@@ -407,7 +431,7 @@ Esempio: 'Il ciclo dell'acqua comprende quattro fasi principali: evaporazione, c
 
             try {
                 // Step 1: Create visual request
-                log('Invio richiesta POST /v1/visual...', 'info');
+                log('Invio richiesta POST /v1/visual (via proxy CORS)...', 'info');
 
                 const createBody = {
                     text: text,
@@ -419,7 +443,7 @@ Esempio: 'Il ciclo dell'acqua comprende quattro fasi principali: evaporazione, c
 
                 log(`Parametri: stile=${document.getElementById('styleSelect').selectedOptions[0].text}, formato=${format}`, 'info');
 
-                const createRes = await fetch(`${API_BASE}/visual`, {
+                const createRes = await proxiedFetch(`${API_BASE}/visual`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${apiKey}`,
@@ -433,7 +457,7 @@ Esempio: 'Il ciclo dell'acqua comprende quattro fasi principali: evaporazione, c
                     let errMsg = `HTTP ${createRes.status}`;
                     try {
                         const errData = JSON.parse(errText);
-                        errMsg = errData.message || errData.error || errText;
+                        errMsg = errData.message || errData.error || JSON.stringify(errData);
                     } catch(e) {
                         errMsg = errText || createRes.statusText;
                     }
@@ -443,7 +467,7 @@ Esempio: 'Il ciclo dell'acqua comprende quattro fasi principali: evaporazione, c
                 const createData = await createRes.json();
                 const requestId = createData.request_id || createData.id;
 
-                log('Risposta: ' + JSON.stringify(createData).substring(0, 200), 'info');
+                log('Risposta: ' + JSON.stringify(createData).substring(0, 300), 'info');
 
                 if (!requestId) {
                     throw new Error('Nessun request_id nella risposta. Vedi log sopra.');
@@ -461,11 +485,10 @@ Esempio: 'Il ciclo dell'acqua comprende quattro fasi principali: evaporazione, c
 
                 while (attempts < maxAttempts && !completed) {
                     attempts++;
-                    // Exponential backoff: 2s, 2s, 3s, 3s, 4s...
                     const waitTime = Math.min(2000 + Math.floor(attempts / 2) * 1000, 5000);
                     await new Promise(resolve => setTimeout(resolve, waitTime));
 
-                    const statusRes = await fetch(`${API_BASE}/visual/${requestId}/status`, {
+                    const statusRes = await proxiedFetch(`${API_BASE}/visual/${requestId}/status`, {
                         headers: { 'Authorization': `Bearer ${apiKey}` }
                     });
 
@@ -487,6 +510,11 @@ Esempio: 'Il ciclo dell'acqua comprende quattro fasi principali: evaporazione, c
                         const files = statusData.generated_files || [];
                         log(`✓ Completato! ${files.length} file generati.`, 'ok');
 
+                        // Log warnings if any
+                        if (statusData.warnings && statusData.warnings.length > 0) {
+                            statusData.warnings.forEach(w => log(`⚠ Warning: ${w.code} - ${w.message}`, 'info'));
+                        }
+
                         if (files.length === 0) {
                             throw new Error('Nessun file generato. Prova con un testo diverso o più lungo.');
                         }
@@ -498,9 +526,9 @@ Esempio: 'Il ciclo dell'acqua comprende quattro fasi principali: evaporazione, c
                             const file = files[i];
                             const fileUrl = file.url || file.download_url;
 
-                            log(`Scaricamento file ${i + 1}...`, 'info');
+                            log(`Scaricamento file ${i + 1}: ${fileUrl.substring(0, 80)}...`, 'info');
 
-                            const fileRes = await fetch(fileUrl, {
+                            const fileRes = await proxiedFetch(fileUrl, {
                                 headers: { 'Authorization': `Bearer ${apiKey}` }
                             });
 
@@ -518,7 +546,6 @@ Esempio: 'Il ciclo dell'acqua comprende quattro fasi principali: evaporazione, c
                             if (format === 'svg') {
                                 const svgText = await blob.text();
                                 wrapper.innerHTML = svgText;
-                                // Scale SVG to fit
                                 const svg = wrapper.querySelector('svg');
                                 if (svg) {
                                     svg.style.width = '100%';
