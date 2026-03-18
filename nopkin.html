@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Napkin.ai — EduGamer Lab</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #f97316, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.3rem;
+        }
+
+        header p {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .api-key-section {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #2a2a4a;
+        }
+
+        .api-key-section label {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #f97316;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .api-key-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .api-key-row input {
+            flex: 1;
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #2a2a4a;
+            background: #0f0f23;
+            color: #e0e0e0;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        .api-key-row button {
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            border: none;
+            background: #2a2a4a;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .api-key-row button:hover { background: #3a3a5a; }
+
+        .input-section {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #2a2a4a;
+        }
+
+        .input-section > label {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #ec4899;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #2a2a4a;
+            background: #0f0f23;
+            color: #e0e0e0;
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            resize: vertical;
+        }
+
+        textarea:focus { outline: none; border-color: #ec4899; }
+
+        .hint {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 0.4rem;
+            font-style: italic;
+        }
+
+        .options-row {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .option-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .option-group label {
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 0.3rem;
+            display: block;
+            font-weight: 600;
+        }
+
+        select {
+            width: 100%;
+            padding: 0.5rem 0.8rem;
+            border-radius: 8px;
+            border: 1px solid #2a2a4a;
+            background: #0f0f23;
+            color: #e0e0e0;
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.85rem;
+        }
+
+        select:focus { outline: none; border-color: #ec4899; }
+
+        .generate-btn {
+            width: 100%;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, #f97316, #ec4899);
+            color: white;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: transform 0.15s, opacity 0.15s;
+        }
+
+        .generate-btn:hover { transform: translateY(-1px); opacity: 0.9; }
+        .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .status-section {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #2a2a4a;
+            display: none;
+        }
+
+        .status-section.visible { display: block; }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #2a2a4a;
+            border-top-color: #f97316;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .status-text {
+            font-size: 0.9rem;
+            color: #f97316;
+            font-weight: 600;
+        }
+
+        .result-image {
+            width: 100%;
+            border-radius: 8px;
+            background: white;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .result-image img {
+            width: 100%;
+            height: auto;
+        }
+
+        .error-msg {
+            color: #ef4444;
+            background: #2a1a1a;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .log-section {
+            margin-top: 1rem;
+            padding: 0.8rem;
+            background: #0f0f23;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #666;
+            padding: 0.15rem 0;
+        }
+
+        .log-entry.ok { color: #22c55e; }
+        .log-entry.err { color: #ef4444; }
+        .log-entry.info { color: #f97316; }
+
+        .credits-note {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.75rem;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧪 Test API Napkin.ai</h1>
+            <p>Laboratorio EduGamer — Esperimento di integrazione</p>
+        </header>
+
+        <!-- API Key -->
+        <div class="api-key-section">
+            <label>🔑 API Key di Napkin</label>
+            <div class="api-key-row">
+                <input type="password" id="apiKey" placeholder="sk-..." />
+                <button onclick="toggleKeyVisibility()">Mostra</button>
+            </div>
+        </div>
+
+        <!-- Text Input -->
+        <div class="input-section">
+            <label>📝 Testo da trasformare in infografica</label>
+            <textarea id="inputText" placeholder="Incolla qui un paragrafo da un libro di testo, un riassunto di concetti, o una spiegazione...
+
+Esempio: 'Il ciclo dell'acqua comprende quattro fasi principali: evaporazione, condensazione, precipitazione e raccolta. L'acqua evapora da fiumi, laghi e oceani grazie al calore del sole. Il vapore sale nell'atmosfera, si raffredda e forma le nuvole (condensazione). Quando le gocce diventano troppo pesanti, cadono come pioggia o neve (precipitazione). L'acqua raccolta torna nei fiumi e negli oceani, ricominciando il ciclo.'"></textarea>
+            <p class="hint">Suggerimento: per ottenere una mappa mentale, inizia con "Mind map:" — per un diagramma, inizia con "Flowchart:"</p>
+
+            <!-- Options -->
+            <div class="options-row">
+                <div class="option-group">
+                    <label>🎨 Stile</label>
+                    <select id="styleSelect">
+                        <optgroup label="Colorful">
+                            <option value="CDQPRVVJCSTPRBBCD5Q6AWR">Vibrant Strokes</option>
+                            <option value="CDQPRVVJCSTPRBBKDXK78">Glowful Breeze</option>
+                            <option value="CDQPRVVJCSTPRBB6DHGQ8" selected>Bold Canvas</option>
+                            <option value="CDQPRVVJCSTPRBB6D5P6RSB4">Radiant Blocks</option>
+                            <option value="CDQPRVVJCSTPRBB7E9GP8TB5DST0">Pragmatic Shades</option>
+                        </optgroup>
+                        <optgroup label="Casual">
+                            <option value="CDGQ6XB1DGPQ6VV6EG">Carefree Mist</option>
+                            <option value="CDGQ6XB1DGPPCTBCDHJP8">Lively Layers</option>
+                        </optgroup>
+                        <optgroup label="Hand-drawn">
+                            <option value="D1GPWS1DCDQPRVVJCSTPR">Artistic Flair</option>
+                            <option value="D1GPWS1DDHMPWSBK">Sketch Notes</option>
+                        </optgroup>
+                        <optgroup label="Formal">
+                            <option value="CSQQ4VB1DGPP4V31CDNJTVKFBXK6JV3C">Elegant Outline</option>
+                            <option value="CSQQ4VB1DGPPRTB7D1T0">Subtle Accent</option>
+                            <option value="CSQQ4VB1DGPQ6TBECXP6ABB3DXP6YWG">Monochrome Pro</option>
+                            <option value="CSQQ4VB1DGPPTVVEDXHPGWKFDNJJTSKCC5T0">Corporate Clean</option>
+                        </optgroup>
+                        <optgroup label="Monochrome">
+                            <option value="DNQPWVV3D1S6YVB55NK6RRBM">Minimal Contrast</option>
+                            <option value="CXS62Y9DCSQP6XBK">Silver Beam</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div class="option-group">
+                    <label>📐 Formato</label>
+                    <select id="formatSelect">
+                        <option value="svg">SVG (vettoriale)</option>
+                        <option value="png" selected>PNG (immagine)</option>
+                    </select>
+                </div>
+
+                <div class="option-group">
+                    <label>📏 Orientamento</label>
+                    <select id="orientationSelect">
+                        <option value="auto" selected>Automatico</option>
+                        <option value="horizontal">Orizzontale</option>
+                        <option value="vertical">Verticale</option>
+                        <option value="square">Quadrato</option>
+                    </select>
+                </div>
+            </div>
+
+            <button class="generate-btn" id="generateBtn" onclick="generateVisual()">
+                ✨ Genera infografica
+            </button>
+        </div>
+
+        <!-- Status & Results -->
+        <div class="status-section" id="statusSection">
+            <div class="status-bar" id="statusBar">
+                <div class="spinner" id="spinner"></div>
+                <span class="status-text" id="statusText">Invio richiesta...</span>
+            </div>
+
+            <div id="resultContainer"></div>
+
+            <div class="log-section" id="logSection"></div>
+        </div>
+
+        <p class="credits-note">Ogni generazione consuma crediti dal tuo account Napkin.ai</p>
+    </div>
+
+    <script>
+        const API_BASE = 'https://api.napkin.ai/v1';
+
+        function toggleKeyVisibility() {
+            const input = document.getElementById('apiKey');
+            const btn = input.nextElementSibling;
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = 'Nascondi';
+            } else {
+                input.type = 'password';
+                btn.textContent = 'Mostra';
+            }
+        }
+
+        function log(msg, type = '') {
+            const section = document.getElementById('logSection');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry' + (type ? ' ' + type : '');
+            const time = new Date().toLocaleTimeString('it-IT');
+            entry.textContent = `[${time}] ${msg}`;
+            section.appendChild(entry);
+            section.scrollTop = section.scrollHeight;
+        }
+
+        async function generateVisual() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const text = document.getElementById('inputText').value.trim();
+            const styleId = document.getElementById('styleSelect').value;
+            const format = document.getElementById('formatSelect').value;
+            const orientation = document.getElementById('orientationSelect').value;
+
+            if (!apiKey) { alert('Inserisci la tua API key di Napkin'); return; }
+            if (!text) { alert('Inserisci il testo da trasformare'); return; }
+
+            // Reset UI
+            const statusSection = document.getElementById('statusSection');
+            const resultContainer = document.getElementById('resultContainer');
+            const logSection = document.getElementById('logSection');
+            const btn = document.getElementById('generateBtn');
+
+            statusSection.classList.add('visible');
+            resultContainer.innerHTML = '';
+            logSection.innerHTML = '';
+            btn.disabled = true;
+            btn.textContent = '⏳ Generazione in corso...';
+
+            document.getElementById('spinner').style.display = 'block';
+            document.getElementById('statusText').textContent = 'Invio richiesta a Napkin...';
+
+            try {
+                // Step 1: Create visual request
+                log('Invio richiesta POST /v1/visual...', 'info');
+
+                const createBody = {
+                    text: text,
+                    style_id: styleId,
+                    format: format,
+                    language: 'it-IT',
+                    orientation: orientation
+                };
+
+                log(`Parametri: stile=${document.getElementById('styleSelect').selectedOptions[0].text}, formato=${format}`, 'info');
+
+                const createRes = await fetch(`${API_BASE}/visual`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(createBody)
+                });
+
+                if (!createRes.ok) {
+                    const errText = await createRes.text();
+                    let errMsg = `HTTP ${createRes.status}`;
+                    try {
+                        const errData = JSON.parse(errText);
+                        errMsg = errData.message || errData.error || errText;
+                    } catch(e) {
+                        errMsg = errText || createRes.statusText;
+                    }
+                    throw new Error(`Errore creazione: ${errMsg}`);
+                }
+
+                const createData = await createRes.json();
+                const requestId = createData.request_id || createData.id;
+
+                log('Risposta: ' + JSON.stringify(createData).substring(0, 200), 'info');
+
+                if (!requestId) {
+                    throw new Error('Nessun request_id nella risposta. Vedi log sopra.');
+                }
+
+                log(`✓ Richiesta creata! ID: ${requestId}`, 'ok');
+
+                // Step 2: Poll for status
+                document.getElementById('statusText').textContent = 'Napkin sta generando l\'infografica...';
+                log('Inizio polling dello stato...', 'info');
+
+                let attempts = 0;
+                const maxAttempts = 30;
+                let completed = false;
+
+                while (attempts < maxAttempts && !completed) {
+                    attempts++;
+                    // Exponential backoff: 2s, 2s, 3s, 3s, 4s...
+                    const waitTime = Math.min(2000 + Math.floor(attempts / 2) * 1000, 5000);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+
+                    const statusRes = await fetch(`${API_BASE}/visual/${requestId}/status`, {
+                        headers: { 'Authorization': `Bearer ${apiKey}` }
+                    });
+
+                    if (!statusRes.ok) {
+                        log(`⚠ Errore status check: ${statusRes.status}`, 'err');
+                        continue;
+                    }
+
+                    const statusData = await statusRes.json();
+                    log(`Stato: ${statusData.status} (tentativo ${attempts})`, statusData.status === 'completed' ? 'ok' : 'info');
+
+                    if (statusData.status === 'completed') {
+                        completed = true;
+
+                        if (statusData.error) {
+                            throw new Error(`Errore Napkin: ${statusData.error.message} (${statusData.error.code})`);
+                        }
+
+                        const files = statusData.generated_files || [];
+                        log(`✓ Completato! ${files.length} file generati.`, 'ok');
+
+                        if (files.length === 0) {
+                            throw new Error('Nessun file generato. Prova con un testo diverso o più lungo.');
+                        }
+
+                        // Step 3: Download and display
+                        document.getElementById('statusText').textContent = 'Scaricamento immagini...';
+
+                        for (let i = 0; i < files.length; i++) {
+                            const file = files[i];
+                            const fileUrl = file.url || file.download_url;
+
+                            log(`Scaricamento file ${i + 1}...`, 'info');
+
+                            const fileRes = await fetch(fileUrl, {
+                                headers: { 'Authorization': `Bearer ${apiKey}` }
+                            });
+
+                            if (!fileRes.ok) {
+                                log(`⚠ Errore download file ${i + 1}: ${fileRes.status}`, 'err');
+                                continue;
+                            }
+
+                            const blob = await fileRes.blob();
+                            const objectUrl = URL.createObjectURL(blob);
+
+                            const wrapper = document.createElement('div');
+                            wrapper.className = 'result-image';
+
+                            if (format === 'svg') {
+                                const svgText = await blob.text();
+                                wrapper.innerHTML = svgText;
+                                // Scale SVG to fit
+                                const svg = wrapper.querySelector('svg');
+                                if (svg) {
+                                    svg.style.width = '100%';
+                                    svg.style.height = 'auto';
+                                }
+                            } else {
+                                const img = document.createElement('img');
+                                img.src = objectUrl;
+                                img.alt = 'Infografica generata da Napkin.ai';
+                                wrapper.appendChild(img);
+                            }
+
+                            resultContainer.appendChild(wrapper);
+                            log(`✓ File ${i + 1} visualizzato!`, 'ok');
+                        }
+
+                        document.getElementById('spinner').style.display = 'none';
+                        document.getElementById('statusText').textContent = '✅ Infografica pronta!';
+
+                    } else if (statusData.status === 'failed') {
+                        throw new Error('Generazione fallita. Prova un testo diverso o uno stile diverso.');
+                    }
+                }
+
+                if (!completed) {
+                    throw new Error('Timeout: la generazione sta impiegando troppo. Riprova tra poco.');
+                }
+
+            } catch (error) {
+                log(`✗ ${error.message}`, 'err');
+                document.getElementById('spinner').style.display = 'none';
+                document.getElementById('statusText').textContent = '❌ Errore';
+                resultContainer.innerHTML = `<div class="error-msg">
+                    <strong>Errore:</strong> ${error.message}<br><br>
+                    <small>Controlla il log qui sotto per i dettagli. Verifica che la API key sia corretta e che tu abbia crediti disponibili.</small>
+                </div>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '✨ Genera infografica';
+            }
+        }
+    </script>
+</body>
+</html>
