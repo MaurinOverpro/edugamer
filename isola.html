@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Isola Misteriosa - EduGamer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { background: #0a1525; color: white; font-family: 'Verdana', sans-serif; margin: 0; height: 100dvh; overflow: hidden; }
+
+        @keyframes wave-move  { to { transform: translateX(-50%); } }
+        @keyframes float      { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        @keyframes glow-ring  { 0%,100% { opacity: 0.5; r: 26; } 50% { opacity: 0.9; r: 30; } }
+        @keyframes slide-up   { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fade-scale { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+        @keyframes sparkle    { 0%,100% { opacity: 0; transform: scale(0) rotate(0deg); } 50% { opacity: 1; transform: scale(1) rotate(180deg); } }
+        @keyframes chest-open { 0% { transform: scaleY(1); } 50% { transform: scaleY(0.7) translateY(4px); } 100% { transform: scaleY(1); } }
+        @keyframes xp-glow    { 0%,100% { box-shadow: 0 0 8px rgba(251,191,36,0.4); } 50% { box-shadow: 0 0 20px rgba(251,191,36,0.8); } }
+
+        .wave-layer {
+            position: absolute; width: 200%; height: 100%;
+            background: repeating-linear-gradient(90deg, transparent 0px, rgba(100,160,255,0.04) 60px, transparent 120px);
+            animation: wave-move 10s linear infinite;
+        }
+        .zone-float { animation: float 3s ease-in-out infinite; }
+        .modal-enter { animation: slide-up 0.3s ease-out; }
+        .overlay-enter { animation: fade-scale 0.25s ease-out; }
+        .xp-animated { animation: xp-glow 2s ease-in-out infinite; }
+
+        .zone-circle {
+            transition: transform 0.15s;
+            cursor: pointer;
+        }
+        .zone-circle:active { transform: scale(0.9); }
+        .zone-locked { filter: grayscale(1) brightness(0.4); cursor: default; pointer-events: none; }
+
+        input, select { font-family: 'Verdana', sans-serif; }
+        input:focus { outline: none; }
+
+        /* Scrollbar hidden for mobile */
+        ::-webkit-scrollbar { width: 0; }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    /* ─── CONSTANTS ───────────────────────────────────────────── */
+    const MODEL_TEXT  = "gemini-3-flash-preview";
+    const MODEL_IMAGE = "gemini-2.5-flash-image";
+    const LEVEL_XP    = [0, 100, 300, 600, 1000, 1500, 2500, 4000, 6000, 10000];
+
+    const calcLevel = (xp) => { let l = 1; LEVEL_XP.forEach((t, i) => { if (xp >= t) l = i + 1; }); return Math.min(l, 10); };
+    const xpProgress = (xp) => {
+        const l = calcLevel(xp);
+        if (l >= 10) return { cur: xp, needed: LEVEL_XP[9], pct: 100 };
+        const base = LEVEL_XP[l - 1], next = LEVEL_XP[l];
+        return { cur: xp - base, needed: next - base, pct: Math.round((xp - base) / (next - base) * 100) };
+    };
+
+    /* SVG viewBox: 400 × 500 */
+    const ZONES = [
+        { id: 'porto',      name: 'Porto dei Pirati',    emoji: '⚓', unlockLevel: 1,  x: 200, y: 405, color: '#38bdf8', link: 'index.html',      charId: 'squall'    },
+        { id: 'caverna',    name: 'Caverna dei Numeri',  emoji: '🔢', unlockLevel: 2,  x: 88,  y: 310, color: '#fbbf24', link: 'matematica.html', charId: 'numerus'   },
+        { id: 'giungla',    name: 'Giungla dei Segreti', emoji: '🌴', unlockLevel: 2,  x: 312, y: 275, color: '#4ade80', link: 'lavagna.html',    charId: 'zara'      },
+        { id: 'biblioteca', name: 'Biblioteca Sommersa', emoji: '📜', unlockLevel: 3,  x: 105, y: 190, color: '#c084fc', link: 'italiano.html',   charId: 'isabella'  },
+        { id: 'torre',      name: "Torre dell'Oracolo",  emoji: '🔮', unlockLevel: 4,  x: 300, y: 155, color: '#f0abfc', link: 'tutor.html',      charId: 'mordecai'  },
+        { id: 'grotta',     name: 'Grotta degli Enigmi', emoji: '🗺️', unlockLevel: 5,  x: 200, y: 228, color: '#fb923c', link: 'discover.html',   charId: 'rex'       },
+        { id: 'cripta',     name: 'Cripta del Tesoro',   emoji: '💎', unlockLevel: 6,  x: 298, y: 368, color: '#fde68a', link: 'profilo.html',    charId: 'barbanera' },
+        { id: 'fortezza',   name: 'Fortezza del Corsaro',emoji: '🏰', unlockLevel: 10, x: 200, y: 72,  color: '#f87171', link: null,              charId: 'corsaro'   },
+    ];
+
+    const PATHS = [
+        ['porto','caverna'],['porto','giungla'],['porto','cripta'],
+        ['caverna','biblioteca'],['caverna','grotta'],
+        ['giungla','torre'],['giungla','grotta'],
+        ['biblioteca','fortezza'],['torre','fortezza'],['grotta','fortezza'],
+    ];
+
+    const CHARACTERS = {
+        squall:    { name: 'Capitano Squall',      emoji: '🦜', color: '#38bdf8', greeting: "Benvenuto sull'Isola Misteriosa, Pirata! Sono Capitano Squall, il guardiano di questo luogo. Più impari, più terre si svelano davanti a te. L'avventura inizia da qui!" },
+        numerus:   { name: 'Numerus il Kraken',    emoji: '🐙', color: '#fbbf24', greeting: "Argh! Hai osato entrare nella mia Caverna dei Numeri? Ottima mossa! I numeri sono il vero tesoro dell'isola. Padroneggiati, diventerai invincibile!" },
+        zara:      { name: 'Zara la Veggente',     emoji: '🔭', color: '#4ade80', greeting: "La giungla ti accoglie. Io, Zara, vedo connessioni dove altri vedono caos. Con le mappe mentali puoi tenere tutto nella testa — senza sforzo. Vieni, ti insegno." },
+        isabella:  { name: 'Isabella delle Acque', emoji: '🌊', color: '#c084fc', greeting: "Silenzio! Sei nella Biblioteca Sommersa. Le parole sono più potenti di qualsiasi spada. Impara a usarle bene e nessuno potrà fermarti." },
+        mordecai:  { name: "L'Oracolo Mordecai",   emoji: '🔮', color: '#f0abfc', greeting: "Viaggiatore... ti aspettavo. Posso rispondere a qualsiasi domanda tu abbia sul tuo percorso. La vera conoscenza è il tesoro più grande di tutta l'isola." },
+        rex:       { name: "Rex l'Enigmista",      emoji: '🗝️', color: '#fb923c', greeting: "Ah ah ah! Hai trovato la mia Grotta? Bene. Ma sai risolvere i miei enigmi? Solo i pirati più acuti riescono a superarmi. Sei pronto?" },
+        barbanera: { name: 'Barbanera',             emoji: '💀', color: '#fde68a', greeting: "Finalmente un pirata degno di ammirare i miei tesori! Ogni medaglia che vedi è una vittoria che hai conquistato con ingegno. Vieni ad ammirare le tue gemme!" },
+        corsaro:   { name: 'Il Gran Corsaro',      emoji: '👑', color: '#f87171', greeting: "Sei giunto fino alla vetta... Pochissimi ci riescono. Hai dimostrato forza, intelligenza e perseveranza. Questa fortezza è ora anche tua, Leggenda!" },
+    };
+
+    const PRESET_AVATARS = ['🏴‍☠️','🦜','⚓','💀','🗡️','🔮','🐙','🌊','🗺️','💎','🦊','🐉'];
+    const LEVEL_TITLES   = ['','Marinaio','Esploratore','Navigatore','Corsaro','Avventuriero','Cacciatore','Leggenda','Gran Maestro','Anima Antica','Gran Corsaro'];
+
+    /* ─── DB ──────────────────────────────────────────────────── */
+    const DB = {
+        getKey:     () => localStorage.getItem('gemini_api_key'),
+        getProfile: () => { try { return JSON.parse(localStorage.getItem('isola_profile') || 'null'); } catch { return null; } },
+        saveProfile:(p) => localStorage.setItem('isola_profile', JSON.stringify(p)),
+        getStats:   () => {
+            try {
+                const s = JSON.parse(localStorage.getItem('edugamer_stats') || '{}');
+                const xp = s.xp || parseInt(localStorage.getItem('edu_xp') || '0');
+                return { xp, level: calcLevel(xp) };
+            } catch { return { xp: 0, level: 1 }; }
+        },
+    };
+
+    /* ─── AI ──────────────────────────────────────────────────── */
+    const AI = {
+        generateAvatar: async (b64, mime, name) => {
+            const key = DB.getKey();
+            if (!key) throw new Error("Chiave API mancante");
+            const res = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE}:generateContent?key=${key}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [
+                            { text: `Crea un avatar pirata cartoon colorato e divertente ispirato a questa foto. Stile fumetto vivace con colori saturi. Il pirata si chiama "${name}". Sfondo semplice o trasparente. Solo il personaggio, ritratto dall'ombelico in su.` },
+                            { inlineData: { mimeType: mime, data: b64 } }
+                        ]}],
+                        generationConfig: { responseModalities: ['IMAGE'] }
+                    })
+                }
+            );
+            if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `Errore API ${res.status}`); }
+            const data = await res.json();
+            const img = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+            if (!img) throw new Error("Nessuna immagine nella risposta AI");
+            return `data:${img.inlineData.mimeType};base64,${img.inlineData.data}`;
+        },
+    };
+
+    /* ─── ONBOARDING ──────────────────────────────────────────── */
+    const Onboarding = ({ existing, onComplete }) => {
+        const [name,       setName]       = useState(existing?.name || '');
+        const [photoB64,   setPhotoB64]   = useState(null);
+        const [photoMime,  setPhotoMime]  = useState('image/jpeg');
+        const [avatarUrl,  setAvatarUrl]  = useState(existing?.avatarUrl || null);
+        const [preset,     setPreset]     = useState(null);
+        const [generating, setGenerating] = useState(false);
+        const [error,      setError]      = useState('');
+
+        const handlePhoto = (e) => {
+            const f = e.target.files[0]; if (!f) return;
+            setPhotoMime(f.type || 'image/jpeg');
+            const r = new FileReader();
+            r.onload = (ev) => {
+                setPhotoB64(ev.target.result.split(',')[1]);
+                setAvatarUrl(ev.target.result);
+                setPreset(null);
+            };
+            r.readAsDataURL(f);
+        };
+
+        const generateAvatar = async () => {
+            if (!photoB64) return;
+            if (!DB.getKey()) { setError("⚠️ Chiave API mancante — vai alla Home per inserirla"); return; }
+            setGenerating(true); setError('');
+            try {
+                const url = await AI.generateAvatar(photoB64, photoMime, name || 'Pirata');
+                setAvatarUrl(url); setPhotoB64(null);
+            } catch (e) { setError("Errore: " + e.message); }
+            finally { setGenerating(false); }
+        };
+
+        const handleComplete = () => {
+            if (!name.trim()) { setError("Scegli il tuo nome da pirata!"); return; }
+            const avatar = avatarUrl || preset || '🏴‍☠️';
+            const profile = { name: name.trim(), avatarUrl: avatar };
+            DB.saveProfile(profile);
+            onComplete(profile);
+        };
+
+        const avatarPreview = avatarUrl?.startsWith('data:')
+            ? <img src={avatarUrl} className="w-full h-full object-cover rounded-full"/>
+            : <span className="text-5xl">{preset || '🏴‍☠️'}</span>;
+
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-start overflow-y-auto py-8 px-4"
+                style={{background:'linear-gradient(160deg,#0a1525 0%,#0d2040 60%,#0a1525 100%)'}}>
+                <div className="w-full max-w-md">
+
+                    {/* Header */}
+                    <div className="text-center mb-8">
+                        <div className="text-7xl mb-3" style={{filter:'drop-shadow(0 0 20px rgba(251,191,36,0.6))'}}>🏴‍☠️</div>
+                        <h1 className="text-3xl font-black text-yellow-400 tracking-tight mb-1"
+                            style={{textShadow:'0 0 30px rgba(251,191,36,0.5)'}}>
+                            ISOLA MISTERIOSA
+                        </h1>
+                        <p className="text-slate-400 text-sm">{existing ? 'Modifica il tuo profilo pirata' : 'Crea il tuo profilo per salpare'}</p>
+                    </div>
+
+                    {/* Nome */}
+                    <div className="bg-slate-800/80 rounded-2xl p-5 mb-4 border border-slate-700">
+                        <label className="text-yellow-400 font-bold text-xs uppercase tracking-widest mb-2 block">
+                            ⚓ Il tuo nome da Pirata
+                        </label>
+                        <input
+                            value={name} onChange={e => setName(e.target.value)}
+                            placeholder="es. Tempesta dei Mari, Occhio di Fuoco..."
+                            className="w-full bg-slate-700/80 text-white rounded-xl px-4 py-3 text-base border border-slate-600 focus:border-yellow-400 transition-colors"
+                        />
+                    </div>
+
+                    {/* Avatar */}
+                    <div className="bg-slate-800/80 rounded-2xl p-5 mb-4 border border-slate-700">
+                        <label className="text-yellow-400 font-bold text-xs uppercase tracking-widest mb-4 block">
+                            🎨 Il tuo Avatar
+                        </label>
+
+                        {/* Preview */}
+                        <div className="flex justify-center mb-4">
+                            <div className="w-28 h-28 rounded-full border-4 border-yellow-400 flex items-center justify-center overflow-hidden bg-slate-700"
+                                style={{boxShadow:'0 0 25px rgba(251,191,36,0.4)'}}>
+                                {avatarPreview}
+                            </div>
+                        </div>
+
+                        {/* Upload */}
+                        <label className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer mb-3 active:scale-95 transition-all border border-blue-400">
+                            <input type="file" accept="image/*" className="hidden" onChange={handlePhoto}/>
+                            📷 Carica una foto
+                        </label>
+
+                        {/* Generate AI avatar */}
+                        {photoB64 && (
+                            <button onClick={generateAvatar} disabled={generating}
+                                className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 mb-3 active:scale-95 transition-all border border-purple-400 disabled:opacity-50">
+                                {generating
+                                    ? <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/><span>Creando avatar AI...</span></>
+                                    : <><span>✨</span><span>Crea Avatar Pirata con AI</span></>}
+                            </button>
+                        )}
+
+                        {/* Preset grid */}
+                        <p className="text-slate-500 text-xs text-center mb-2">Oppure scegli un avatar predefinito</p>
+                        <div className="grid grid-cols-6 gap-2">
+                            {PRESET_AVATARS.map(em => (
+                                <button key={em}
+                                    onClick={() => { setPreset(em); setAvatarUrl(null); setPhotoB64(null); }}
+                                    className={`h-11 rounded-xl text-2xl flex items-center justify-center transition-all border-2 ${preset === em && !avatarUrl ? 'border-yellow-400 bg-slate-600 scale-110' : 'border-slate-600 bg-slate-700/60'}`}>
+                                    {em}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Error */}
+                    {error && (
+                        <div className="bg-red-900/50 border border-red-500 rounded-xl p-3 mb-4 text-red-300 text-sm text-center">
+                            {error}
+                        </div>
+                    )}
+
+                    {/* CTA */}
+                    <button onClick={handleComplete}
+                        className="w-full font-black py-4 rounded-2xl text-xl text-black active:scale-95 transition-all"
+                        style={{background:'linear-gradient(135deg,#fbbf24,#f59e0b)', boxShadow:'0 0 30px rgba(251,191,36,0.5)'}}>
+                        {existing ? '💾 Salva Modifiche' : '⚓ SALPA VERSO L\'ISOLA!'}
+                    </button>
+
+                    {existing && (
+                        <button onClick={() => onComplete(existing)}
+                            className="w-full mt-3 py-3 rounded-2xl text-slate-400 bg-slate-800 border border-slate-700 font-bold">
+                            ← Torna all'isola
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    /* ─── ISLAND SVG ──────────────────────────────────────────── */
+    const IslandSVG = ({ level, onZoneClick }) => (
+        <svg viewBox="0 0 400 500" style={{width:'100%',height:'100%',display:'block'}} preserveAspectRatio="xMidYMid meet">
+            <defs>
+                <radialGradient id="ocean" cx="50%" cy="50%">
+                    <stop offset="0%"   stopColor="#1a4080"/>
+                    <stop offset="100%" stopColor="#080f1e"/>
+                </radialGradient>
+                <radialGradient id="island" cx="50%" cy="35%">
+                    <stop offset="0%"   stopColor="#2d7a3a"/>
+                    <stop offset="55%"  stopColor="#1a5c25"/>
+                    <stop offset="100%" stopColor="#7a4a10"/>
+                </radialGradient>
+                <filter id="soft-glow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="5" result="b"/>
+                    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+                <filter id="fog-blur">
+                    <feGaussianBlur stdDeviation="6"/>
+                </filter>
+            </defs>
+
+            {/* Ocean */}
+            <rect width="400" height="500" fill="url(#ocean)"/>
+            {/* Wave shimmer */}
+            {[50,100,150,200,250,300,350,400,450].map(y =>
+                <line key={y} x1="0" y1={y} x2="400" y2={y} stroke="rgba(100,180,255,0.05)" strokeWidth="1.5"/>
+            )}
+
+            {/* Island base */}
+            <path d="M 200 32
+                C 242 24,290 44,326 76
+                C 362 110,372 158,366 206
+                C 360 256,350 300,346 345
+                C 340 390,312 422,268 434
+                C 242 442,210 444,178 440
+                C 142 434,112 416,88 390
+                C 60 360,48 318,44 272
+                C 40 224,48 174,70 136
+                C 94 96,130 62,168 42
+                C 180 35,192 32,200 32 Z"
+                fill="url(#island)" stroke="#5a3505" strokeWidth="3.5"/>
+
+            {/* Beach ring */}
+            <path d="M 200 46
+                C 236 40,278 57,312 86
+                C 346 116,355 160,350 204
+                C 344 250,335 292,332 335
+                C 326 376,302 406,262 418
+                C 238 426,213 428,183 424
+                C 150 418,122 402,100 378
+                C 74 350,63 312,60 270
+                C 57 226,65 180,85 146
+                C 107 110,140 78,172 58
+                C 184 50,194 46,200 46 Z"
+                fill="none" stroke="rgba(210,175,80,0.3)" strokeWidth="10" strokeDasharray="4,10"/>
+
+            {/* Mountain peaks (fortezza area) */}
+            <polygon points="200,42 234,108 166,108" fill="#4a2a06" opacity="0.75"/>
+            <polygon points="200,34 222,90 178,90"  fill="#6a3f10" opacity="0.85"/>
+            <polygon points="200,28 215,70 185,70"  fill="#8a5520" opacity="0.9"/>
+
+            {/* Vegetation dots */}
+            {[[130,205],[275,222],[155,308],[248,318],[185,175],[215,165],[100,270],[300,300]].map(([tx,ty],i) => (
+                <g key={i}>
+                    <rect x={tx-2} y={ty+2} width="4" height="14" fill="#3a2005"/>
+                    <ellipse cx={tx} cy={ty} rx="11" ry="9" fill="#1a6028" opacity="0.8"/>
+                    <ellipse cx={tx} cy={ty-4} rx="8" ry="7" fill="#237535" opacity="0.7"/>
+                </g>
+            ))}
+
+            {/* Treasure map paths */}
+            {PATHS.map(([a, b], i) => {
+                const za = ZONES.find(z => z.id === a);
+                const zb = ZONES.find(z => z.id === b);
+                if (!za || !zb) return null;
+                const visible = level >= za.unlockLevel && level >= zb.unlockLevel;
+                return (
+                    <line key={i}
+                        x1={za.x} y1={za.y} x2={zb.x} y2={zb.y}
+                        stroke={visible ? "rgba(210,175,60,0.55)" : "rgba(100,100,100,0.2)"}
+                        strokeWidth="1.8" strokeDasharray="5,9"
+                        style={{transition:'stroke 0.5s'}}/>
+                );
+            })}
+
+            {/* Zones */}
+            {ZONES.map(zone => {
+                const unlocked = level >= zone.unlockLevel;
+                return (
+                    <g key={zone.id}
+                        className={unlocked ? 'zone-circle zone-float' : 'zone-circle zone-locked'}
+                        onClick={() => unlocked && onZoneClick(zone)}
+                        style={{animationDelay:`${ZONES.indexOf(zone) * 0.4}s`}}>
+                        {/* Glow ring (unlocked only) */}
+                        {unlocked && (
+                            <circle cx={zone.x} cy={zone.y} r="30"
+                                fill="none" stroke={zone.color} strokeWidth="1.5"
+                                opacity="0.4" style={{filter:`drop-shadow(0 0 6px ${zone.color})`}}/>
+                        )}
+                        {/* Main circle */}
+                        <circle cx={zone.x} cy={zone.y} r="22"
+                            fill={unlocked ? 'rgba(8,20,45,0.92)' : 'rgba(12,12,12,0.7)'}
+                            stroke={unlocked ? zone.color : '#334'}
+                            strokeWidth={unlocked ? 2.5 : 1.5}
+                            style={unlocked ? {filter:`drop-shadow(0 2px 8px ${zone.color}60)`} : {}}/>
+                        {/* Emoji */}
+                        <text x={zone.x} y={zone.y + 8} textAnchor="middle" fontSize="19">
+                            {unlocked ? zone.emoji : '🔒'}
+                        </text>
+                        {/* Label */}
+                        <text x={zone.x} y={zone.y + 38} textAnchor="middle"
+                            fontSize="8" fontWeight="bold" fontFamily="Verdana"
+                            fill={unlocked ? '#cbd5e1' : '#444'}>
+                            {zone.name.length > 15 ? zone.name.slice(0,13)+'…' : zone.name}
+                        </text>
+                        {/* Fog overlay on locked */}
+                        {!unlocked && (
+                            <circle cx={zone.x} cy={zone.y} r="28"
+                                fill="rgba(80,80,110,0.3)"
+                                style={{filter:'url(#fog-blur)'}}/>
+                        )}
+                    </g>
+                );
+            })}
+
+            {/* Compass rose (decorative) */}
+            <g transform="translate(358,455)" opacity="0.35">
+                <circle cx="0" cy="0" r="18" fill="none" stroke="#c8a860" strokeWidth="1"/>
+                <text x="0" y="-9"  textAnchor="middle" fontSize="7" fill="#c8a860" fontWeight="bold">N</text>
+                <text x="0" y="14"  textAnchor="middle" fontSize="7" fill="#c8a860">S</text>
+                <text x="-13" y="3" textAnchor="middle" fontSize="7" fill="#c8a860">O</text>
+                <text x="13"  y="3" textAnchor="middle" fontSize="7" fill="#c8a860">E</text>
+                <line x1="0" y1="-14" x2="0" y2="14" stroke="#c8a860" strokeWidth="0.8"/>
+                <line x1="-14" y1="0" x2="14" y2="0" stroke="#c8a860" strokeWidth="0.8"/>
+            </g>
+        </svg>
+    );
+
+    /* ─── ZONE MODAL ──────────────────────────────────────────── */
+    const ZoneModal = ({ zone, onClose }) => {
+        const char = CHARACTERS[zone.charId];
+        return (
+            <div className="fixed inset-0 z-50 flex items-end justify-center p-3"
+                style={{background:'rgba(0,0,0,0.75)'}} onClick={onClose}>
+                <div className="w-full max-w-lg rounded-3xl overflow-hidden modal-enter"
+                    style={{
+                        background:'linear-gradient(160deg,#1e293b,#0f172a)',
+                        border:`2px solid ${zone.color}`,
+                        boxShadow:`0 0 50px ${zone.color}40`
+                    }}
+                    onClick={e => e.stopPropagation()}>
+
+                    {/* Header */}
+                    <div className="flex items-center gap-4 p-5 pb-4"
+                        style={{borderBottom:`1px solid ${zone.color}25`}}>
+                        <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0"
+                            style={{background:`${zone.color}18`, border:`2px solid ${zone.color}`, boxShadow:`0 0 18px ${zone.color}40`}}>
+                            {zone.emoji}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <h2 className="text-xl font-black text-white leading-tight">{zone.name}</h2>
+                            <p className="text-sm font-bold mt-0.5" style={{color:zone.color}}>
+                                {char.emoji} {char.name}
+                            </p>
+                        </div>
+                        <button onClick={onClose}
+                            className="w-10 h-10 rounded-full bg-slate-700 text-slate-300 text-lg flex items-center justify-center flex-shrink-0">
+                            ✕
+                        </button>
+                    </div>
+
+                    {/* Dialogue */}
+                    <div className="p-5 pt-4">
+                        <div className="rounded-2xl p-4 mb-5 italic text-sm text-slate-200 leading-relaxed"
+                            style={{background:`${zone.color}10`, border:`1px solid ${zone.color}25`}}>
+                            "{char.greeting}"
+                        </div>
+
+                        {zone.link ? (
+                            <a href={zone.link}
+                                className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-black text-lg active:scale-95 transition-transform"
+                                style={{
+                                    background:`linear-gradient(135deg,${zone.color},${zone.color}bb)`,
+                                    color: zone.id === 'cripta' ? '#000' : '#000',
+                                    boxShadow:`0 4px 24px ${zone.color}50`
+                                }}>
+                                {zone.emoji} ENTRA NELLA ZONA!
+                            </a>
+                        ) : (
+                            <div className="text-center py-4 rounded-2xl bg-slate-800/80 border border-slate-700">
+                                <p className="text-2xl mb-2">🏆</p>
+                                <p className="text-slate-300 font-bold text-sm">Raggiungi il Livello 10</p>
+                                <p className="text-slate-500 text-xs mt-1">per sbloccare la Fortezza del Gran Corsaro</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    /* ─── LEVEL UP OVERLAY ────────────────────────────────────── */
+    const LevelUpOverlay = ({ zone, onClose }) => (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 overlay-enter"
+            style={{background:'rgba(0,0,0,0.85)'}} onClick={onClose}>
+            <div className="text-center">
+                <div className="text-8xl mb-4" style={{animation:'float 1.2s ease-in-out infinite', display:'inline-block',
+                    filter:`drop-shadow(0 0 20px ${CHARACTERS[zone.charId]?.color || '#fbbf24'})`}}>
+                    {zone.emoji}
+                </div>
+                <div className="text-4xl mb-3">✨</div>
+                <div className="text-yellow-400 font-black text-2xl mb-2" style={{textShadow:'0 0 20px rgba(251,191,36,0.8)'}}>
+                    NUOVA ZONA SBLOCCATA!
+                </div>
+                <div className="text-white text-xl font-bold mb-2">{zone.name}</div>
+                <div className="text-slate-300 text-sm mb-6">
+                    {CHARACTERS[zone.charId]?.emoji} {CHARACTERS[zone.charId]?.name} ti aspetta!
+                </div>
+                <button onClick={onClose}
+                    className="bg-yellow-500 text-black font-black px-10 py-3 rounded-2xl text-lg active:scale-95 transition-transform"
+                    style={{boxShadow:'0 0 25px rgba(251,191,36,0.6)'}}>
+                    ⚓ Fantastico!
+                </button>
+            </div>
+        </div>
+    );
+
+    /* ─── APP ─────────────────────────────────────────────────── */
+    const App = () => {
+        const [stage,        setStage]        = useState('loading');
+        const [profile,      setProfile]      = useState(null);
+        const [stats,        setStats]        = useState({ xp: 0, level: 1 });
+        const [selectedZone, setSelectedZone] = useState(null);
+        const [justUnlocked, setJustUnlocked] = useState(null);
+
+        useEffect(() => {
+            const p = DB.getProfile();
+            const s = DB.getStats();
+            setStats(s);
+            setProfile(p);
+            setStage(p ? 'island' : 'onboarding');
+
+            const onXP = () => {
+                const ns = DB.getStats();
+                setStats(prev => {
+                    if (ns.level > prev.level) {
+                        const z = ZONES.find(z => z.unlockLevel === ns.level);
+                        if (z) setJustUnlocked(z);
+                    }
+                    return ns;
+                });
+            };
+            window.addEventListener('edugamer-xp-added', onXP);
+            window.addEventListener('xpChanged', onXP);
+            return () => {
+                window.removeEventListener('edugamer-xp-added', onXP);
+                window.removeEventListener('xpChanged', onXP);
+            };
+        }, []);
+
+        const xp = xpProgress(stats.xp);
+
+        /* Loading */
+        if (stage === 'loading') return (
+            <div className="h-screen flex items-center justify-center" style={{background:'#0a1525'}}>
+                <div className="text-6xl" style={{animation:'float 1s ease-in-out infinite', display:'inline-block'}}>🏴‍☠️</div>
+            </div>
+        );
+
+        /* Onboarding */
+        if (stage === 'onboarding') return (
+            <Onboarding
+                existing={profile}
+                onComplete={p => { setProfile(p); setStage('island'); }}/>
+        );
+
+        /* Island */
+        return (
+            <div className="h-screen w-screen flex flex-col overflow-hidden"
+                style={{background:'#0a1525', position:'fixed', top:0, left:0}}>
+
+                {/* ── TOP BAR ── */}
+                <div className="flex-shrink-0 flex items-center gap-3 px-3 py-2.5"
+                    style={{background:'rgba(8,16,32,0.95)', borderBottom:'1px solid rgba(251,191,36,0.15)', backdropFilter:'blur(12px)'}}>
+
+                    {/* Avatar */}
+                    <button onClick={() => setStage('onboarding')}
+                        className="w-11 h-11 rounded-full border-2 border-yellow-400 flex items-center justify-center overflow-hidden bg-slate-700 flex-shrink-0 active:scale-90 transition-transform"
+                        style={{boxShadow:'0 0 14px rgba(251,191,36,0.35)'}}>
+                        {profile?.avatarUrl?.startsWith('data:')
+                            ? <img src={profile.avatarUrl} className="w-full h-full object-cover"/>
+                            : <span className="text-xl">{profile?.avatarUrl || '🏴‍☠️'}</span>}
+                    </button>
+
+                    {/* Name + XP */}
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline justify-between gap-1 mb-1">
+                            <span className="text-yellow-300 font-black text-sm truncate leading-none">
+                                {profile?.name || 'Pirata'}
+                            </span>
+                            <span className="text-slate-500 text-xs flex-shrink-0 leading-none">
+                                Lv.{stats.level} · {LEVEL_TITLES[stats.level]}
+                            </span>
+                        </div>
+                        <div className="h-2 bg-slate-800 rounded-full overflow-hidden xp-animated">
+                            <div className="h-full rounded-full transition-all duration-700"
+                                style={{width:`${xp.pct}%`, background:'linear-gradient(90deg,#fbbf24,#f97316)', boxShadow:'0 0 8px rgba(251,191,36,0.5)'}}/>
+                        </div>
+                        <div className="text-slate-600 text-xs mt-0.5">{xp.cur} / {xp.needed} XP</div>
+                    </div>
+
+                    {/* Home */}
+                    <a href="index.html"
+                        className="w-10 h-10 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-center text-xl flex-shrink-0 active:scale-90 transition-transform">
+                        🏠
+                    </a>
+                </div>
+
+                {/* ── MAP ── */}
+                <div className="flex-1 relative overflow-hidden">
+                    <div className="wave-layer absolute inset-0 pointer-events-none opacity-60"/>
+                    <div style={{width:'100%', height:'100%', maxWidth:'520px', margin:'0 auto'}}>
+                        <IslandSVG level={stats.level} onZoneClick={setSelectedZone}/>
+                    </div>
+                </div>
+
+                {/* ── BOTTOM HINT ── */}
+                <div className="flex-shrink-0 text-center py-2 text-slate-600 text-xs"
+                    style={{background:'rgba(8,16,32,0.9)'}}>
+                    🗺️ Tocca una zona per esplorarla · {stats.xp} XP · Livello {stats.level}
+                </div>
+
+                {/* Zone modal */}
+                {selectedZone && <ZoneModal zone={selectedZone} onClose={() => setSelectedZone(null)}/>}
+
+                {/* Level-up overlay */}
+                {justUnlocked && <LevelUpOverlay zone={justUnlocked} onClose={() => setJustUnlocked(null)}/>}
+            </div>
+        );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<script src="game-system.js"></script>
+</body>
+</html>
