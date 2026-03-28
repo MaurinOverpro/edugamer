@@ -1,3 +1,25 @@
-# Chiavi API e dati sensibili
+# ───────────────────────────────────────────
+# CHIAVI API E DATI SENSIBILI
+# ───────────────────────────────────────────
+# File con "api key" nel nome
 api key*
+API key*
+Api key*
+
+# File di ambiente con variabili segrete
+.env
+.env.*
 *.env
+
+# File di testo con credenziali
+*secret*
+*credential*
+*token*
+*password*
+
+# ───────────────────────────────────────────
+# FILE DI SISTEMA
+# ───────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
