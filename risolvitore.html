@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DISCOVER - Risolutore Problemi Multi-Tipo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        .back-button {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .subtitle {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .xp-bar-container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .xp-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .xp-bar {
+            width: 100%;
+            height: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .xp-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 15px;
+        }
+
+        .level-badge {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.3);
+            padding: 5px 15px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .step-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            color: #1e293b;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .step-number {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            margin-right: 15px;
+        }
+
+        .step-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+
+        .step-content {
+            margin-top: 20px;
+        }
+
+        .problem-text {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .question-block {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 16px;
+            color: #334155;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .feedback {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+            font-weight: bold;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .feedback.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 2px solid #10b981;
+        }
+
+        .feedback.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 2px solid #ef4444;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .victory-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .victory-content {
+            background: white;
+            padding: 50px;
+            border-radius: 30px;
+            text-align: center;
+            max-width: 500px;
+            animation: popIn 0.5s ease;
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .victory-content h2 {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .victory-content p {
+            font-size: 24px;
+            color: #334155;
+            margin-bottom: 30px;
+        }
+
+        .type-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .type-trasformazione {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .type-compravendita {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .type-combinazione {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .hint-box {
+            background: rgba(251, 191, 36, 0.1);
+            border-left: 4px solid #fbbf24;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            display: none;
+        }
+
+        .hint-box p {
+            margin: 0;
+        }
+
+        .hint-title {
+            color: #fbbf24;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .hint-content {
+            color: white;
+            font-size: 18px;
+            font-family: monospace;
+        }
+
+        .summary-box {
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .summary-box h4 {
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .summary-box ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .summary-box li {
+            margin-bottom: 8px;
+        }
+
+        .solution-box {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 2px solid #10b981;
+        }
+
+        .solution-box h4 {
+            color: #10b981;
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .solution-box p {
+            font-size: 18px;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .highlight-number {
+            color: #f59e0b;
+            font-weight: bold;
+        }
+
+        .highlight-success {
+            color: #10b981;
+            font-weight: bold;
+        }
+	.problem-header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            position: sticky;
+            top: 20px;
+            z-index: 50;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="back-button" onclick="window.location.href='index.html'">← Matematica</button>
+            <h1>🔍 DISCOVER</h1>
+            <p class="subtitle">Risolutore Intelligente di Problemi</p>
+        </div>
+
+        <div class="xp-bar-container">
+            <div class="xp-info">
+                <span>XP: <span id="current-xp">0</span> / <span id="next-level-xp">100</span></span>
+                <span>Livello: <span id="current-level">1</span></span>
+            </div>
+            <div class="xp-bar">
+                <div class="xp-fill" id="xp-fill"></div>
+                <div class="level-badge">LV <span id="level-display">1</span></div>
+            </div>
+        </div>
+	</div>
+
+        <!-- PROBLEM HEADER (sticky, mostrato dopo analisi) -->
+        <div id="problem-header" class="problem-header" style="display: none;">
+            <h2 style="color: #667eea; margin-bottom: 15px;">📝 Il Tuo Problema</h2>
+            <div id="problem-display" style="background: white; padding: 15px; border-radius: 10px; color: #1e293b; font-size: 16px; line-height: 1.6; margin-bottom: 	15px;"></div>
+        </div>
+
+        <!-- STEP 1: Input Problema -->
+        <!-- STEP 1: Input Problema -->
+        <div class="step-container" id="step-1">
+            <div class="step-header">
+                <div class="step-number">1</div>
+                <div class="step-title">Inserisci il Problema</div>
+            </div>
+            <div class="step-content">
+                <div class="question-block">
+                    <label>Scrivi o incolla il testo del problema matematico:</label>
+                    <textarea id="problem-input" placeholder="Esempio: Marco ha 15 caramelle. La mamma gli dà 10 caramelle. Poi ne mangia 8. Quante caramelle ha alla fine?" autocomplete="off"></textarea>
+                </div>
+                <button class="btn" onclick="analyzeProblem()">Analizza Problema 🔍</button>
+                <div class="feedback" id="feedback-1"></div>
+            </div>
+        </div>
+
+        <!-- STEP 2: Identificazione Numeri -->
+        <div class="step-container hidden" id="step-2">
+            <div class="step-header">
+                <div class="step-number">2</div>
+                <div class="step-title">Trova i Numeri</div>
+            </div>
+            <div class="step-content">
+                <div id="problem-type-badge"></div>
+                <div class="problem-text" id="problem-text-display"></div>
+                <div class="question-block">
+                    <label>Quanti numeri (scritti come cifre) ci sono nel problema?</label>
+                    <input type="number" id="numbers-count" placeholder="Es: 4" autocomplete="off">
+                </div>
+                <button class="btn" onclick="checkStep2()">Verifica ✓</button>
+                <div class="feedback" id="feedback-2"></div>
+            </div>
+        </div>
+
+        <!-- STEP 3: Situazione Iniziale -->
+        <div class="step-container hidden" id="step-3">
+            <div class="step-header">
+                <div class="step-number">3</div>
+                <div class="step-title">Situazione Iniziale</div>
+            </div>
+            <div class="step-content">
+                <div id="step-3-questions"></div>
+                <button class="btn" onclick="checkStep3()">Verifica ✓</button>
+                <div class="feedback" id="feedback-3"></div>
+            </div>
+        </div>
+
+        <!-- STEP 4: Calcoli e Azioni -->
+        <div class="step-container hidden" id="step-4">
+            <div class="step-header">
+                <div class="step-number">4</div>
+                <div class="step-title">Risolvi Passo per Passo</div>
+            </div>
+            <div class="step-content">
+                <div id="step-4-questions"></div>
+                <button class="btn" onclick="checkStep4()">Verifica ✓</button>
+                <div class="feedback" id="feedback-4"></div>
+            </div>
+        </div>
+
+        <!-- STEP 5: Soluzione Finale -->
+        <div class="step-container hidden" id="step-5">
+            <div class="step-header">
+                <div class="step-number">5</div>
+                <div class="step-title">Scrivi la Soluzione</div>
+            </div>
+            <div class="step-content">
+                <div id="step-5-questions"></div>
+                <button class="btn" onclick="checkStep5()">Verifica Soluzione 🎯</button>
+                <div class="feedback" id="feedback-5"></div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div class="step-container hidden" id="loading">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Sto analizzando il problema con l'AI...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Victory Screen -->
+    <div class="victory-screen" id="victory-screen">
+        <div class="victory-content">
+            <h2>🎉 COMPLIMENTI!</h2>
+            <p>Hai risolto il problema!</p>
+            <p style="font-size: 18px; color: #667eea;">+<span id="victory-xp">0</span> XP</p>
+            <button class="btn" onclick="resetProblem()">Nuovo Problema ➜</button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== CONFIGURAZIONE ====================
+        const API_KEY = localStorage.getItem('gemini_api_key') || '';
+        const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+
+        if (!API_KEY) {
+            const userKey = prompt('🔑 Inserisci la tua API Key di Google Gemini:\n\n(La chiave verrà salvata solo nel tuo browser)');
+            if (userKey) {
+                localStorage.setItem('gemini_api_key', userKey.trim());
+                location.reload();
+            } else {
+                alert('⚠️ Serve una API Key per usare DISCOVER!');
+            }
+        }
+
+        // ==================== GAMIFICATION ====================
+const STEP_XP = {
+    1: 10,
+    2: 15,
+    3: 20,
+    4: 30,
+    5: 50
+};
+
+// Usa il sistema XP globale di EduGamer
+function updateXPBar() {
+    if (!window.EduGamer) return;
+    
+    const stats = window.EduGamer.getStats();
+    const level = window.EduGamer.getLevel();
+    const progress = window.EduGamer.getProgress();
+    
+    document.getElementById('current-xp').textContent = progress.current;
+    document.getElementById('next-level-xp').textContent = progress.required;
+    document.getElementById('current-level').textContent = level.level;
+    document.getElementById('level-display').textContent = level.level;
+    document.getElementById('xp-fill').style.width = progress.progress + '%';
+}
+
+function addXP(amount) {
+    if (window.EduGamer) {
+        window.EduGamer.addXP(amount, 'matematica', 'discover');
+        updateXPBar();
+    } else {
+        // Fallback al vecchio sistema se game-system.js non è caricato
+        const currentXP = parseInt(localStorage.getItem('edu_xp') || '0');
+        localStorage.setItem('edu_xp', (currentXP + amount).toString());
+        window.dispatchEvent(new Event('xpChanged'));
+    }
+}
+
+// Inizializza la barra XP
+window.addEventListener('load', updateXPBar);
+window.addEventListener('edugamer-xp-added', updateXPBar);
+
+        // ==================== STATE MANAGEMENT ====================
+        const problemState = {
+            originalText: '',
+            data: null,
+            completedSteps: [],
+            step4Attempts: {}
+        };
+
+        // ==================== UTILITY FUNCTIONS ====================
+        function showStep(stepNumber) {
+            for (let i = 1; i <= 5; i++) {
+                document.getElementById(`step-${i}`).classList.add('hidden');
+            }
+            document.getElementById(`step-${stepNumber}`).classList.remove('hidden');
+        }
+
+        function showFeedback(stepNumber, type, message) {
+            const feedback = document.getElementById(`feedback-${stepNumber}`);
+            feedback.className = `feedback ${type}`;
+            feedback.textContent = message;
+            feedback.style.display = 'block';
+            
+            setTimeout(() => {
+                feedback.style.display = 'none';
+            }, 5000);
+        }
+
+        function completeStep(stepNumber) {
+            if (!problemState.completedSteps.includes(stepNumber)) {
+                problemState.completedSteps.push(stepNumber);
+                addXP(STEP_XP[stepNumber]);
+            }
+            
+            setTimeout(() => {
+                if (stepNumber < 5) {
+                    showStep(stepNumber + 1);
+                    
+                    if (stepNumber === 2) {
+                        generateStep3Questions();
+                    } else if (stepNumber === 3) {
+                        generateStep4Questions();
+                    } else if (stepNumber === 4) {
+                        generateStep5Questions();
+                    }
+                }
+            }, 1500);
+        }
+
+        function validateAnswer(userInput, expected, type = 'text', keywords = []) {
+            const cleaned = userInput.trim().toLowerCase();
+            const expectedCleaned = expected.toString().trim().toLowerCase();
+            
+            if (type === 'number') {
+                const userNum = parseFloat(cleaned.replace(',', '.'));
+                const expectedNum = parseFloat(expectedCleaned.replace(',', '.'));
+                return Math.abs(userNum - expectedNum) < 0.01;
+            }
+            
+            if (type === 'text') {
+                if (cleaned === expectedCleaned) return true;
+                
+                if (keywords && keywords.length > 0) {
+                    return keywords.some(kw => cleaned.includes(kw.toLowerCase()));
+                }
+                
+                const similarity = cleaned.includes(expectedCleaned) || expectedCleaned.includes(cleaned);
+                return similarity;
+            }
+            
+            return false;
+        }
+
+        // ==================== STEP 1: ANALYZE PROBLEM ====================
+        async function analyzeProblem() {
+            const problemText = document.getElementById('problem-input').value.trim();
+            
+            if (!problemText) {
+                showFeedback(1, 'error', '❌ Devi inserire un problema!');
+                return;
+            }
+
+            problemState.originalText = problemText;
+            
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('step-1').classList.add('hidden');
+
+            const prompt = `Sei un assistente che analizza problemi matematici per bambini delle elementari.
+
+PROBLEMA DA ANALIZZARE:
+"${problemText}"
+
+PASSO 1 - CLASSIFICA IL TIPO DI PROBLEMA:
+
+TIPI DISPONIBILI:
+
+1. TRASFORMAZIONE
+   - Descrizione: Situazione iniziale → azioni sequenziali → finale
+   - Parole chiave: regala, dà, prende, riceve, aggiunge, toglie, poi, dopo, perde, vince
+   - Esempio: "Marco ha 10 caramelle, riceve 5 dalla mamma, ne dà 3 a Luca, quante ne ha?"
+
+2. COMPRAVENDITA
+   - Descrizione: Acquisti multipli con calcolo totale/resto
+   - Parole chiave: comprare, costare, spendere, prezzo, euro, centesimi, acquistare, pagare
+   - Esempio: "Compra 3 penne a 2€ ciascuna e 2 quaderni a 5€, quanto spende in totale?"
+
+3. COMBINAZIONE
+   - Descrizione: Sommare insiemi già formati (NO moltiplicazioni)
+   - Parole chiave: in tutto, insieme, totale, complessivamente, somma
+   - Esempio: "In classe ci sono 12 maschi e 10 femmine, quanti alunni in totale?"
+
+PASSO 2 - GENERA IL JSON ADATTATO AL TIPO
+
+ISTRUZIONI CRITICHE:
+1. Rispondi ESCLUSIVAMENTE con un oggetto JSON valido
+2. NON aggiungere testo prima o dopo il JSON
+3. NON usare markdown o backticks
+4. In "numeri_attesi" inserisci SOLO numeri scritti come cifre (non nomi ripetuti)
+5. Conta quante volte un numero appare come CIFRA nel testo
+
+====================
+STRUTTURA PER TRASFORMAZIONE:
+====================
+{
+  "tipo": "TRASFORMAZIONE",
+  "numeri_attesi": ["10", "5", "3"],
+  "domanda": "Quante caramelle ha alla fine?",
+  "personaggi": [
+    {"nome": "Marco", "valore_iniziale": "10"}
+  ],
+  "steps": {
+    "step3_personaggi": [
+      {"domanda": "Chi è il protagonista?", "risposta": "Marco", "tipo": "text"},
+      {"domanda": "Quante caramelle ha all'inizio?", "risposta": "10", "tipo": "number"}
+    ],
+    "step4_azioni": [
+      {"domanda": "Quante ne riceve dalla mamma?", "calcolo": "10 + 5", "risposta": "15", "tipo": "number"},
+      {"domanda": "Quante ne dà a Luca?", "calcolo": "15 - 3", "risposta": "12", "tipo": "number"}
+    ]
+  },
+  "soluzione_finale": {"Marco": "12"}
+}
+
+====================
+STRUTTURA PER COMPRAVENDITA:
+====================
+{
+  "tipo": "COMPRAVENDITA",
+  "numeri_attesi": ["3", "0.80", "4", "0.90", "13", "22"],
+  "domanda": "Quanto spende? Le bastano 22 euro?",
+  "budget": "22",
+  "prodotti": [
+    {"nome": "Penne", "quantita": "3", "prezzo_unitario": "0.80"},
+    {"nome": "Matite", "quantita": "4", "prezzo_unitario": "0.90"},
+    {"nome": "Diario", "quantita": "1", "prezzo_unitario": "13"}
+  ],
+  "steps": {
+    "step3_situazione": [
+      {"domanda": "Chi fa la spesa?", "risposta": "Anastasia", "tipo": "text"},
+      {"domanda": "Quanto ha a disposizione (euro)?", "risposta": "22", "tipo": "number"},
+      {"domanda": "Quanti tipi di articoli diversi compra?", "risposta": "4", "tipo": "number"}
+    ],
+    "step4_calcoli": [
+      {"domanda": "Quanto costano le 3 penne?", "calcolo": "3 × 0.80", "risposta": "2.40", "tipo": "number"},
+      {"domanda": "Quanto costano le 4 matite?", "calcolo": "4 × 0.90", "risposta": "3.60", "tipo": "number"},
+      {"domanda": "Quanto costa il diario?", "calcolo": "", "risposta": "13", "tipo": "number"},
+      {"domanda": "Totale spesa:", "calcolo": "2.40 + 3.60 + 13", "risposta": "19", "tipo": "number"}
+    ]
+  },
+  "soluzione_finale": {
+    "totale_spesa": "19",
+    "resto": "3",
+    "verifica_budget": "Sì, le bastano (risparmia 3€)"
+  }
+}
+
+====================
+STRUTTURA PER COMBINAZIONE:
+====================
+{
+  "tipo": "COMBINAZIONE",
+  "numeri_attesi": ["12", "10"],
+  "domanda": "Quanti alunni ci sono in tutto?",
+  "insiemi": [
+    {"nome": "Maschi", "quantita": "12"},
+    {"nome": "Femmine", "quantita": "10"}
+  ],
+  "steps": {
+    "step3_insiemi": [
+      {"domanda": "Quanti sono i maschi?", "risposta": "12", "tipo": "number"},
+      {"domanda": "Quante sono le femmine?", "risposta": "10", "tipo": "number"}
+    ],
+    "step4_somma": [
+      {"domanda": "Quanto fa la somma totale?", "calcolo": "12 + 10", "risposta": "22", "tipo": "number"}
+    ]
+  },
+  "soluzione_finale": {"totale": "22"}
+}
+
+REGOLE ADATTIVE:
+- Se 1 solo protagonista → personaggi array con 1 elemento
+- Se problema lineare semplice → step4 anche con 1 sola domanda
+- "numeri_attesi" conta SOLO cifre, non ripetizioni di nomi
+- Step4 può avere lunghezza variabile in base alla complessità
+
+Analizza il problema reale, determina il TIPO corretto, e genera il JSON seguendo la struttura appropriata.`;
+
+            try {
+                const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: prompt }]
+                        }]
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error?.message || 'Errore API');
+                }
+
+                let jsonText = result.candidates[0].content.parts[0].text;
+                jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                
+                const data = JSON.parse(jsonText);
+                problemState.data = data;
+                
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('problem-text-display').textContent = problemText;
+                
+                // Mostra badge tipo problema
+                const typeBadge = document.getElementById('problem-type-badge');
+                let badgeClass = 'type-trasformazione';
+                let badgeText = '🔄 TRASFORMAZIONE';
+                
+                if (data.tipo === 'COMPRAVENDITA') {
+                    badgeClass = 'type-compravendita';
+                    badgeText = '🛒 COMPRAVENDITA';
+                } else if (data.tipo === 'COMBINAZIONE') {
+                    badgeClass = 'type-combinazione';
+                    badgeText = '➕ COMBINAZIONE';
+                }
+                
+                typeBadge.innerHTML = `<div class="type-badge ${badgeClass}">${badgeText}</div>`;
+                typeBadge.innerHTML = `<div class="type-badge ${badgeClass}">${badgeText}</div>`;
+                
+                // MOSTRA IL PROBLEM HEADER STICKY
+                document.getElementById('problem-display').textContent = problemText;
+                document.getElementById('problem-header').style.display = 'block';
+                
+                showStep(2);
+                showStep(2);
+                showFeedback(1, 'success', `✅ Problema analizzato! Tipo: ${data.tipo} (+${STEP_XP[1]} XP)`);
+                completeStep(1);
+                
+            } catch (error) {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('step-1').classList.remove('hidden');
+                showFeedback(1, 'error', `❌ Errore: ${error.message}`);
+                console.error('Errore completo:', error);
+            }
+        }
+
+        // ==================== STEP 2: COUNT NUMBERS ====================
+        function checkStep2() {
+            const userCount = parseInt(document.getElementById('numbers-count').value);
+            const expectedCount = problemState.data.numeri_attesi.length;
+            
+            if (userCount === expectedCount) {
+                showFeedback(2, 'success', `✅ Esatto! Ci sono ${expectedCount} numeri. (+${STEP_XP[2]} XP)`);
+                completeStep(2);
+            } else {
+                showFeedback(2, 'error', `❌ Ricontrolla! Non sono ${userCount}...`);
+            }
+        }
+
+        // ==================== STEP 3: INITIAL SITUATION ====================
+        function generateStep3Questions() {
+            const container = document.getElementById('step-3-questions');
+            const tipo = problemState.data.tipo;
+            
+            container.innerHTML = '';
+            
+            let questions;
+            
+            if (tipo === 'COMPRAVENDITA') {
+                questions = problemState.data.steps.step3_situazione;
+            } else if (tipo === 'COMBINAZIONE') {
+                questions = problemState.data.steps.step3_insiemi;
+            } else {
+                questions = problemState.data.steps.step3_personaggi;
+            }
+            
+            questions.forEach((q, idx) => {
+                const block = document.createElement('div');
+                block.className = 'question-block';
+                block.innerHTML = `
+                    <label>${q.domanda}</label>
+                    <input type="text" id="step3-q${idx}" autocomplete="off" placeholder="Scrivi qui la risposta...">
+                `;
+                container.appendChild(block);
+            });
+        }
+
+        function checkStep3() {
+            const tipo = problemState.data.tipo;
+            let questions;
+            
+            if (tipo === 'COMPRAVENDITA') {
+                questions = problemState.data.steps.step3_situazione;
+            } else if (tipo === 'COMBINAZIONE') {
+                questions = problemState.data.steps.step3_insiemi;
+            } else {
+                questions = problemState.data.steps.step3_personaggi;
+            }
+            
+            let allCorrect = true;
+            let incorrectIndex = -1;
+            
+            questions.forEach((q, idx) => {
+                const input = document.getElementById(`step3-q${idx}`).value;
+                const isCorrect = validateAnswer(input, q.risposta, q.tipo, q.parole_chiave);
+                
+                if (!isCorrect && incorrectIndex === -1) {
+                    incorrectIndex = idx;
+                    allCorrect = false;
+                }
+            });
+            
+            if (allCorrect) {
+                showFeedback(3, 'success', `✅ Perfetto! Hai capito la situazione iniziale. (+${STEP_XP[3]} XP)`);
+                completeStep(3);
+            } else {
+                showFeedback(3, 'error', `❌ Controlla la risposta numero ${incorrectIndex + 1}.`);
+            }
+        }
+
+        // ==================== STEP 4: CALCULATIONS ====================
+        function generateStep4Questions() {
+            const container = document.getElementById('step-4-questions');
+            const tipo = problemState.data.tipo;
+            
+            container.innerHTML = '';
+            
+            let questions;
+            
+            if (tipo === 'COMPRAVENDITA') {
+                questions = problemState.data.steps.step4_calcoli;
+            } else if (tipo === 'COMBINAZIONE') {
+                questions = problemState.data.steps.step4_somma;
+            } else {
+                questions = problemState.data.steps.step4_azioni;
+            }
+            
+            questions.forEach((q, idx) => {
+                const block = document.createElement('div');
+                block.className = 'question-block';
+                
+                let inputHTML = `<input type="text" id="step4-q${idx}" autocomplete="off" placeholder="Scrivi qui la risposta...">`;
+                
+                if (q.calcolo) {
+                    inputHTML = `
+                        <div class="hint-box" id="step4-calc-hint-${idx}">
+                            <p class="hint-title">💡 AIUTO - Calcolo da fare:</p>
+                            <p class="hint-content">${q.calcolo}</p>
+                        </div>
+                        <input type="text" id="step4-q${idx}" autocomplete="off" placeholder="Risultato del calcolo...">
+                    `;
+                }
+                
+                block.innerHTML = `
+                    <label>${q.domanda}</label>
+                    ${inputHTML}
+                `;
+                container.appendChild(block);
+                
+                if (!problemState.step4Attempts[idx]) {
+                    problemState.step4Attempts[idx] = 0;
+                }
+            });
+        }
+
+        function checkStep4() {
+            const tipo = problemState.data.tipo;
+            let questions;
+            
+            if (tipo === 'COMPRAVENDITA') {
+                questions = problemState.data.steps.step4_calcoli;
+            } else if (tipo === 'COMBINAZIONE') {
+                questions = problemState.data.steps.step4_somma;
+            } else {
+                questions = problemState.data.steps.step4_azioni;
+            }
+            
+            let allCorrect = true;
+            let incorrectIndex = -1;
+            
+            questions.forEach((q, idx) => {
+                const input = document.getElementById(`step4-q${idx}`).value;
+                const isCorrect = validateAnswer(input, q.risposta, q.tipo, q.parole_chiave);
+                
+                if (!isCorrect && incorrectIndex === -1) {
+                    incorrectIndex = idx;
+                    allCorrect = false;
+                    
+                    problemState.step4Attempts[idx]++;
+                    
+                    if (problemState.step4Attempts[idx] >= 3 && q.calcolo) {
+                        const hintElement = document.getElementById(`step4-calc-hint-${idx}`);
+                        if (hintElement) {
+                            hintElement.style.display = 'block';
+                        }
+                    }
+                }
+            });
+            
+            if (allCorrect) {
+                showFeedback(4, 'success', `✅ Eccellente! Hai seguito tutti i passaggi. (+${STEP_XP[4]} XP)`);
+                completeStep(4);
+            } else {
+                const attemptsCount = problemState.step4Attempts[incorrectIndex];
+                let feedbackMsg = `❌ Ricontrolla la risposta numero ${incorrectIndex + 1}.`;
+                
+                if (attemptsCount >= 3) {
+                    feedbackMsg += ' 💡 Guarda l\'aiuto che è apparso sopra!';
+                } else if (attemptsCount === 2) {
+                    feedbackMsg += ' (Ancora 1 tentativo e ti darò un aiuto)';
+                }
+                
+                showFeedback(4, 'error', feedbackMsg);
+            }
+        }
+
+        // ==================== STEP 5: FINAL SOLUTION ====================
+        function generateStep5Questions() {
+            const container = document.getElementById('step-5-questions');
+            const data = problemState.data;
+            const tipo = data.tipo;
+            
+            // RIEPILOGO
+            let summary = '<div class="summary-box">';
+            summary += '<h4>📝 RIEPILOGO DEL PROCEDIMENTO</h4>';
+            
+            // Situazione iniziale adattiva
+            if (tipo === 'COMPRAVENDITA') {
+                summary += '<p><strong>Situazione:</strong></p>';
+                summary += '<ul>';
+                data.prodotti.forEach(p => {
+                    summary += `<li>${p.quantita} ${p.nome} a ${p.prezzo_unitario}€</li>`;
+                });
+                summary += `<li>Budget disponibile: <span class="highlight-number">${data.budget}€</span></li>`;
+                summary += '</ul>';
+            } else if (tipo === 'COMBINAZIONE') {
+                summary += '<p><strong>Insiemi da sommare:</strong></p><ul>';
+                data.insiemi.forEach(ins => {
+                    summary += `<li>${ins.nome}: <span class="highlight-number">${ins.quantita}</span></li>`;
+                });
+                summary += '</ul>';
+            } else {
+                // TRASFORMAZIONE
+                if (data.personaggi && data.personaggi.length > 0) {
+                    summary += '<p><strong>Situazione iniziale:</strong></p><ul>';
+                    data.personaggi.forEach(p => {
+                        summary += `<li>${p.nome} aveva <span class="highlight-number">${p.valore_iniziale}</span></li>`;
+                    });
+                    summary += '</ul>';
+                }
+            }
+            
+            // Calcoli effettuati
+            let calcoli;
+            if (tipo === 'COMPRAVENDITA') {
+                calcoli = data.steps.step4_calcoli;
+            } else if (tipo === 'COMBINAZIONE') {
+                calcoli = data.steps.step4_somma;
+            } else {
+                calcoli = data.steps.step4_azioni;
+            }
+            
+            if (calcoli && calcoli.length > 0) {
+                summary += '<p><strong>Calcoli effettuati:</strong></p><ul>';
+                calcoli.forEach(action => {
+                    if (action.calcolo) {
+                        summary += `<li><span class="highlight-success">${action.calcolo} = ${action.risposta}</span></li>`;
+                    }
+                });
+                summary += '</ul>';
+            }
+            
+            summary += '</div>';
+            
+            // SOLUZIONE FINALE
+            const solution = data.soluzione_finale;
+            let finalSentence = '<div class="solution-box">';
+            finalSentence += '<h4>✅ SOLUZIONE FINALE</h4>';
+            
+            if (tipo === 'COMPRAVENDITA') {
+                finalSentence += '<p>Alla fine: ';
+                finalSentence += `Spesa totale <span class="highlight-number">${solution.totale_spesa}€</span>, `;
+                finalSentence += `resto <span class="highlight-success">${solution.resto}€</span>. `;
+                finalSentence += `<span class="highlight-success">${solution.verifica_budget}</span></p>`;
+            } else if (tipo === 'COMBINAZIONE') {
+                finalSentence += '<p>Alla fine: ';
+                finalSentence += `Totale = <span class="highlight-number">${solution.totale}</span></p>`;
+            } else {
+                // TRASFORMAZIONE
+                finalSentence += '<p>Alla fine: ';
+                const names = Object.keys(solution);
+                const parts = names.map((name, index) => {
+                    if (index === names.length - 1 && names.length > 1) {
+                        return `e ${name} ha <span class="highlight-number">${solution[name]}</span>`;
+                    }
+                    return `${name} ha <span class="highlight-number">${solution[name]}</span>`;
+                });
+                finalSentence += parts.join(', ') + '.</p>';
+            }
+            
+            finalSentence += '</div>';
+            
+            // INPUT FIELDS
+            let inputFields = '<div style="margin-top: 20px;">';
+            inputFields += '<p style="font-weight: bold; font-size: 18px; margin-bottom: 20px;">Ora scrivi tu le risposte finali:</p>';
+            
+            if (tipo === 'COMPRAVENDITA') {
+                inputFields += `
+                    <div class="question-block">
+                        <label>Spesa totale (euro):</label>
+                        <input type="text" id="step5-answer-0" autocomplete="off" data-key="totale_spesa" data-expected="${solution.totale_spesa}" placeholder="Euro...">
+                    </div>
+                    <div class="question-block">
+                        <label>Resto (euro):</label>
+                        <input type="text" id="step5-answer-1" autocomplete="off" data-key="resto" data-expected="${solution.resto}" placeholder="Euro...">
+                    </div>
+                `;
+            } else if (tipo === 'COMBINAZIONE') {
+                inputFields += `
+                    <div class="question-block">
+                        <label>Totale:</label>
+                        <input type="text" id="step5-answer-0" autocomplete="off" data-expected="${solution.totale}" placeholder="Scrivi il numero...">
+                    </div>
+                `;
+            } else {
+                // TRASFORMAZIONE
+                Object.entries(solution).forEach(([name, value], index) => {
+                    inputFields += `
+                        <div class="question-block">
+                            <label>${name} ha alla fine:</label>
+                            <input type="text" id="step5-answer-${index}" autocomplete="off" data-name="${name}" data-expected="${value}" placeholder="Scrivi il numero...">
+                        </div>
+                    `;
+                });
+            }
+            
+            inputFields += '</div>';
+            
+            container.innerHTML = summary + finalSentence + inputFields;
+        }
+
+        function checkStep5() {
+            const tipo = problemState.data.tipo;
+            const solution = problemState.data.soluzione_finale;
+            let allCorrect = true;
+            let incorrectField = '';
+            
+            if (tipo === 'COMPRAVENDITA') {
+                const totaleInput = document.getElementById('step5-answer-0').value;
+                const totaleCorrect = validateAnswer(totaleInput, solution.totale_spesa, 'number');
+                
+                const restoInput = document.getElementById('step5-answer-1').value;
+                const restoCorrect = validateAnswer(restoInput, solution.resto, 'number');
+                
+                if (!totaleCorrect) {
+                    allCorrect = false;
+                    incorrectField = 'Spesa totale';
+                } else if (!restoCorrect) {
+                    allCorrect = false;
+                    incorrectField = 'Resto';
+                }
+            } else if (tipo === 'COMBINAZIONE') {
+                const input = document.getElementById('step5-answer-0').value;
+                const isCorrect = validateAnswer(input, solution.totale, 'number');
+                
+                if (!isCorrect) {
+                    allCorrect = false;
+                    incorrectField = 'Totale';
+                }
+            } else {
+                // TRASFORMAZIONE
+                let idx = 0;
+                for (const [name, expected] of Object.entries(solution)) {
+                    const input = document.getElementById(`step5-answer-${idx}`).value;
+                    const isCorrect = validateAnswer(input, expected, 'number');
+                    
+                    if (!isCorrect && !incorrectField) {
+                        incorrectField = name;
+                        allCorrect = false;
+                    }
+                    idx++;
+                }
+            }
+            
+            if (allCorrect) {
+                showFeedback(5, 'success', `✅ HAI RISOLTO IL PROBLEMA! (+${STEP_XP[5]} XP)`);
+                completeStep(5);
+                setTimeout(showVictory, 1000);
+            } else {
+                showFeedback(5, 'error', `❌ Controlla il valore per: ${incorrectField}`);
+            }
+        }
+
+        // ==================== VICTORY & RESET ====================
+        function showVictory() {
+            const totalXP = Object.values(STEP_XP).reduce((a, b) => a + b, 0);
+            document.getElementById('victory-xp').textContent = totalXP;
+            document.getElementById('victory-screen').style.display = 'flex';
+        }
+
+        function resetProblem() {
+            document.getElementById('victory-screen').style.display = 'none';
+            
+            problemState.originalText = '';
+            problemState.data = null;
+            problemState.completedSteps = [];
+            problemState.step4Attempts = {};
+            
+            document.getElementById('problem-input').value = '';
+            document.getElementById('numbers-count').value = '';
+            
+            for (let i = 1; i <= 5; i++) {
+                const feedback = document.getElementById(`feedback-${i}`);
+                if (feedback) feedback.style.display = 'none';
+            }
+            
+            showStep(1);
+        }
+
+        // ==================== INITIALIZATION ====================
+        updateXPBar();
+    </script>
+</body>
+</html>
