@@ -10,69 +10,77 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
         * { box-sizing: border-box; }
-        body { background: #0a1525; color: white; font-family: 'Verdana', sans-serif; margin: 0; height: 100dvh; overflow: hidden; }
+        body { background: #071020; color: white; font-family: 'Verdana', sans-serif; margin: 0; height: 100dvh; overflow: hidden; }
 
-        @keyframes wave-move  { to { transform: translateX(-50%); } }
-        @keyframes float      { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-        @keyframes glow-ring  { 0%,100% { opacity: 0.5; r: 26; } 50% { opacity: 0.9; r: 30; } }
-        @keyframes slide-up   { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        @keyframes fade-scale { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
-        @keyframes sparkle    { 0%,100% { opacity: 0; transform: scale(0) rotate(0deg); } 50% { opacity: 1; transform: scale(1) rotate(180deg); } }
-        @keyframes chest-open { 0% { transform: scaleY(1); } 50% { transform: scaleY(0.7) translateY(4px); } 100% { transform: scaleY(1); } }
-        @keyframes xp-glow    { 0%,100% { box-shadow: 0 0 8px rgba(251,191,36,0.4); } 50% { box-shadow: 0 0 20px rgba(251,191,36,0.8); } }
+        @keyframes wave-scroll { to   { transform: translateX(-50%); } }
+        @keyframes float       { 0%,100% { transform: translateY(0);   } 50% { transform: translateY(-5px); } }
+        @keyframes slide-up    { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0);   opacity: 1; } }
+        @keyframes fade-scale  { from { opacity: 0; transform: scale(0.85); }      to { opacity: 1; transform: scale(1);    } }
+        @keyframes xp-glow     { 0%,100% { box-shadow: 0 0 8px rgba(251,191,36,0.4); } 50% { box-shadow: 0 0 22px rgba(251,191,36,0.9); } }
+        @keyframes foam-pulse  { 0%,100% { opacity: 0.25; } 50% { opacity: 0.55; } }
 
         .wave-layer {
             position: absolute; width: 200%; height: 100%;
-            background: repeating-linear-gradient(90deg, transparent 0px, rgba(100,160,255,0.04) 60px, transparent 120px);
-            animation: wave-move 10s linear infinite;
+            background: repeating-linear-gradient(88deg,
+                transparent 0px, rgba(80,150,255,0.05) 55px, transparent 110px);
+            animation: wave-scroll 12s linear infinite;
         }
-        .zone-float { animation: float 3s ease-in-out infinite; }
+        .wave-layer-2 {
+            position: absolute; width: 200%; height: 100%;
+            background: repeating-linear-gradient(92deg,
+                transparent 0px, rgba(40,120,220,0.04) 70px, transparent 140px);
+            animation: wave-scroll 18s linear infinite reverse;
+        }
+
+        .zone-float  { animation: float 3.2s ease-in-out infinite; }
         .modal-enter { animation: slide-up 0.3s ease-out; }
         .overlay-enter { animation: fade-scale 0.25s ease-out; }
-        .xp-animated { animation: xp-glow 2s ease-in-out infinite; }
+        .xp-bar-anim { animation: xp-glow 2.5s ease-in-out infinite; }
+        .foam-anim   { animation: foam-pulse 3s ease-in-out infinite; }
 
-        .zone-circle {
-            transition: transform 0.15s;
-            cursor: pointer;
-        }
-        .zone-circle:active { transform: scale(0.9); }
-        .zone-locked { filter: grayscale(1) brightness(0.4); cursor: default; pointer-events: none; }
+        .zone-btn { cursor: pointer; transition: transform 0.15s; }
+        .zone-btn:active { transform: scale(0.88); }
+        .zone-locked { filter: grayscale(1) brightness(0.38); cursor: default; pointer-events: none; }
 
-        input, select { font-family: 'Verdana', sans-serif; }
+        input { font-family: 'Verdana', sans-serif; }
         input:focus { outline: none; }
-
-        /* Scrollbar hidden for mobile */
         ::-webkit-scrollbar { width: 0; }
     </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-    const { useState, useEffect, useRef, useCallback } = React;
+    const { useState, useEffect, useRef } = React;
 
-    /* ─── CONSTANTS ───────────────────────────────────────────── */
+    /* ── CONSTANTS ──────────────────────────────────────────── */
     const MODEL_TEXT  = "gemini-3-flash-preview";
     const MODEL_IMAGE = "gemini-2.5-flash-image";
     const LEVEL_XP    = [0, 100, 300, 600, 1000, 1500, 2500, 4000, 6000, 10000];
 
-    const calcLevel = (xp) => { let l = 1; LEVEL_XP.forEach((t, i) => { if (xp >= t) l = i + 1; }); return Math.min(l, 10); };
-    const xpProgress = (xp) => {
+    const calcLevel   = (xp) => { let l = 1; LEVEL_XP.forEach((t, i) => { if (xp >= t) l = i + 1; }); return Math.min(l, 10); };
+    const xpProgress  = (xp) => {
         const l = calcLevel(xp);
         if (l >= 10) return { cur: xp, needed: LEVEL_XP[9], pct: 100 };
-        const base = LEVEL_XP[l - 1], next = LEVEL_XP[l];
+        const base = LEVEL_XP[l-1], next = LEVEL_XP[l];
         return { cur: xp - base, needed: next - base, pct: Math.round((xp - base) / (next - base) * 100) };
     };
+    /* Split a zone name into two lines for SVG labels */
+    const splitLabel  = (name) => {
+        const w = name.split(' ');
+        const m = Math.ceil(w.length / 2);
+        return [w.slice(0, m).join(' '), w.slice(m).join(' ')];
+    };
 
-    /* SVG viewBox: 400 × 500 */
+    /* SVG viewBox: 400 × 520 */
     const ZONES = [
-        { id: 'porto',      name: 'Porto dei Pirati',    emoji: '⚓', unlockLevel: 1,  x: 200, y: 405, color: '#38bdf8', link: 'index.html',      charId: 'squall'    },
-        { id: 'caverna',    name: 'Caverna dei Numeri',  emoji: '🔢', unlockLevel: 2,  x: 88,  y: 310, color: '#fbbf24', link: 'matematica.html', charId: 'numerus'   },
-        { id: 'giungla',    name: 'Giungla dei Segreti', emoji: '🌴', unlockLevel: 2,  x: 312, y: 275, color: '#4ade80', link: 'lavagna.html',    charId: 'zara'      },
-        { id: 'biblioteca', name: 'Biblioteca Sommersa', emoji: '📜', unlockLevel: 3,  x: 105, y: 190, color: '#c084fc', link: 'italiano.html',   charId: 'isabella'  },
-        { id: 'torre',      name: "Torre dell'Oracolo",  emoji: '🔮', unlockLevel: 4,  x: 300, y: 155, color: '#f0abfc', link: 'tutor.html',      charId: 'mordecai'  },
-        { id: 'grotta',     name: 'Grotta degli Enigmi', emoji: '🗺️', unlockLevel: 5,  x: 200, y: 228, color: '#fb923c', link: 'discover.html',   charId: 'rex'       },
-        { id: 'cripta',     name: 'Cripta del Tesoro',   emoji: '💎', unlockLevel: 6,  x: 298, y: 368, color: '#fde68a', link: 'profilo.html',    charId: 'barbanera' },
-        { id: 'fortezza',   name: 'Fortezza del Corsaro',emoji: '🏰', unlockLevel: 10, x: 200, y: 72,  color: '#f87171', link: null,              charId: 'corsaro'   },
+        { id:'porto',      name:'Porto dei Pirati',    emoji:'⚓', unlockLevel:1,  x:200, y:420, color:'#38bdf8', link:'index.html',      charId:'squall'    },
+        { id:'caverna',    name:'Caverna dei Numeri',  emoji:'🔢', unlockLevel:2,  x:82,  y:318, color:'#fbbf24', link:'matematica.html', charId:'numerus'   },
+        { id:'giungla',    name:'Giungla dei Segreti', emoji:'🌴', unlockLevel:2,  x:318, y:285, color:'#4ade80', link:'lavagna.html',    charId:'zara'      },
+        { id:'biblioteca', name:'Biblioteca Sommersa', emoji:'📜', unlockLevel:3,  x:100, y:195, color:'#c084fc', link:'italiano.html',   charId:'isabella'  },
+        { id:'torre',      name:"Torre dell'Oracolo",  emoji:'🔮', unlockLevel:4,  x:305, y:158, color:'#f0abfc', link:'tutor.html',      charId:'mordecai'  },
+        { id:'grotta',     name:'Grotta degli Enigmi', emoji:'🗺️', unlockLevel:5,  x:200, y:235, color:'#fb923c', link:'discover.html',   charId:'rex'       },
+        { id:'cripta',     name:'Cripta del Tesoro',   emoji:'💎', unlockLevel:6,  x:300, y:378, color:'#fde68a', link:'profilo.html',    charId:'barbanera' },
+        { id:'fortezza',   name:'Fortezza del Corsaro',emoji:'🏰', unlockLevel:10, x:200, y:72,  color:'#f87171', link:null,              charId:'corsaro'   },
     ];
 
     const PATHS = [
@@ -83,79 +91,73 @@
     ];
 
     const CHARACTERS = {
-        squall:    { name: 'Capitano Squall',      emoji: '🦜', color: '#38bdf8', greeting: "Benvenuto sull'Isola Misteriosa, Pirata! Sono Capitano Squall, il guardiano di questo luogo. Più impari, più terre si svelano davanti a te. L'avventura inizia da qui!" },
-        numerus:   { name: 'Numerus il Kraken',    emoji: '🐙', color: '#fbbf24', greeting: "Argh! Hai osato entrare nella mia Caverna dei Numeri? Ottima mossa! I numeri sono il vero tesoro dell'isola. Padroneggiati, diventerai invincibile!" },
-        zara:      { name: 'Zara la Veggente',     emoji: '🔭', color: '#4ade80', greeting: "La giungla ti accoglie. Io, Zara, vedo connessioni dove altri vedono caos. Con le mappe mentali puoi tenere tutto nella testa — senza sforzo. Vieni, ti insegno." },
-        isabella:  { name: 'Isabella delle Acque', emoji: '🌊', color: '#c084fc', greeting: "Silenzio! Sei nella Biblioteca Sommersa. Le parole sono più potenti di qualsiasi spada. Impara a usarle bene e nessuno potrà fermarti." },
-        mordecai:  { name: "L'Oracolo Mordecai",   emoji: '🔮', color: '#f0abfc', greeting: "Viaggiatore... ti aspettavo. Posso rispondere a qualsiasi domanda tu abbia sul tuo percorso. La vera conoscenza è il tesoro più grande di tutta l'isola." },
-        rex:       { name: "Rex l'Enigmista",      emoji: '🗝️', color: '#fb923c', greeting: "Ah ah ah! Hai trovato la mia Grotta? Bene. Ma sai risolvere i miei enigmi? Solo i pirati più acuti riescono a superarmi. Sei pronto?" },
-        barbanera: { name: 'Barbanera',             emoji: '💀', color: '#fde68a', greeting: "Finalmente un pirata degno di ammirare i miei tesori! Ogni medaglia che vedi è una vittoria che hai conquistato con ingegno. Vieni ad ammirare le tue gemme!" },
-        corsaro:   { name: 'Il Gran Corsaro',      emoji: '👑', color: '#f87171', greeting: "Sei giunto fino alla vetta... Pochissimi ci riescono. Hai dimostrato forza, intelligenza e perseveranza. Questa fortezza è ora anche tua, Leggenda!" },
+        squall:    { name:'Capitano Squall',      emoji:'🦜', color:'#38bdf8', greeting:"Benvenuto sull'Isola Misteriosa, Pirata! Sono Capitano Squall, il guardiano di questo luogo. Più impari, più terre si svelano davanti a te. L'avventura inizia da qui!" },
+        numerus:   { name:'Numerus il Kraken',    emoji:'🐙', color:'#fbbf24', greeting:"Argh! Hai osato entrare nella mia Caverna dei Numeri? Ottima mossa! I numeri sono il vero tesoro dell'isola. Padroneggiandoli, diventerai invincibile!" },
+        zara:      { name:'Zara la Veggente',     emoji:'🔭', color:'#4ade80', greeting:"La giungla ti accoglie. Io, Zara, vedo connessioni dove altri vedono caos. Con le mappe mentali puoi tenere tutto nella testa, senza fatica. Vieni, ti insegno." },
+        isabella:  { name:'Isabella delle Acque', emoji:'🌊', color:'#c084fc', greeting:"Silenzio! Sei nella Biblioteca Sommersa. Le parole sono più potenti di qualsiasi spada. Impara a usarle bene e nessuno potrà fermarti." },
+        mordecai:  { name:"L'Oracolo Mordecai",   emoji:'🔮', color:'#f0abfc', greeting:"Viaggiatore... ti aspettavo. Posso rispondere a qualsiasi domanda sul tuo percorso. La vera conoscenza è il tesoro più grande di tutta l'isola." },
+        rex:       { name:"Rex l'Enigmista",      emoji:'🗝️', color:'#fb923c', greeting:"Ah ah ah! Hai trovato la mia Grotta? Ma sai risolvere i miei enigmi? Solo i pirati più acuti riescono a superarmi. Sei pronto?" },
+        barbanera: { name:'Barbanera',             emoji:'💀', color:'#fde68a', greeting:"Finalmente un pirata degno di ammirare i miei tesori! Ogni medaglia che vedi è una vittoria conquistata con il tuo ingegno. Vieni ad ammirare le tue gemme!" },
+        corsaro:   { name:'Il Gran Corsaro',      emoji:'👑', color:'#f87171', greeting:"Sei giunto fino alla vetta... Pochissimi ci riescono. Hai dimostrato forza, intelligenza e perseveranza. Questa fortezza è ora anche tua, Leggenda!" },
     };
 
     const PRESET_AVATARS = ['🏴‍☠️','🦜','⚓','💀','🗡️','🔮','🐙','🌊','🗺️','💎','🦊','🐉'];
     const LEVEL_TITLES   = ['','Marinaio','Esploratore','Navigatore','Corsaro','Avventuriero','Cacciatore','Leggenda','Gran Maestro','Anima Antica','Gran Corsaro'];
 
-    /* ─── DB ──────────────────────────────────────────────────── */
+    /* ── DB ─────────────────────────────────────────────────── */
     const DB = {
         getKey:     () => localStorage.getItem('gemini_api_key'),
-        getProfile: () => { try { return JSON.parse(localStorage.getItem('isola_profile') || 'null'); } catch { return null; } },
+        getProfile: () => { try { return JSON.parse(localStorage.getItem('isola_profile')||'null'); } catch { return null; } },
         saveProfile:(p) => localStorage.setItem('isola_profile', JSON.stringify(p)),
         getStats:   () => {
             try {
-                const s = JSON.parse(localStorage.getItem('edugamer_stats') || '{}');
-                const xp = s.xp || parseInt(localStorage.getItem('edu_xp') || '0');
+                const s = JSON.parse(localStorage.getItem('edugamer_stats')||'{}');
+                const xp = s.xp || parseInt(localStorage.getItem('edu_xp')||'0');
                 return { xp, level: calcLevel(xp) };
-            } catch { return { xp: 0, level: 1 }; }
+            } catch { return { xp:0, level:1 }; }
         },
     };
 
-    /* ─── AI ──────────────────────────────────────────────────── */
+    /* ── AI ─────────────────────────────────────────────────── */
     const AI = {
         generateAvatar: async (b64, mime, name) => {
             const key = DB.getKey();
             if (!key) throw new Error("Chiave API mancante");
             const res = await fetch(
                 `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE}:generateContent?key=${key}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [
-                            { text: `Crea un avatar pirata cartoon colorato e divertente ispirato a questa foto. Stile fumetto vivace con colori saturi. Il pirata si chiama "${name}". Sfondo semplice o trasparente. Solo il personaggio, ritratto dall'ombelico in su.` },
-                            { inlineData: { mimeType: mime, data: b64 } }
-                        ]}],
-                        generationConfig: { responseModalities: ['IMAGE'] }
-                    })
+                { method:'POST', headers:{'Content-Type':'application/json'},
+                  body: JSON.stringify({
+                    contents:[{parts:[
+                        { text:`Crea un avatar pirata cartoon colorato e divertente ispirato a questa foto. Stile fumetto vivace con colori saturi. Il pirata si chiama "${name}". Sfondo semplice. Solo il personaggio, ritratto dall'ombelico in su.` },
+                        { inlineData:{ mimeType:mime, data:b64 } }
+                    ]}],
+                    generationConfig:{ responseModalities:['IMAGE'] }
+                  })
                 }
             );
             if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || `Errore API ${res.status}`); }
             const data = await res.json();
-            const img = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+            const img  = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
             if (!img) throw new Error("Nessuna immagine nella risposta AI");
             return `data:${img.inlineData.mimeType};base64,${img.inlineData.data}`;
         },
     };
 
-    /* ─── ONBOARDING ──────────────────────────────────────────── */
+    /* ── ONBOARDING ─────────────────────────────────────────── */
     const Onboarding = ({ existing, onComplete }) => {
-        const [name,       setName]       = useState(existing?.name || '');
-        const [photoB64,   setPhotoB64]   = useState(null);
-        const [photoMime,  setPhotoMime]  = useState('image/jpeg');
-        const [avatarUrl,  setAvatarUrl]  = useState(existing?.avatarUrl || null);
-        const [preset,     setPreset]     = useState(null);
-        const [generating, setGenerating] = useState(false);
-        const [error,      setError]      = useState('');
+        const [name,      setName]      = useState(existing?.name || '');
+        const [photoB64,  setPhotoB64]  = useState(null);
+        const [photoMime, setPhotoMime] = useState('image/jpeg');
+        const [avatarUrl, setAvatarUrl] = useState(existing?.avatarUrl || null);
+        const [preset,    setPreset]    = useState(null);
+        const [generating,setGenerating]= useState(false);
+        const [error,     setError]     = useState('');
 
         const handlePhoto = (e) => {
             const f = e.target.files[0]; if (!f) return;
             setPhotoMime(f.type || 'image/jpeg');
             const r = new FileReader();
-            r.onload = (ev) => {
-                setPhotoB64(ev.target.result.split(',')[1]);
-                setAvatarUrl(ev.target.result);
-                setPreset(null);
-            };
+            r.onload = (ev) => { setPhotoB64(ev.target.result.split(',')[1]); setAvatarUrl(ev.target.result); setPreset(null); };
             r.readAsDataURL(f);
         };
 
@@ -163,73 +165,53 @@
             if (!photoB64) return;
             if (!DB.getKey()) { setError("⚠️ Chiave API mancante — vai alla Home per inserirla"); return; }
             setGenerating(true); setError('');
-            try {
-                const url = await AI.generateAvatar(photoB64, photoMime, name || 'Pirata');
-                setAvatarUrl(url); setPhotoB64(null);
-            } catch (e) { setError("Errore: " + e.message); }
-            finally { setGenerating(false); }
+            try { const url = await AI.generateAvatar(photoB64, photoMime, name||'Pirata'); setAvatarUrl(url); setPhotoB64(null); }
+            catch (e) { setError("Errore: " + e.message); }
+            finally   { setGenerating(false); }
         };
 
         const handleComplete = () => {
             if (!name.trim()) { setError("Scegli il tuo nome da pirata!"); return; }
-            const avatar = avatarUrl || preset || '🏴‍☠️';
+            const avatar  = avatarUrl || preset || '🏴‍☠️';
             const profile = { name: name.trim(), avatarUrl: avatar };
             DB.saveProfile(profile);
             onComplete(profile);
         };
 
-        const avatarPreview = avatarUrl?.startsWith('data:')
+        const preview = avatarUrl?.startsWith('data:')
             ? <img src={avatarUrl} className="w-full h-full object-cover rounded-full"/>
             : <span className="text-5xl">{preset || '🏴‍☠️'}</span>;
 
         return (
             <div className="min-h-screen flex flex-col items-center justify-start overflow-y-auto py-8 px-4"
-                style={{background:'linear-gradient(160deg,#0a1525 0%,#0d2040 60%,#0a1525 100%)'}}>
+                style={{background:'linear-gradient(160deg,#071020 0%,#0d2040 60%,#071020 100%)'}}>
                 <div className="w-full max-w-md">
-
-                    {/* Header */}
                     <div className="text-center mb-8">
                         <div className="text-7xl mb-3" style={{filter:'drop-shadow(0 0 20px rgba(251,191,36,0.6))'}}>🏴‍☠️</div>
                         <h1 className="text-3xl font-black text-yellow-400 tracking-tight mb-1"
-                            style={{textShadow:'0 0 30px rgba(251,191,36,0.5)'}}>
-                            ISOLA MISTERIOSA
-                        </h1>
+                            style={{textShadow:'0 0 30px rgba(251,191,36,0.5)'}}>ISOLA MISTERIOSA</h1>
                         <p className="text-slate-400 text-sm">{existing ? 'Modifica il tuo profilo pirata' : 'Crea il tuo profilo per salpare'}</p>
                     </div>
 
-                    {/* Nome */}
                     <div className="bg-slate-800/80 rounded-2xl p-5 mb-4 border border-slate-700">
-                        <label className="text-yellow-400 font-bold text-xs uppercase tracking-widest mb-2 block">
-                            ⚓ Il tuo nome da Pirata
-                        </label>
-                        <input
-                            value={name} onChange={e => setName(e.target.value)}
+                        <label className="text-yellow-400 font-bold text-xs uppercase tracking-widest mb-2 block">⚓ Il tuo nome da Pirata</label>
+                        <input value={name} onChange={e => setName(e.target.value)}
                             placeholder="es. Tempesta dei Mari, Occhio di Fuoco..."
-                            className="w-full bg-slate-700/80 text-white rounded-xl px-4 py-3 text-base border border-slate-600 focus:border-yellow-400 transition-colors"
-                        />
+                            className="w-full bg-slate-700/80 text-white rounded-xl px-4 py-3 text-base border border-slate-600 focus:border-yellow-400 transition-colors"/>
                     </div>
 
-                    {/* Avatar */}
                     <div className="bg-slate-800/80 rounded-2xl p-5 mb-4 border border-slate-700">
-                        <label className="text-yellow-400 font-bold text-xs uppercase tracking-widest mb-4 block">
-                            🎨 Il tuo Avatar
-                        </label>
-
-                        {/* Preview */}
+                        <label className="text-yellow-400 font-bold text-xs uppercase tracking-widest mb-4 block">🎨 Il tuo Avatar</label>
                         <div className="flex justify-center mb-4">
                             <div className="w-28 h-28 rounded-full border-4 border-yellow-400 flex items-center justify-center overflow-hidden bg-slate-700"
                                 style={{boxShadow:'0 0 25px rgba(251,191,36,0.4)'}}>
-                                {avatarPreview}
+                                {preview}
                             </div>
                         </div>
-
-                        {/* Upload */}
-                        <label className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer mb-3 active:scale-95 transition-all border border-blue-400">
+                        <label className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer mb-3 active:scale-95 transition-all border border-blue-400">
                             <input type="file" accept="image/*" className="hidden" onChange={handlePhoto}/>
                             📷 Carica una foto
                         </label>
-
-                        {/* Generate AI avatar */}
                         {photoB64 && (
                             <button onClick={generateAvatar} disabled={generating}
                                 className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 mb-3 active:scale-95 transition-all border border-purple-400 disabled:opacity-50">
@@ -238,34 +220,24 @@
                                     : <><span>✨</span><span>Crea Avatar Pirata con AI</span></>}
                             </button>
                         )}
-
-                        {/* Preset grid */}
                         <p className="text-slate-500 text-xs text-center mb-2">Oppure scegli un avatar predefinito</p>
                         <div className="grid grid-cols-6 gap-2">
                             {PRESET_AVATARS.map(em => (
-                                <button key={em}
-                                    onClick={() => { setPreset(em); setAvatarUrl(null); setPhotoB64(null); }}
-                                    className={`h-11 rounded-xl text-2xl flex items-center justify-center transition-all border-2 ${preset === em && !avatarUrl ? 'border-yellow-400 bg-slate-600 scale-110' : 'border-slate-600 bg-slate-700/60'}`}>
+                                <button key={em} onClick={() => { setPreset(em); setAvatarUrl(null); setPhotoB64(null); }}
+                                    className={`h-11 rounded-xl text-2xl flex items-center justify-center transition-all border-2 ${preset===em&&!avatarUrl?'border-yellow-400 bg-slate-600 scale-110':'border-slate-600 bg-slate-700/60'}`}>
                                     {em}
                                 </button>
                             ))}
                         </div>
                     </div>
 
-                    {/* Error */}
-                    {error && (
-                        <div className="bg-red-900/50 border border-red-500 rounded-xl p-3 mb-4 text-red-300 text-sm text-center">
-                            {error}
-                        </div>
-                    )}
+                    {error && <div className="bg-red-900/50 border border-red-500 rounded-xl p-3 mb-4 text-red-300 text-sm text-center">{error}</div>}
 
-                    {/* CTA */}
                     <button onClick={handleComplete}
                         className="w-full font-black py-4 rounded-2xl text-xl text-black active:scale-95 transition-all"
                         style={{background:'linear-gradient(135deg,#fbbf24,#f59e0b)', boxShadow:'0 0 30px rgba(251,191,36,0.5)'}}>
-                        {existing ? '💾 Salva Modifiche' : '⚓ SALPA VERSO L\'ISOLA!'}
+                        {existing ? '💾 Salva Modifiche' : "⚓ SALPA VERSO L'ISOLA!"}
                     </button>
-
                     {existing && (
                         <button onClick={() => onComplete(existing)}
                             className="w-full mt-3 py-3 rounded-2xl text-slate-400 bg-slate-800 border border-slate-700 font-bold">
@@ -277,193 +249,381 @@
         );
     };
 
-    /* ─── ISLAND SVG ──────────────────────────────────────────── */
+    /* ── PARCHMENT MODAL ────────────────────────────────────── */
+    const ParchmentModal = ({ onClose }) => (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overlay-enter"
+            style={{background:'rgba(0,0,0,0.82)'}} onClick={onClose}>
+            <div className="w-full max-w-sm rounded-2xl p-6 relative"
+                style={{
+                    background:'linear-gradient(150deg,#f5e8c0,#ead9a0,#f0e0b0)',
+                    border:'4px solid #8b6410',
+                    boxShadow:'0 0 50px rgba(139,100,16,0.6), inset 0 0 30px rgba(180,140,60,0.2)',
+                    maxHeight:'82vh', overflowY:'auto'
+                }}
+                onClick={e => e.stopPropagation()}>
+
+                {/* Decorative corners */}
+                {['top-2 left-2','top-2 right-2','bottom-2 left-2','bottom-2 right-2'].map((pos,i) => (
+                    <div key={i} className={`absolute ${pos} text-amber-700 text-lg opacity-50`}>✦</div>
+                ))}
+
+                <div className="text-center mb-4">
+                    <div className="text-5xl mb-2">📜</div>
+                    <h2 className="text-2xl font-black text-amber-900" style={{fontFamily:'Georgia,serif', textShadow:'1px 1px 2px rgba(100,60,0,0.3)'}}>
+                        L'Isola Misteriosa
+                    </h2>
+                    <div className="h-0.5 bg-amber-700/40 my-3 mx-4 rounded"/>
+                </div>
+
+                <div className="text-amber-900 text-sm leading-relaxed space-y-3" style={{fontFamily:'Georgia,serif'}}>
+                    <p>🏴‍☠️ <strong>Benvenuto, coraggioso esploratore!</strong></p>
+                    <p>L'Isola Misteriosa è il tuo mondo di avventura e conoscenza. Ogni angolo nasconde un tesoro — non d'oro, ma di sapere.</p>
+                    <p>Qui <strong>studiare è un'avventura</strong>. Ogni attività che completi nei moduli di EduGamer ti porta nuovi punti esperienza (<strong>XP</strong>). Più XP accumuli, più livelli sali — e più zone si svelano dalla nebbia.</p>
+                    <div className="bg-amber-800/10 border border-amber-700/30 rounded-xl p-3 space-y-1">
+                        <p>🌴 <strong>Giungla dei Segreti</strong> — crea mappe mentali</p>
+                        <p>🔢 <strong>Caverna dei Numeri</strong> — padroneggia la matematica</p>
+                        <p>📜 <strong>Biblioteca Sommersa</strong> — affina il tuo italiano</p>
+                        <p>🔮 <strong>Torre dell'Oracolo</strong> — il tuo tutor AI personale</p>
+                        <p>🗺️ <strong>Grotta degli Enigmi</strong> — risolvi problemi complessi</p>
+                        <p>💎 <strong>Cripta del Tesoro</strong> — ammira le tue conquiste</p>
+                    </div>
+                    <p>E se raggiungerai il <strong>Livello 10</strong>... la <strong>Fortezza del Gran Corsaro</strong> aprirà le sue porte per accoglierti tra le leggende! 🏰</p>
+                    <p className="text-center font-bold text-amber-800 pt-1">⚓ Buona fortuna, Pirata! ⚓</p>
+                </div>
+
+                <div className="h-0.5 bg-amber-700/40 my-4 mx-4 rounded"/>
+                <button onClick={onClose}
+                    className="w-full py-3 rounded-xl font-bold text-amber-900 border-2 border-amber-700 bg-amber-200/60 active:scale-95 transition-transform"
+                    style={{fontFamily:'Georgia,serif'}}>
+                    Chiudi la pergamena
+                </button>
+            </div>
+        </div>
+    );
+
+    /* ── ISLAND SVG ─────────────────────────────────────────── */
     const IslandSVG = ({ level, onZoneClick }) => (
-        <svg viewBox="0 0 400 500" style={{width:'100%',height:'100%',display:'block'}} preserveAspectRatio="xMidYMid meet">
+        <svg viewBox="0 0 400 520" style={{width:'100%',height:'100%',display:'block'}} preserveAspectRatio="xMidYMid meet">
             <defs>
-                <radialGradient id="ocean" cx="50%" cy="50%">
-                    <stop offset="0%"   stopColor="#1a4080"/>
-                    <stop offset="100%" stopColor="#080f1e"/>
+                <radialGradient id="ocean-deep" cx="50%" cy="50%">
+                    <stop offset="0%"   stopColor="#1a4a8a"/>
+                    <stop offset="70%"  stopColor="#0d2a55"/>
+                    <stop offset="100%" stopColor="#060e1e"/>
                 </radialGradient>
-                <radialGradient id="island" cx="50%" cy="35%">
-                    <stop offset="0%"   stopColor="#2d7a3a"/>
-                    <stop offset="55%"  stopColor="#1a5c25"/>
-                    <stop offset="100%" stopColor="#7a4a10"/>
+                <radialGradient id="island-fill" cx="48%" cy="35%">
+                    <stop offset="0%"   stopColor="#2e7c3e"/>
+                    <stop offset="45%"  stopColor="#1c5c28"/>
+                    <stop offset="80%"  stopColor="#1a4a20"/>
+                    <stop offset="100%" stopColor="#6e4010"/>
                 </radialGradient>
-                <filter id="soft-glow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur stdDeviation="5" result="b"/>
-                    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                <radialGradient id="beach-fill" cx="50%" cy="50%">
+                    <stop offset="0%"   stopColor="#c8954a"/>
+                    <stop offset="100%" stopColor="#8b5e20"/>
+                </radialGradient>
+                <filter id="isle-shadow" x="-15%" y="-15%" width="130%" height="130%">
+                    <feDropShadow dx="0" dy="4" stdDeviation="8" floodColor="#000" floodOpacity="0.5"/>
                 </filter>
-                <filter id="fog-blur">
-                    <feGaussianBlur stdDeviation="6"/>
+                <filter id="soft-blur" x="-30%" y="-30%" width="160%" height="160%">
+                    <feGaussianBlur stdDeviation="5"/>
+                </filter>
+                <filter id="glow-filter" x="-40%" y="-40%" width="180%" height="180%">
+                    <feGaussianBlur stdDeviation="4" result="b"/>
+                    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
                 </filter>
             </defs>
 
-            {/* Ocean */}
-            <rect width="400" height="500" fill="url(#ocean)"/>
-            {/* Wave shimmer */}
-            {[50,100,150,200,250,300,350,400,450].map(y =>
-                <line key={y} x1="0" y1={y} x2="400" y2={y} stroke="rgba(100,180,255,0.05)" strokeWidth="1.5"/>
+            {/* ── OCEAN ── */}
+            <rect width="400" height="520" fill="url(#ocean-deep)"/>
+            {/* Horizontal shimmer waves */}
+            {[40,90,145,200,258,315,370,430,480].map(y =>
+                <line key={y} x1="0" y1={y} x2="400" y2={y}
+                    stroke="rgba(120,180,255,0.06)" strokeWidth="1.5"/>
+            )}
+            {/* Diagonal wave highlights */}
+            {[[-20,80,420,500],[30,20,380,420],[-30,300,420,600]].map(([x1,y1,x2,y2],i) =>
+                <line key={'d'+i} x1={x1} y1={y1} x2={x2} y2={y2}
+                    stroke="rgba(80,160,255,0.035)" strokeWidth="1"/>
             )}
 
-            {/* Island base */}
-            <path d="M 200 32
-                C 242 24,290 44,326 76
-                C 362 110,372 158,366 206
-                C 360 256,350 300,346 345
-                C 340 390,312 422,268 434
-                C 242 442,210 444,178 440
-                C 142 434,112 416,88 390
-                C 60 360,48 318,44 272
-                C 40 224,48 174,70 136
-                C 94 96,130 62,168 42
-                C 180 35,192 32,200 32 Z"
-                fill="url(#island)" stroke="#5a3505" strokeWidth="3.5"/>
+            {/* Rocks in the sea */}
+            {[[45,180,14,8],[350,380,12,7],[30,420,10,6],[368,140,11,6],[355,470,9,5],[22,320,8,5]].map(([rx,ry,rw,rh],i) =>
+                <g key={'r'+i}>
+                    <ellipse cx={rx} cy={ry} rx={rw} ry={rh} fill="#2a1a0a" opacity="0.8"/>
+                    <ellipse cx={rx} cy={ry-2} rx={rw*0.7} ry={rh*0.5} fill="#3a2a10" opacity="0.6"/>
+                    {/* Foam around rocks */}
+                    <ellipse cx={rx} cy={ry} rx={rw+4} ry={rh+3}
+                        fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"
+                        strokeDasharray="3,4" className="foam-anim"
+                        style={{animationDelay:`${i*0.6}s`}}/>
+                </g>
+            )}
 
-            {/* Beach ring */}
-            <path d="M 200 46
-                C 236 40,278 57,312 86
-                C 346 116,355 160,350 204
-                C 344 250,335 292,332 335
-                C 326 376,302 406,262 418
-                C 238 426,213 428,183 424
-                C 150 418,122 402,100 378
-                C 74 350,63 312,60 270
-                C 57 226,65 180,85 146
-                C 107 110,140 78,172 58
-                C 184 50,194 46,200 46 Z"
-                fill="none" stroke="rgba(210,175,80,0.3)" strokeWidth="10" strokeDasharray="4,10"/>
+            {/* ── ISLAND SHADOW (blur layer behind) ── */}
+            <path d="M 200 42
+                L 215 34 L 228 42 L 242 26 L 256 36
+                C 278 28, 300 46, 322 72
+                L 332 64 L 340 80
+                C 356 100, 366 128, 364 158
+                L 372 170 L 362 188
+                C 364 210, 362 235, 354 258
+                L 362 272 L 350 290
+                C 346 312, 338 338, 330 360
+                L 340 372 L 326 390
+                C 314 408, 294 424, 268 436
+                C 248 444, 226 446, 204 444
+                C 182 446, 160 440, 140 430
+                L 130 438 L 118 422
+                C 100 406, 82 386, 74 364
+                L 62 376 L 56 356
+                C 46 334, 40 308, 40 282
+                L 32 268 L 44 252
+                C 40 230, 44 206, 52 184
+                L 44 170 L 56 154
+                C 62 132, 76 108, 94 88
+                L 84 74 L 98 62
+                C 118 46, 146 34, 172 30
+                L 184 24 L 200 42 Z"
+                fill="#000" opacity="0.4" style={{filter:'url(#soft-blur)'}}/>
 
-            {/* Mountain peaks (fortezza area) */}
-            <polygon points="200,42 234,108 166,108" fill="#4a2a06" opacity="0.75"/>
-            <polygon points="200,34 222,90 178,90"  fill="#6a3f10" opacity="0.85"/>
-            <polygon points="200,28 215,70 185,70"  fill="#8a5520" opacity="0.9"/>
+            {/* ── BEACH (outer) ── */}
+            <path d="M 200 42
+                L 215 34 L 228 42 L 242 26 L 256 36
+                C 278 28, 300 46, 322 72
+                L 332 64 L 340 80
+                C 356 100, 366 128, 364 158
+                L 372 170 L 362 188
+                C 364 210, 362 235, 354 258
+                L 362 272 L 350 290
+                C 346 312, 338 338, 330 360
+                L 340 372 L 326 390
+                C 314 408, 294 424, 268 436
+                C 248 444, 226 446, 204 444
+                C 182 446, 160 440, 140 430
+                L 130 438 L 118 422
+                C 100 406, 82 386, 74 364
+                L 62 376 L 56 356
+                C 46 334, 40 308, 40 282
+                L 32 268 L 44 252
+                C 40 230, 44 206, 52 184
+                L 44 170 L 56 154
+                C 62 132, 76 108, 94 88
+                L 84 74 L 98 62
+                C 118 46, 146 34, 172 30
+                L 184 24 L 200 42 Z"
+                fill="url(#beach-fill)" stroke="#5a3205" strokeWidth="2.5"
+                style={{filter:'url(#isle-shadow)'}}/>
 
-            {/* Vegetation dots */}
-            {[[130,205],[275,222],[155,308],[248,318],[185,175],[215,165],[100,270],[300,300]].map(([tx,ty],i) => (
-                <g key={i}>
-                    <rect x={tx-2} y={ty+2} width="4" height="14" fill="#3a2005"/>
-                    <ellipse cx={tx} cy={ty} rx="11" ry="9" fill="#1a6028" opacity="0.8"/>
-                    <ellipse cx={tx} cy={ty-4} rx="8" ry="7" fill="#237535" opacity="0.7"/>
+            {/* ── VEGETATION LAYER ── */}
+            <path d="M 200 56
+                L 214 50 L 224 56 L 238 44 L 250 52
+                C 270 46, 290 60, 310 82
+                L 318 76 L 326 90
+                C 340 108, 350 132, 348 158
+                L 355 168 L 346 184
+                C 348 204, 346 226, 340 248
+                L 348 260 L 338 276
+                C 333 296, 326 320, 318 342
+                L 328 353 L 316 370
+                C 305 386, 286 400, 262 412
+                C 244 420, 224 422, 204 420
+                C 184 422, 163 417, 145 408
+                L 136 415 L 125 400
+                C 109 386, 94 368, 87 348
+                L 76 358 L 70 340
+                C 61 320, 56 296, 57 272
+                L 50 260 L 61 246
+                C 58 226, 62 204, 70 184
+                L 63 172 L 74 158
+                C 80 138, 92 116, 108 98
+                L 100 86 L 114 76
+                C 132 62, 156 52, 178 46
+                L 188 41 L 200 56 Z"
+                fill="url(#island-fill)"/>
+
+            {/* ── FOAM / SURF LINE ── */}
+            <path d="M 200 42
+                L 215 34 L 228 42 L 242 26 L 256 36
+                C 278 28, 300 46, 322 72
+                L 332 64 L 340 80
+                C 356 100, 366 128, 364 158
+                L 372 170 L 362 188
+                C 364 210, 362 235, 354 258
+                L 362 272 L 350 290
+                C 346 312, 338 338, 330 360
+                L 340 372 L 326 390
+                C 314 408, 294 424, 268 436
+                C 248 444, 226 446, 204 444
+                C 182 446, 160 440, 140 430
+                L 130 438 L 118 422
+                C 100 406, 82 386, 74 364
+                L 62 376 L 56 356
+                C 46 334, 40 308, 40 282
+                L 32 268 L 44 252
+                C 40 230, 44 206, 52 184
+                L 44 170 L 56 154
+                C 62 132, 76 108, 94 88
+                L 84 74 L 98 62
+                C 118 46, 146 34, 172 30
+                L 184 24 L 200 42 Z"
+                fill="none"
+                stroke="rgba(200,235,255,0.28)" strokeWidth="6"
+                strokeDasharray="8,12" className="foam-anim"/>
+
+            {/* ── MOUNTAINS (fortezza area) ── */}
+            <polygon points="200,52 240,118 160,118" fill="#3e2005" opacity="0.8"/>
+            <polygon points="200,44 228,100 172,100" fill="#5a3010" opacity="0.85"/>
+            <polygon points="200,38 220,80 180,80"  fill="#7a4818" opacity="0.9"/>
+            {/* Snow cap */}
+            <polygon points="200,38 212,62 188,62"  fill="#e8dcc8" opacity="0.55"/>
+
+            {/* ── VEGETATION DETAIL ── */}
+            {/* Tree clusters */}
+            {[
+                [135,210,11,9],[145,222,9,8],[125,225,10,8],   // west cluster
+                [268,228,11,9],[278,218,9,8],[258,240,10,8],   // east cluster
+                [155,315,10,8],[165,328,9,7],[145,330,9,8],    // sw cluster
+                [248,330,10,8],[260,320,9,7],[240,342,9,7],    // se cluster
+                [188,178,9,7],[198,168,8,7],[178,185,9,7],     // n-center
+                [210,380,9,7],[222,390,8,6],[198,392,8,6],     // south
+            ].map(([tx,ty,rw,rh],i) => (
+                <g key={'t'+i}>
+                    <rect x={tx-2} y={ty+2} width="4" height={rh+6} fill="#2a1500" opacity="0.7"/>
+                    <ellipse cx={tx}   cy={ty}   rx={rw}     ry={rh}     fill="#1a6030" opacity="0.85"/>
+                    <ellipse cx={tx}   cy={ty-4} rx={rw*0.75} ry={rh*0.8} fill="#228038" opacity="0.8"/>
+                    <ellipse cx={tx}   cy={ty-8} rx={rw*0.5}  ry={rh*0.6} fill="#2a9040" opacity="0.75"/>
                 </g>
             ))}
+            {/* Palm trees near beach */}
+            {[[200,415,8,5],[168,408,7,4],[232,412,7,4]].map(([tx,ty,rw,rh],i) => (
+                <g key={'p'+i}>
+                    <rect x={tx-1.5} y={ty-16} width="3" height="18" fill="#5a3a10" opacity="0.8"
+                        style={{transform:`rotate(${i===1?-8:i===2?8:0}deg)`, transformOrigin:`${tx}px ${ty}px`}}/>
+                    <ellipse cx={tx} cy={ty-18} rx={rw} ry={rh} fill="#1a7030" opacity="0.8"
+                        style={{transform:`rotate(${i===1?-8:i===2?8:0}deg)`, transformOrigin:`${tx}px ${ty}px`}}/>
+                </g>
+            ))}
+            {/* Small bushes */}
+            {[[90,350,7,4],[310,350,6,4],[95,250,6,4],[305,250,6,4]].map(([bx,by,rw,rh],i) =>
+                <ellipse key={'b'+i} cx={bx} cy={by} rx={rw} ry={rh} fill="#1a6028" opacity="0.7"/>
+            )}
 
-            {/* Treasure map paths */}
-            {PATHS.map(([a, b], i) => {
-                const za = ZONES.find(z => z.id === a);
-                const zb = ZONES.find(z => z.id === b);
+            {/* ── TREASURE MAP PATHS ── */}
+            {PATHS.map(([a,b], i) => {
+                const za = ZONES.find(z => z.id===a), zb = ZONES.find(z => z.id===b);
                 if (!za || !zb) return null;
-                const visible = level >= za.unlockLevel && level >= zb.unlockLevel;
-                return (
-                    <line key={i}
-                        x1={za.x} y1={za.y} x2={zb.x} y2={zb.y}
-                        stroke={visible ? "rgba(210,175,60,0.55)" : "rgba(100,100,100,0.2)"}
-                        strokeWidth="1.8" strokeDasharray="5,9"
-                        style={{transition:'stroke 0.5s'}}/>
-                );
+                const vis = level >= za.unlockLevel && level >= zb.unlockLevel;
+                return <line key={'path'+i}
+                    x1={za.x} y1={za.y} x2={zb.x} y2={zb.y}
+                    stroke={vis ? "rgba(220,185,70,0.6)" : "rgba(90,80,60,0.2)"}
+                    strokeWidth="1.8" strokeDasharray="5,9"
+                    style={{transition:'stroke 0.6s'}}/>;
             })}
 
-            {/* Zones */}
-            {ZONES.map(zone => {
+            {/* ── ZONES ── */}
+            {ZONES.map((zone, idx) => {
                 const unlocked = level >= zone.unlockLevel;
+                const [l1, l2] = splitLabel(zone.name);
                 return (
                     <g key={zone.id}
-                        className={unlocked ? 'zone-circle zone-float' : 'zone-circle zone-locked'}
+                        className={`zone-btn ${unlocked ? 'zone-float' : 'zone-locked'}`}
                         onClick={() => unlocked && onZoneClick(zone)}
-                        style={{animationDelay:`${ZONES.indexOf(zone) * 0.4}s`}}>
-                        {/* Glow ring (unlocked only) */}
+                        style={{animationDelay:`${idx * 0.45}s`}}>
+                        {/* Outer glow ring */}
                         {unlocked && (
-                            <circle cx={zone.x} cy={zone.y} r="30"
-                                fill="none" stroke={zone.color} strokeWidth="1.5"
-                                opacity="0.4" style={{filter:`drop-shadow(0 0 6px ${zone.color})`}}/>
+                            <circle cx={zone.x} cy={zone.y} r="32"
+                                fill="none" stroke={zone.color} strokeWidth="1.2" opacity="0.35"
+                                style={{filter:`drop-shadow(0 0 5px ${zone.color})`}}/>
                         )}
-                        {/* Main circle */}
+                        {/* Circle body */}
                         <circle cx={zone.x} cy={zone.y} r="22"
-                            fill={unlocked ? 'rgba(8,20,45,0.92)' : 'rgba(12,12,12,0.7)'}
-                            stroke={unlocked ? zone.color : '#334'}
+                            fill={unlocked ? 'rgba(6,16,38,0.92)' : 'rgba(10,10,14,0.75)'}
+                            stroke={unlocked ? zone.color : '#2a2a36'}
                             strokeWidth={unlocked ? 2.5 : 1.5}
-                            style={unlocked ? {filter:`drop-shadow(0 2px 8px ${zone.color}60)`} : {}}/>
+                            style={unlocked ? {filter:`drop-shadow(0 2px 10px ${zone.color}55)`} : {}}/>
                         {/* Emoji */}
-                        <text x={zone.x} y={zone.y + 8} textAnchor="middle" fontSize="19">
+                        <text x={zone.x} y={zone.y+8} textAnchor="middle" fontSize="19">
                             {unlocked ? zone.emoji : '🔒'}
                         </text>
-                        {/* Label */}
-                        <text x={zone.x} y={zone.y + 38} textAnchor="middle"
-                            fontSize="8" fontWeight="bold" fontFamily="Verdana"
-                            fill={unlocked ? '#cbd5e1' : '#444'}>
-                            {zone.name.length > 15 ? zone.name.slice(0,13)+'…' : zone.name}
+                        {/* Label background */}
+                        <rect x={zone.x-48} y={zone.y+28} width="96" height={l2 ? 26 : 14}
+                            rx="5" fill="rgba(0,0,0,0.55)" opacity={unlocked ? 0.8 : 0.4}/>
+                        {/* Label text — always fully readable, 2 lines if needed */}
+                        <text textAnchor="middle" fontSize="8.5" fontWeight="bold" fontFamily="Verdana"
+                            fill={unlocked ? '#e2e8f0' : '#555'}>
+                            <tspan x={zone.x} y={zone.y + 39}>{l1}</tspan>
+                            {l2 && <tspan x={zone.x} dy="11">{l2}</tspan>}
                         </text>
-                        {/* Fog overlay on locked */}
+                        {/* Fog overlay */}
                         {!unlocked && (
                             <circle cx={zone.x} cy={zone.y} r="28"
-                                fill="rgba(80,80,110,0.3)"
-                                style={{filter:'url(#fog-blur)'}}/>
+                                fill="rgba(70,70,100,0.35)"
+                                style={{filter:'url(#soft-blur)'}}/>
                         )}
                     </g>
                 );
             })}
 
-            {/* Compass rose (decorative) */}
-            <g transform="translate(358,455)" opacity="0.35">
-                <circle cx="0" cy="0" r="18" fill="none" stroke="#c8a860" strokeWidth="1"/>
-                <text x="0" y="-9"  textAnchor="middle" fontSize="7" fill="#c8a860" fontWeight="bold">N</text>
-                <text x="0" y="14"  textAnchor="middle" fontSize="7" fill="#c8a860">S</text>
-                <text x="-13" y="3" textAnchor="middle" fontSize="7" fill="#c8a860">O</text>
-                <text x="13"  y="3" textAnchor="middle" fontSize="7" fill="#c8a860">E</text>
-                <line x1="0" y1="-14" x2="0" y2="14" stroke="#c8a860" strokeWidth="0.8"/>
-                <line x1="-14" y1="0" x2="14" y2="0" stroke="#c8a860" strokeWidth="0.8"/>
+            {/* ── COMPASS ROSE ── */}
+            <g transform="translate(352, 468)">
+                {/* Outer decorative ring */}
+                <circle cx="0" cy="0" r="28" fill="rgba(6,16,38,0.75)"
+                    stroke="rgba(200,170,80,0.5)" strokeWidth="1.5"/>
+                <circle cx="0" cy="0" r="22" fill="none"
+                    stroke="rgba(200,170,80,0.3)" strokeWidth="0.8"/>
+                {/* Cardinal lines */}
+                <line x1="0" y1="-20" x2="0"  y2="20"  stroke="#c8a850" strokeWidth="0.8" opacity="0.6"/>
+                <line x1="-20" y1="0" x2="20" y2="0"   stroke="#c8a850" strokeWidth="0.8" opacity="0.6"/>
+                {/* Diagonal lines */}
+                <line x1="-14" y1="-14" x2="14" y2="14" stroke="#c8a850" strokeWidth="0.5" opacity="0.3"/>
+                <line x1="14" y1="-14" x2="-14" y2="14" stroke="#c8a850" strokeWidth="0.5" opacity="0.3"/>
+                {/* North arrow (gold) */}
+                <polygon points="0,-20 -5,-6 0,-10 5,-6" fill="#fbbf24"/>
+                {/* South arrow (white) */}
+                <polygon points="0,20 -4,7 0,11 4,7"    fill="#e2d8b8" opacity="0.8"/>
+                {/* East arrow */}
+                <polygon points="20,0 7,-4 11,0 7,4"    fill="#e2d8b8" opacity="0.7"/>
+                {/* West arrow */}
+                <polygon points="-20,0 -7,-4 -11,0 -7,4" fill="#e2d8b8" opacity="0.7"/>
+                {/* Center dot */}
+                <circle cx="0" cy="0" r="3" fill="#fbbf24"/>
+                {/* Cardinal labels */}
+                <text x="0"   y="-24" textAnchor="middle" fontSize="7" fill="#fbbf24" fontWeight="bold">N</text>
+                <text x="0"   y="33"  textAnchor="middle" fontSize="7" fill="#c8b890">S</text>
+                <text x="27"  y="3"   textAnchor="middle" fontSize="7" fill="#c8b890">E</text>
+                <text x="-27" y="3"   textAnchor="middle" fontSize="7" fill="#c8b890">O</text>
             </g>
         </svg>
     );
 
-    /* ─── ZONE MODAL ──────────────────────────────────────────── */
+    /* ── ZONE MODAL ─────────────────────────────────────────── */
     const ZoneModal = ({ zone, onClose }) => {
         const char = CHARACTERS[zone.charId];
         return (
             <div className="fixed inset-0 z-50 flex items-end justify-center p-3"
-                style={{background:'rgba(0,0,0,0.75)'}} onClick={onClose}>
+                style={{background:'rgba(0,0,0,0.78)'}} onClick={onClose}>
                 <div className="w-full max-w-lg rounded-3xl overflow-hidden modal-enter"
-                    style={{
-                        background:'linear-gradient(160deg,#1e293b,#0f172a)',
-                        border:`2px solid ${zone.color}`,
-                        boxShadow:`0 0 50px ${zone.color}40`
-                    }}
+                    style={{background:'linear-gradient(160deg,#1e293b,#0f172a)', border:`2px solid ${zone.color}`, boxShadow:`0 0 50px ${zone.color}40`}}
                     onClick={e => e.stopPropagation()}>
-
-                    {/* Header */}
-                    <div className="flex items-center gap-4 p-5 pb-4"
-                        style={{borderBottom:`1px solid ${zone.color}25`}}>
+                    <div className="flex items-center gap-4 p-5 pb-4" style={{borderBottom:`1px solid ${zone.color}25`}}>
                         <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0"
                             style={{background:`${zone.color}18`, border:`2px solid ${zone.color}`, boxShadow:`0 0 18px ${zone.color}40`}}>
                             {zone.emoji}
                         </div>
                         <div className="flex-1 min-w-0">
                             <h2 className="text-xl font-black text-white leading-tight">{zone.name}</h2>
-                            <p className="text-sm font-bold mt-0.5" style={{color:zone.color}}>
-                                {char.emoji} {char.name}
-                            </p>
+                            <p className="text-sm font-bold mt-0.5" style={{color:zone.color}}>{char.emoji} {char.name}</p>
                         </div>
-                        <button onClick={onClose}
-                            className="w-10 h-10 rounded-full bg-slate-700 text-slate-300 text-lg flex items-center justify-center flex-shrink-0">
-                            ✕
-                        </button>
+                        <button onClick={onClose} className="w-10 h-10 rounded-full bg-slate-700 text-slate-300 text-lg flex items-center justify-center flex-shrink-0">✕</button>
                     </div>
-
-                    {/* Dialogue */}
                     <div className="p-5 pt-4">
                         <div className="rounded-2xl p-4 mb-5 italic text-sm text-slate-200 leading-relaxed"
                             style={{background:`${zone.color}10`, border:`1px solid ${zone.color}25`}}>
                             "{char.greeting}"
                         </div>
-
                         {zone.link ? (
                             <a href={zone.link}
-                                className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-black text-lg active:scale-95 transition-transform"
-                                style={{
-                                    background:`linear-gradient(135deg,${zone.color},${zone.color}bb)`,
-                                    color: zone.id === 'cripta' ? '#000' : '#000',
-                                    boxShadow:`0 4px 24px ${zone.color}50`
-                                }}>
+                                className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-black text-lg text-black active:scale-95 transition-transform"
+                                style={{background:`linear-gradient(135deg,${zone.color},${zone.color}bb)`, boxShadow:`0 4px 24px ${zone.color}50`}}>
                                 {zone.emoji} ENTRA NELLA ZONA!
                             </a>
                         ) : (
@@ -479,13 +639,13 @@
         );
     };
 
-    /* ─── LEVEL UP OVERLAY ────────────────────────────────────── */
+    /* ── LEVEL-UP OVERLAY ───────────────────────────────────── */
     const LevelUpOverlay = ({ zone, onClose }) => (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6 overlay-enter"
-            style={{background:'rgba(0,0,0,0.85)'}} onClick={onClose}>
+            style={{background:'rgba(0,0,0,0.88)'}} onClick={onClose}>
             <div className="text-center">
-                <div className="text-8xl mb-4" style={{animation:'float 1.2s ease-in-out infinite', display:'inline-block',
-                    filter:`drop-shadow(0 0 20px ${CHARACTERS[zone.charId]?.color || '#fbbf24'})`}}>
+                <div className="text-8xl mb-4 inline-block"
+                    style={{animation:'float 1.2s ease-in-out infinite', filter:`drop-shadow(0 0 22px ${CHARACTERS[zone.charId]?.color||'#fbbf24'})`}}>
                     {zone.emoji}
                 </div>
                 <div className="text-4xl mb-3">✨</div>
@@ -493,9 +653,7 @@
                     NUOVA ZONA SBLOCCATA!
                 </div>
                 <div className="text-white text-xl font-bold mb-2">{zone.name}</div>
-                <div className="text-slate-300 text-sm mb-6">
-                    {CHARACTERS[zone.charId]?.emoji} {CHARACTERS[zone.charId]?.name} ti aspetta!
-                </div>
+                <div className="text-slate-300 text-sm mb-6">{CHARACTERS[zone.charId]?.emoji} {CHARACTERS[zone.charId]?.name} ti aspetta!</div>
                 <button onClick={onClose}
                     className="bg-yellow-500 text-black font-black px-10 py-3 rounded-2xl text-lg active:scale-95 transition-transform"
                     style={{boxShadow:'0 0 25px rgba(251,191,36,0.6)'}}>
@@ -505,21 +663,19 @@
         </div>
     );
 
-    /* ─── APP ─────────────────────────────────────────────────── */
+    /* ── APP ────────────────────────────────────────────────── */
     const App = () => {
         const [stage,        setStage]        = useState('loading');
         const [profile,      setProfile]      = useState(null);
-        const [stats,        setStats]        = useState({ xp: 0, level: 1 });
+        const [stats,        setStats]        = useState({ xp:0, level:1 });
         const [selectedZone, setSelectedZone] = useState(null);
         const [justUnlocked, setJustUnlocked] = useState(null);
+        const [showParchment,setShowParchment]= useState(false);
 
         useEffect(() => {
-            const p = DB.getProfile();
-            const s = DB.getStats();
-            setStats(s);
-            setProfile(p);
+            const p = DB.getProfile(), s = DB.getStats();
+            setStats(s); setProfile(p);
             setStage(p ? 'island' : 'onboarding');
-
             const onXP = () => {
                 const ns = DB.getStats();
                 setStats(prev => {
@@ -532,89 +688,75 @@
             };
             window.addEventListener('edugamer-xp-added', onXP);
             window.addEventListener('xpChanged', onXP);
-            return () => {
-                window.removeEventListener('edugamer-xp-added', onXP);
-                window.removeEventListener('xpChanged', onXP);
-            };
+            return () => { window.removeEventListener('edugamer-xp-added', onXP); window.removeEventListener('xpChanged', onXP); };
         }, []);
 
         const xp = xpProgress(stats.xp);
 
-        /* Loading */
         if (stage === 'loading') return (
-            <div className="h-screen flex items-center justify-center" style={{background:'#0a1525'}}>
-                <div className="text-6xl" style={{animation:'float 1s ease-in-out infinite', display:'inline-block'}}>🏴‍☠️</div>
+            <div className="h-screen flex items-center justify-center" style={{background:'#071020'}}>
+                <div className="text-6xl inline-block" style={{animation:'float 1s ease-in-out infinite'}}>🏴‍☠️</div>
             </div>
         );
-
-        /* Onboarding */
         if (stage === 'onboarding') return (
-            <Onboarding
-                existing={profile}
-                onComplete={p => { setProfile(p); setStage('island'); }}/>
+            <Onboarding existing={profile} onComplete={p => { setProfile(p); setStage('island'); }}/>
         );
 
-        /* Island */
         return (
             <div className="h-screen w-screen flex flex-col overflow-hidden"
-                style={{background:'#0a1525', position:'fixed', top:0, left:0}}>
+                style={{background:'#071020', position:'fixed', top:0, left:0}}>
 
-                {/* ── TOP BAR ── */}
+                {/* TOP BAR */}
                 <div className="flex-shrink-0 flex items-center gap-3 px-3 py-2.5"
-                    style={{background:'rgba(8,16,32,0.95)', borderBottom:'1px solid rgba(251,191,36,0.15)', backdropFilter:'blur(12px)'}}>
-
-                    {/* Avatar */}
+                    style={{background:'rgba(5,12,26,0.96)', borderBottom:'1px solid rgba(251,191,36,0.15)', backdropFilter:'blur(12px)'}}>
                     <button onClick={() => setStage('onboarding')}
-                        className="w-11 h-11 rounded-full border-2 border-yellow-400 flex items-center justify-center overflow-hidden bg-slate-700 flex-shrink-0 active:scale-90 transition-transform"
+                        className="w-11 h-11 rounded-full border-2 border-yellow-400 flex items-center justify-center overflow-hidden bg-slate-800 flex-shrink-0 active:scale-90 transition-transform"
                         style={{boxShadow:'0 0 14px rgba(251,191,36,0.35)'}}>
                         {profile?.avatarUrl?.startsWith('data:')
                             ? <img src={profile.avatarUrl} className="w-full h-full object-cover"/>
                             : <span className="text-xl">{profile?.avatarUrl || '🏴‍☠️'}</span>}
                     </button>
-
-                    {/* Name + XP */}
                     <div className="flex-1 min-w-0">
                         <div className="flex items-baseline justify-between gap-1 mb-1">
-                            <span className="text-yellow-300 font-black text-sm truncate leading-none">
-                                {profile?.name || 'Pirata'}
-                            </span>
-                            <span className="text-slate-500 text-xs flex-shrink-0 leading-none">
-                                Lv.{stats.level} · {LEVEL_TITLES[stats.level]}
-                            </span>
+                            <span className="text-yellow-300 font-black text-sm truncate leading-none">{profile?.name || 'Pirata'}</span>
+                            <span className="text-slate-500 text-xs flex-shrink-0 leading-none">Lv.{stats.level} · {LEVEL_TITLES[stats.level]}</span>
                         </div>
-                        <div className="h-2 bg-slate-800 rounded-full overflow-hidden xp-animated">
+                        <div className="h-2 bg-slate-800 rounded-full overflow-hidden xp-bar-anim">
                             <div className="h-full rounded-full transition-all duration-700"
                                 style={{width:`${xp.pct}%`, background:'linear-gradient(90deg,#fbbf24,#f97316)', boxShadow:'0 0 8px rgba(251,191,36,0.5)'}}/>
                         </div>
                         <div className="text-slate-600 text-xs mt-0.5">{xp.cur} / {xp.needed} XP</div>
                     </div>
-
-                    {/* Home */}
+                    {/* Parchment button */}
+                    <button onClick={() => setShowParchment(true)}
+                        className="w-10 h-10 rounded-xl bg-amber-900/50 border border-amber-700/50 flex items-center justify-center text-xl flex-shrink-0 active:scale-90 transition-transform"
+                        title="Cos'è l'Isola?">
+                        📜
+                    </button>
                     <a href="index.html"
                         className="w-10 h-10 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-center text-xl flex-shrink-0 active:scale-90 transition-transform">
                         🏠
                     </a>
                 </div>
 
-                {/* ── MAP ── */}
+                {/* MAP */}
                 <div className="flex-1 relative overflow-hidden">
-                    <div className="wave-layer absolute inset-0 pointer-events-none opacity-60"/>
+                    <div className="wave-layer   absolute inset-0 pointer-events-none"/>
+                    <div className="wave-layer-2 absolute inset-0 pointer-events-none opacity-60"/>
                     <div style={{width:'100%', height:'100%', maxWidth:'520px', margin:'0 auto'}}>
                         <IslandSVG level={stats.level} onZoneClick={setSelectedZone}/>
                     </div>
                 </div>
 
-                {/* ── BOTTOM HINT ── */}
-                <div className="flex-shrink-0 text-center py-2 text-slate-600 text-xs"
-                    style={{background:'rgba(8,16,32,0.9)'}}>
+                {/* BOTTOM HINT */}
+                <div className="flex-shrink-0 text-center py-1.5 text-slate-600 text-xs"
+                    style={{background:'rgba(5,12,26,0.92)'}}>
                     🗺️ Tocca una zona per esplorarla · {stats.xp} XP · Livello {stats.level}
                 </div>
 
-                {/* Zone modal */}
-                {selectedZone && <ZoneModal zone={selectedZone} onClose={() => setSelectedZone(null)}/>}
-
-                {/* Level-up overlay */}
-                {justUnlocked && <LevelUpOverlay zone={justUnlocked} onClose={() => setJustUnlocked(null)}/>}
+                {selectedZone  && <ZoneModal zone={selectedZone} onClose={() => setSelectedZone(null)}/>}
+                {justUnlocked  && <LevelUpOverlay zone={justUnlocked} onClose={() => setJustUnlocked(null)}/>}
+                {showParchment && <ParchmentModal onClose={() => setShowParchment(false)}/>}
             </div>
         );
     };
