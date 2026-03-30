@@ -333,7 +333,7 @@ function genS3() {
     const qs=getS3qs();
     document.getElementById('s3-qs').innerHTML=qs.map((q,i)=>`
         <div style="margin-bottom:18px;">
-            <label class="q-label">${escHtml(q.domanda)}</label>
+            <label class="q-label">${hiNums(q.domanda)}</label>
             <input type="text" id="s3-${i}" autocomplete="off" placeholder="Scrivi qui la risposta...">
         </div>`).join('');
 }
@@ -366,9 +366,20 @@ function renderS4(idx) {
     // Current question
     if(idx<qs.length){
         const q=qs[idx];
+        // Memory recap inside question card — always visible
+        let memHtml='';
+        if(S.memory.length>0){
+            memHtml=`<div style="background:rgba(202,138,4,0.15);border:2px solid #ca8a04;border-radius:12px;padding:10px 14px;margin-bottom:14px;">
+                <div style="color:#ca8a04;font-size:11px;font-weight:bold;margin-bottom:7px;">📌 DATI CHE TI SERVONO:</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                    ${S.memory.map(m=>`<span style="background:#1e293b;border:1px solid #ca8a04;border-radius:16px;padding:4px 12px;font-size:14px;display:inline-flex;align-items:center;gap:5px;">${escHtml(m.label)}: <strong style="color:#fbbf24;font-size:17px;">${escHtml(m.value)}</strong></span>`).join('')}
+                </div>
+            </div>`;
+        }
         html+=`<div class="q-current">
-            <div style="font-size:12px;color:#4ade80;font-weight:bold;margin-bottom:8px;">CALCOLO ${idx+1} DI ${qs.length}</div>
-            <label class="q-label" style="font-size:17px;">${escHtml(q.domanda)}</label>
+            <div style="font-size:12px;color:#4ade80;font-weight:bold;margin-bottom:10px;">CALCOLO ${idx+1} DI ${qs.length}</div>
+            ${memHtml}
+            <label class="q-label" style="font-size:17px;">${hiNums(q.domanda)}</label>
             ${q.calcolo?`<div class="calc-prompt">🔢 ${escHtml(q.calcolo)} = ?</div>`:''}
             <input type="text" id="s4-cur" autocomplete="off" placeholder="Scrivi il risultato..." style="margin-top:8px;">
         </div>
