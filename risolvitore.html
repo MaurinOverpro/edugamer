@@ -331,7 +331,12 @@ function checkStep2() {
 // ===== STEP 3 =====
 function genS3() {
     const qs=getS3qs();
-    document.getElementById('s3-qs').innerHTML=qs.map((q,i)=>`
+    // Box con il testo del problema evidenziato, per riferimento immediato
+    const probBox=`<div style="background:rgba(15,23,42,0.8);border-left:4px solid #4ade80;border-radius:12px;padding:12px 16px;margin-bottom:18px;">
+        <div style="color:#4ade80;font-size:11px;font-weight:bold;margin-bottom:6px;">📖 DAL PROBLEMA:</div>
+        <div style="font-size:15px;line-height:1.8;">${hiNums(S.text)}</div>
+    </div>`;
+    document.getElementById('s3-qs').innerHTML=probBox+qs.map((q,i)=>`
         <div style="margin-bottom:18px;">
             <label class="q-label">${hiNums(q.domanda)}</label>
             <input type="text" id="s3-${i}" autocomplete="off" placeholder="Scrivi qui la risposta...">
@@ -435,6 +440,15 @@ function genS5(){
     qs.forEach(q=>{ if(q.calcolo) html+=`<li style="margin-bottom:7px;"><span style="color:#94a3b8;">${escHtml(q.etichetta||'')}:</span> <strong style="color:#4ade80;">${escHtml(q.calcolo)} = ${escHtml(q.risposta)}</strong></li>`; });
     html+='</ul></div>';
     html+=`<div class="sol-box"><h4>🎯 Soluzione Finale</h4><p style="color:#a7f3d0;font-size:17px;line-height:1.7;">${escHtml(d.soluzione_finale.testo)}</p></div>`;
+    // Box dati trovati nei calcoli, per riferimento immediato prima delle domande finali
+    if(S.memory.length>0){
+        html+=`<div style="background:rgba(202,138,4,0.15);border:2px solid #ca8a04;border-radius:12px;padding:12px 16px;margin-bottom:18px;">
+            <div style="color:#ca8a04;font-size:11px;font-weight:bold;margin-bottom:8px;">📌 DATI TROVATI NEI CALCOLI:</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                ${S.memory.map(m=>`<span style="background:#1e293b;border:1px solid #ca8a04;border-radius:16px;padding:4px 12px;font-size:14px;display:inline-flex;align-items:center;gap:5px;">${escHtml(m.label)}: <strong style="color:#fbbf24;font-size:17px;">${escHtml(m.value)}</strong></span>`).join('')}
+            </div>
+        </div>`;
+    }
     html+='<p style="font-weight:bold;font-size:16px;margin-bottom:14px;margin-top:8px;color:#e2e8f0;">Ora scrivi tu le risposte finali:</p>';
     const vals=d.soluzione_finale.valori||{};
     Object.entries(vals).forEach(([name,val],i)=>{
