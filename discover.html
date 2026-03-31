@@ -989,17 +989,9 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
                         <div className="flex items-center justify-between bg-slate-800/50 backdrop-blur rounded-xl md:rounded-2xl p-3 md:p-4 border-2 border-slate-700">
                             <div className="flex items-center gap-2 md:gap-3">
                                 <button 
-                                    onClick={() => {
-                                        if (imageData || problemData) {
-                                            if (window.confirm('Ricominciare da capo? (Il progresso attuale andrà perso)')) {
-                                                setImageData(null);
-                                                setProblemData(null);
-                                                setScreen('upload');
-                                            }
-                                        }
-                                    }}
+                                    onClick={() => { window.location.href = 'index.html'; }}
                                     className="text-2xl md:text-3xl active:scale-95 cursor-pointer"
-                                    title="Ricomincia"
+                                    title="Torna alla Home di EduGamer"
                                 >
                                     🏠
                                 </button>
@@ -1083,14 +1075,12 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
                             <div className="flex items-center gap-2">
                                 <button 
                                     onClick={() => {
-                                        if (window.confirm('Tornare all\'inizio? Il progresso attuale andrà perso.')) {
-                                            setScreen('upload');
-                                            setImageData(null);
-                                            setProblemData(null);
+                                        if (window.confirm('Tornare alla Home? Il progresso attuale andrà perso.')) {
+                                            window.location.href = 'index.html';
                                         }
                                     }}
                                     className="text-2xl active:scale-95"
-                                    title="Torna all'inizio"
+                                    title="Torna alla Home di EduGamer"
                                 >
                                     🏠
                                 </button>
