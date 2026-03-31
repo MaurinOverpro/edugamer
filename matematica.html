@@ -436,6 +436,7 @@
                 <div className="h-full flex flex-col p-2 gap-2 bg-slate-900">
                     <div className="tabs-container flex gap-2 shrink-0 h-11 overflow-x-auto hide-scrollbar">
                         <a href="index.html" className="bg-slate-700 text-white px-3 rounded-xl font-bold flex items-center justify-center text-lg active:scale-95">🏠</a>
+                        <a href="tutor.html?materia=matematica" className="bg-purple-700 text-white px-3 rounded-xl font-bold flex items-center justify-center text-sm active:scale-95 whitespace-nowrap border-2 border-purple-400">🎓 Tutor</a>
                         <button onClick={()=>setMode('calc')} className={`tab-btn flex-1 rounded-xl font-bold active:scale-95 whitespace-nowrap px-2 ${mode==='calc'?'bg-blue-600 text-white':'bg-slate-800 text-slate-400'}`}>CALCOLA</button>
                         <button onClick={()=>setMode('matrix')} className={`tab-btn flex-1 rounded-xl font-bold active:scale-95 whitespace-nowrap px-2 ${mode==='matrix'?'bg-yellow-600 text-white':'bg-slate-800 text-slate-400'}`}>TABELLINE</button>
                         <button onClick={()=>setMode('fractions')} className={`tab-btn flex-1 rounded-xl font-bold active:scale-95 whitespace-nowrap px-2 ${mode==='fractions'?'bg-orange-600 text-white shadow-[0_0_10px_rgba(234,88,12,0.5)]':'bg-slate-800 text-slate-400'}`}>FRAZIONI</button>

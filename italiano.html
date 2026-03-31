@@ -361,7 +361,10 @@ Rispondi SOLO con JSON:
                         <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Es: La mia gita in montagna..." className="editor-area text-center py-4 text-xl" autoFocus />
                         <button onClick={startBrainstorming} disabled={!title.trim()} className="btn-magico w-full py-4 rounded-2xl font-bold text-white text-xl">INIZIAMO! 🚀</button>
                     </div>
-                    <a href="index.html" className="text-slate-400 bg-slate-800 px-6 py-3 rounded-xl font-bold mt-4 border border-slate-700">🏠 MENU</a>
+                    <div className="flex gap-3 mt-4">
+                        <a href="index.html" className="text-slate-400 bg-slate-800 px-6 py-3 rounded-xl font-bold border border-slate-700">🏠 MENU</a>
+                        <a href="tutor.html?materia=italiano" className="bg-purple-700 text-white px-6 py-3 rounded-xl font-bold border-2 border-purple-400 active:scale-95">🎓 Chiedi al Tutor</a>
+                    </div>
                 </div>
             );
 

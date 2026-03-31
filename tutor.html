@@ -152,15 +152,12 @@
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
-        const MODEL = "gemini-3-pro-preview";
+        const MODEL = "gemini-3-flash-preview";
 
         const DB = {
             getKey: () => localStorage.getItem('gemini_api_key'),
-            addXP: (amount) => {
-                const next = parseInt(localStorage.getItem('edu_xp') || '0') + amount;
-                localStorage.setItem('edu_xp', next.toString());
-                window.dispatchEvent(new Event('xpChanged'));
-                return next;
+            addXP: (amount, action) => {
+                if(window.EduGamer) window.EduGamer.addXP(amount, 'tutor', action);
             }
         };
 
@@ -205,6 +202,9 @@ Obiettivo: Spiegare concetti difficili in modo semplice e amichevole. Rispondi s
                 parts: [{ text: m.text }]
             }));
 
+            const materiaNote = materia ? `\n\nCONTESTO: Lo studente sta usando il modulo "${materia.label}" di EduGamer. Adatta le tue risposte a questa materia.` : '';
+            systemContents.parts[0].text = SYSTEM_PROMPT + materiaNote;
+
             const contents = [systemContents, modelAck, ...userContents, { role: 'user', parts: [{ text: finalMsg }] }];
 
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
@@ -217,17 +217,33 @@ Obiettivo: Spiegare concetti difficili in modo semplice e amichevole. Rispondi s
             return data.candidates[0].content.parts[0].text;
         };
 
+        const MATERIA_CONFIG = {
+            matematica: { label: 'Matematica', welcome: "Ciao! 👋\n\nSono Maurin, il tuo Tutor.\n\nVedo che stai usando il modulo Matematica!\n\nDimmi dove sei bloccato e ti aiuto. 💪", color: '#3b82f6' },
+            italiano:   { label: 'Italiano',   welcome: "Ciao! 👋\n\nSono Maurin, il tuo Tutor.\n\nVedo che stai lavorando su un testo!\n\nCosa vuoi migliorare o capire meglio? ✍️", color: '#8b5cf6' },
+            risolvitore:{ label: 'Matematica', welcome: "Ciao! 👋\n\nSono Maurin, il tuo Tutor.\n\nStai risolvendo un problema?\n\nDimmi dove sei bloccato e ti spiego il ragionamento! 🔍", color: '#10b981' },
+            discover:   { label: 'Metodo DISCOVER', welcome: "Ciao! 👋\n\nSono Maurin, il tuo Tutor.\n\nStai usando il metodo DISCOVER?\n\nDimmi quale passaggio non ti è chiaro! 🎯", color: '#f59e0b' },
+            scienze:    { label: 'Scienze',    welcome: "Ciao! 👋\n\nSono Maurin, il tuo Tutor.\n\nVedo che stai studiando Scienze!\n\nCosa vuoi capire? 🔬", color: '#22d3ee' },
+            geografia:  { label: 'Geografia',  welcome: "Ciao! 👋\n\nSono Maurin, il tuo Tutor.\n\nVedo che stai studiando Geografia!\n\nCosa vuoi approfondire? 🌍", color: '#4ade80' },
+            storia:     { label: 'Storia',     welcome: "Ciao! 👋\n\nSono Maurin, il tuo Tutor.\n\nVedo che stai studiando Storia!\n\nQuale periodo o evento vuoi capire? 📜", color: '#f97316' },
+            arte:       { label: 'Arte',        welcome: "Ciao! 👋\n\nSono Maurin, il tuo Tutor.\n\nVedo che stai studiando Arte!\n\nCosa vuoi esplorare? 🎨", color: '#ec4899' },
+        };
+
         const App = () => {
-            const [messages, setMessages] = useState([{ 
-                role: 'model', 
-                text: "Ciao! 👋\n\nSono maurin, il tuo Tutor.\n\nCosa devi studiare oggi?\n\nScrivi o usa i pulsanti qui sotto! 💪" 
-            }]);
+            const params = new URLSearchParams(window.location.search);
+            const materiaKey = params.get('materia') || '';
+            const materia = MATERIA_CONFIG[materiaKey] || null;
+
+            const welcomeText = materia
+                ? materia.welcome
+                : "Ciao! 👋\n\nSono Maurin, il tuo Tutor.\n\nCosa devi studiare oggi?\n\nScrivi o usa i pulsanti qui sotto! 💪";
+
+            const [messages, setMessages] = useState([{ role: 'model', text: welcomeText }]);
             const [input, setInput] = useState('');
             const [loading, setLoading] = useState(false);
             const [isListening, setIsListening] = useState(false);
             const [isSpeaking, setIsSpeaking] = useState(false);
             const [speechRate, setSpeechRate] = useState(0.85);
-            const [currentTopic, setCurrentTopic] = useState(null);
+            const [currentTopic, setCurrentTopic] = useState(materia ? materia.label : null);
             const chatRef = useRef(null);
             const endRef = useRef(null);
             const recognitionRef = useRef(null);
@@ -319,7 +335,7 @@ Obiettivo: Spiegare concetti difficili in modo semplice e amichevole. Rispondi s
                     const reply = await chatWithAI(messages, msgToSend, isQuiz);
                     setMessages([...newHist, { role: 'model', text: reply }]);
                     speak(reply);
-                    DB.addXP(isQuiz ? 20 : 10);
+                    DB.addXP(isQuiz ? 20 : 10, isQuiz ? 'quiz' : 'chat');
                 } catch(e) { 
                     setMessages([...newHist, { role: 'model', text: "❌ Ops! Qualcosa non ha funzionato. Riprova!" }]); 
                 }
