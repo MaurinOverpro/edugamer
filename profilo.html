@@ -139,9 +139,24 @@ Copia
 
             // Wanted Poster
             const [playerName, setPlayerName] = useState('');
+            const [uploadedPhoto, setUploadedPhoto] = useState(null); // { base64, mime, preview }
             const [generatedPoster, setGeneratedPoster] = useState(null);
             const [isGenerating, setIsGenerating] = useState(false);
             const [posterError, setPosterError] = useState(null);
+
+            const handlePhotoUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const dataUrl = ev.target.result;
+                    const base64 = dataUrl.split(',')[1];
+                    setUploadedPhoto({ base64, mime: file.type, preview: dataUrl });
+                    setGeneratedPoster(null);
+                    setPosterError(null);
+                };
+                reader.readAsDataURL(file);
+            };
 
             // Carica dati
             const loadData = () => {
@@ -279,34 +294,40 @@ Report generato da EduGamer`;
 
             const generateWantedPoster = async () => {
                 const key = localStorage.getItem('gemini_api_key');
-                if (!key) return;
+                if (!key || !uploadedPhoto) return;
                 setIsGenerating(true);
                 setPosterError(null);
                 setGeneratedPoster(null);
                 const lvl = Math.min(Math.max(level.level, 1), 10);
                 const bounty = (stats.totalXP * 1000000).toLocaleString('it-IT');
-                const prompt = `Create a One Piece anime manga style WANTED poster image, faithful to the iconic style of the series.
+                const pirateRank = PIRATE_LEVELS[lvl];
+                const prompt = `Look at the person's face in this photo. Recreate their face and likeness faithfully in the One Piece manga/anime art style by Eiichiro Oda.
 
-Layout and style:
-- Aged parchment/sepia warm paper texture as background
-- Thick black decorative border frame around the whole poster
+Generate a complete One Piece WANTED poster image with:
+- Aged warm parchment/sepia paper texture as background
+- Thick black decorative border frame
 - Bold vintage serif "WANTED" text at the very top
-- "DEAD OR ALIVE" text just below in smaller bold letters
-- Central hand-drawn manga portrait illustration of: ${PIRATE_LEVELS[lvl]}. The character fills the portrait area, drawn in the exact One Piece manga/anime art style by Eiichiro Oda.
-- The pirate name "${playerName.toUpperCase()}" in large bold text at the bottom of the portrait
-- Bounty amount "Berry ${bounty}" displayed prominently below the name
-- "MARINE" official seal/stamp at the very bottom center
-- Warm golden-brown vintage color palette, sepia tones
+- "DEAD OR ALIVE" in smaller bold letters below
+- Central manga portrait of the person from the photo redrawn as: ${pirateRank}. Preserve their facial features, hair, and expression, but render everything in One Piece manga style.
+- Name "${playerName.toUpperCase()}" in large bold text below the portrait
+- "Berry ${bounty}" bounty amount prominently displayed
+- "MARINE" official stamp at the bottom center
+- Warm golden-brown sepia color palette
 
-Make it look exactly like the iconic wanted posters from the One Piece anime series. Portrait only, no background scene.`;
+Match the iconic style of One Piece wanted posters exactly.`;
 
                 try {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${IMAGE_MODEL}:generateContent?key=${key}`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
-                            contents: [{ parts: [{ text: prompt }] }],
-                            generationConfig: { responseModalities: ["IMAGE"] }
+                            contents: [{
+                                parts: [
+                                    { inlineData: { mimeType: uploadedPhoto.mime, data: uploadedPhoto.base64 } },
+                                    { text: prompt }
+                                ]
+                            }],
+                            generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
                         })
                     });
                     const data = await res.json();
@@ -657,27 +678,51 @@ Make it look exactly like the iconic wanted posters from the One Piece anime ser
                                 <div className="text-center">
                                     <div className="text-5xl mb-2">🏴‍☠️</div>
                                     <h3 className="text-xl font-bold text-orange-400">Il tuo Wanted Poster</h3>
-                                    <p className="text-slate-400 text-sm mt-1">Livello {level.level} — {level.name} — Taglia: {(stats.totalXP * 1000000).toLocaleString('it-IT')} Berry</p>
+                                    <p className="text-slate-400 text-sm mt-1">Lv.{level.level} {level.name} · Taglia: {(stats.totalXP * 1000000).toLocaleString('it-IT')} Berry</p>
                                 </div>
 
                                 <div className="bg-slate-800 rounded-xl p-4 space-y-3 border-2 border-orange-700">
-                                    <label className="text-sm font-bold text-slate-300 block">Il tuo nome da pirata:</label>
+
+                                    {/* STEP 1 - Foto */}
+                                    <div className="text-sm font-bold text-orange-300 mb-1">① Carica la tua foto</div>
+                                    <label className="block cursor-pointer">
+                                        <input type="file" accept="image/*" capture="user" onChange={handlePhotoUpload} className="hidden" />
+                                        {uploadedPhoto ? (
+                                            <div className="relative">
+                                                <img src={uploadedPhoto.preview} alt="La tua foto" className="w-full max-h-48 object-cover rounded-xl border-2 border-orange-500" />
+                                                <div className="absolute bottom-2 right-2 bg-orange-600 text-white text-xs font-bold px-2 py-1 rounded-lg">📷 Cambia foto</div>
+                                            </div>
+                                        ) : (
+                                            <div className="w-full py-8 rounded-xl border-2 border-dashed border-orange-600 flex flex-col items-center gap-2 bg-slate-900/50 active:scale-95">
+                                                <span className="text-5xl">📷</span>
+                                                <span className="text-orange-300 font-bold">Tocca per caricare o scattare una foto</span>
+                                                <span className="text-slate-500 text-xs">Il tuo viso verrà ridisegnato in stile One Piece</span>
+                                            </div>
+                                        )}
+                                    </label>
+
+                                    {/* STEP 2 - Nome */}
+                                    <div className="text-sm font-bold text-orange-300 mt-2">② Il tuo nome da pirata</div>
                                     <input
                                         type="text"
                                         value={playerName}
                                         onChange={e => setPlayerName(e.target.value)}
-                                        placeholder="Es: Luffy, Marco, Sofia..."
+                                        placeholder="Es: Marco, Sofia, Luca..."
                                         maxLength={20}
                                         className="w-full bg-slate-900 border-2 border-slate-600 rounded-xl p-3 text-white text-lg outline-none focus:border-orange-500 font-bold"
                                     />
+
+                                    {/* STEP 3 - Genera */}
                                     <button
                                         onClick={generateWantedPoster}
-                                        disabled={!playerName.trim() || isGenerating || !localStorage.getItem('gemini_api_key')}
-                                        className="w-full py-4 rounded-xl font-bold text-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        style={{background: 'linear-gradient(135deg, #ea580c, #fbbf24)', color: '#0a0e17'}}
+                                        disabled={!uploadedPhoto || !playerName.trim() || isGenerating || !localStorage.getItem('gemini_api_key')}
+                                        className="w-full py-4 rounded-xl font-bold text-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed mt-1"
+                                        style={{background:'linear-gradient(135deg,#ea580c,#fbbf24)',color:'#0a0e17'}}
                                     >
-                                        {isGenerating ? '🎨 Generando il poster...' : '🏴‍☠️ GENERA WANTED POSTER!'}
+                                        {isGenerating ? '🎨 Generando...' : '🏴‍☠️ CREA IL MIO WANTED POSTER!'}
                                     </button>
+
+                                    {!uploadedPhoto && <p className="text-slate-500 text-xs text-center">Carica prima la tua foto</p>}
                                     {!localStorage.getItem('gemini_api_key') && (
                                         <p className="text-red-400 text-xs text-center">⚠️ Configura la chiave API nella Home</p>
                                     )}
@@ -686,7 +731,7 @@ Make it look exactly like the iconic wanted posters from the One Piece anime ser
                                 {isGenerating && (
                                     <div className="flex flex-col items-center gap-3 py-8">
                                         <div className="text-6xl animate-bounce">⚓</div>
-                                        <p className="text-orange-400 font-bold animate-pulse text-center">L'AI sta disegnando il tuo poster One Piece...</p>
+                                        <p className="text-orange-400 font-bold animate-pulse text-center">L'AI sta ridisegnando il tuo viso in stile One Piece...</p>
                                         <p className="text-slate-500 text-sm">Può richiedere qualche secondo</p>
                                     </div>
                                 )}
@@ -707,7 +752,7 @@ Make it look exactly like the iconic wanted posters from the One Piece anime ser
                                         />
                                         <div className="flex gap-3">
                                             <button onClick={downloadPoster} className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold active:scale-95 flex items-center justify-center gap-2 border-2 border-green-400">
-                                                💾 Salva il Poster
+                                                💾 Salva
                                             </button>
                                             <button onClick={generateWantedPoster} className="flex-1 bg-slate-700 text-white py-3 rounded-xl font-bold active:scale-95 border-2 border-slate-500">
                                                 🔄 Rigenera
