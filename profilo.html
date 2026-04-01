@@ -148,6 +148,12 @@ Copia
             });
             const [isGenerating, setIsGenerating] = useState(false);
             const [posterError, setPosterError] = useState(null);
+            const [posterHistory, setPosterHistory] = useState(() => {
+                try {
+                    return JSON.parse(localStorage.getItem('edugamer_wanted_posters_history') || '[]');
+                } catch { return []; }
+            });
+            const [selectedHistoryPoster, setSelectedHistoryPoster] = useState(null);
 
             const handlePhotoUpload = (e) => {
                 const file = e.target.files[0];
@@ -365,6 +371,12 @@ Strict requirements:
                         };
                         setGeneratedPoster(posterData);
                         localStorage.setItem('edugamer_wanted_poster', JSON.stringify(posterData));
+                        // Save to history (max 8, deduplicated by data)
+                        const prevHistory = JSON.parse(localStorage.getItem('edugamer_wanted_posters_history') || '[]');
+                        const deduped = prevHistory.filter(h => h.data !== posterData.data);
+                        const updatedHistory = [posterData, ...deduped].slice(0, 8);
+                        localStorage.setItem('edugamer_wanted_posters_history', JSON.stringify(updatedHistory));
+                        setPosterHistory(updatedHistory);
                     } else {
                         setPosterError("Nessuna immagine ricevuta. Riprova!");
                     }
@@ -815,6 +827,73 @@ Strict requirements:
                                         </div>
                                     </div>
                                 )}
+
+                                {/* STORICO POSTER */}
+                                {posterHistory.length > 0 && (
+                                    <div className="space-y-3 pt-2 border-t border-slate-700">
+                                        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                            📜 Storico Poster ({posterHistory.length}/8)
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {posterHistory.map((poster, i) => (
+                                                <button key={i} onClick={() => setSelectedHistoryPoster(poster)}
+                                                    className="relative active:scale-95 transition-transform rounded-xl overflow-hidden"
+                                                    style={{border: i === 0 ? '2px solid #ca8a04' : '2px solid rgba(71,85,105,0.4)'}}>
+                                                    <img
+                                                        src={`data:${poster.mime};base64,${poster.data}`}
+                                                        className="w-full"
+                                                        style={{aspectRatio:'3/4', objectFit:'cover', display:'block'}}
+                                                    />
+                                                    {i === 0 && (
+                                                        <div className="absolute top-1 inset-x-0 flex justify-center">
+                                                            <span className="text-black text-xs font-bold px-1.5 py-0.5 rounded" style={{background:'#fbbf24'}}>ATTUALE</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="absolute bottom-0 inset-x-0 py-1 text-center" style={{background:'rgba(0,0,0,0.6)'}}>
+                                                        <span className="text-yellow-400 text-xs font-bold">Lv.{poster.level}</span>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* MODAL STORICO POSTER */}
+                        {selectedHistoryPoster && (
+                            <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+                                onClick={() => setSelectedHistoryPoster(null)}>
+                                <div className="w-full max-w-xs" onClick={e => e.stopPropagation()}>
+                                    <img
+                                        src={`data:${selectedHistoryPoster.mime};base64,${selectedHistoryPoster.data}`}
+                                        className="w-full rounded-2xl"
+                                        style={{border:'4px solid #ca8a04', boxShadow:'0 0 40px rgba(202,138,4,0.6)'}}
+                                    />
+                                    <div className="text-center mt-3">
+                                        <p className="text-yellow-400 font-black text-lg">🏴‍☠️ {selectedHistoryPoster.name}</p>
+                                        <p className="text-amber-300 text-sm mt-0.5">
+                                            Lv.{selectedHistoryPoster.level} · {((selectedHistoryPoster.xp || 0) * 1000000).toLocaleString('it-IT')} Berry
+                                        </p>
+                                        <p className="text-slate-500 text-xs mt-1">
+                                            {new Date(selectedHistoryPoster.date).toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric'})}
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-3 mt-4">
+                                        <button onClick={() => {
+                                            const a = document.createElement('a');
+                                            a.href = `data:${selectedHistoryPoster.mime};base64,${selectedHistoryPoster.data}`;
+                                            a.download = `wanted_${selectedHistoryPoster.name}_lv${selectedHistoryPoster.level}.png`;
+                                            a.click();
+                                        }} className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold active:scale-95 border-2 border-green-400">
+                                            💾 Salva
+                                        </button>
+                                        <button onClick={() => setSelectedHistoryPoster(null)}
+                                            className="flex-1 bg-slate-700 text-white py-3 rounded-xl font-bold active:scale-95 border border-slate-600">
+                                            ✕ Chiudi
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
