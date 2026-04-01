@@ -298,41 +298,57 @@ Report generato da EduGamer`;
                 setIsGenerating(true);
                 setPosterError(null);
                 setGeneratedPoster(null);
+
                 const lvl = Math.min(Math.max(level.level, 1), 10);
-                const bounty = (stats.totalXP * 1000000).toLocaleString('it-IT');
+                const bounty = `$${(stats.totalXP * 1000000).toLocaleString('en-US')}`;
                 const pirateRank = PIRATE_LEVELS[lvl];
-                const prompt = `Look at the person's face in this photo. Recreate their face and likeness faithfully in the One Piece manga/anime art style by Eiichiro Oda.
 
-Generate a complete One Piece WANTED poster image with:
-- Aged warm parchment/sepia paper texture as background
-- Thick black decorative border frame
-- Bold vintage serif "WANTED" text at the very top
-- "DEAD OR ALIVE" in smaller bold letters below
-- Central manga portrait of the person from the photo redrawn as: ${pirateRank}. Preserve their facial features, hair, and expression, but render everything in One Piece manga style.
-- Name "${playerName.toUpperCase()}" in large bold text below the portrait
-- "Berry ${bounty}" bounty amount prominently displayed
-- "MARINE" official stamp at the bottom center
-- Warm golden-brown sepia color palette
+                // Carica immagine di riferimento stile per guidare il modello
+                let refBase64 = null;
+                try {
+                    const refRes = await fetch('onepiecewanted2.jpg');
+                    const refBlob = await refRes.blob();
+                    refBase64 = await new Promise(resolve => {
+                        const r = new FileReader();
+                        r.onload = e => resolve(e.target.result.split(',')[1]);
+                        r.readAsDataURL(refBlob);
+                    });
+                } catch(e) { /* procedi senza riferimento */ }
 
-Match the iconic style of One Piece wanted posters exactly.`;
+                const prompt = `You have two images:
+1. STYLE REFERENCE: the first image shows authentic One Piece wanted posters — study their exact layout, typography, manga art style, colors, and texture carefully.
+2. SUBJECT PHOTO: the second image is a photo of a real person.
+
+Your task: generate a NEW One Piece wanted poster in the EXACT style of image 1, featuring the person from image 2 redrawn as a manga character.
+
+Strict requirements:
+- Redraw the person's face and likeness in Eiichiro Oda's manga art style: thick black ink outlines, expressive manga eyes, bold exaggerated features, recognizable but stylized. Upper body portrait.
+- Render them as: ${pirateRank}
+- EXACT poster layout: large bold "WANTED" at top, "DEAD OR ALIVE" below it, portrait in the center box, character name at bottom of portrait, bounty amount, "MARINE" stamp at very bottom
+- Character name: "${playerName.toUpperCase()}"
+- Bounty amount: "${bounty}"
+- Aged warm kraft paper / sepia texture background, warm brown tones
+- Thick black border frame around the whole poster
+- Typography matching the One Piece poster fonts exactly`;
+
+                const parts = [
+                    ...(refBase64 ? [{ inlineData: { mimeType: 'image/jpeg', data: refBase64 } }] : []),
+                    { inlineData: { mimeType: uploadedPhoto.mime, data: uploadedPhoto.base64 } },
+                    { text: prompt }
+                ];
 
                 try {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${IMAGE_MODEL}:generateContent?key=${key}`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
-                            contents: [{
-                                parts: [
-                                    { inlineData: { mimeType: uploadedPhoto.mime, data: uploadedPhoto.base64 } },
-                                    { text: prompt }
-                                ]
-                            }],
+                            contents: [{ parts }],
                             generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
                         })
                     });
                     const data = await res.json();
-                    const parts = data?.candidates?.[0]?.content?.parts || [];
-                    const imgPart = parts.find(p => p.inlineData);
+                    const resParts = data?.candidates?.[0]?.content?.parts || [];
+                    const imgPart = resParts.find(p => p.inlineData);
                     if (imgPart) {
                         setGeneratedPoster({ data: imgPart.inlineData.data, mime: imgPart.inlineData.mimeType });
                     } else {
