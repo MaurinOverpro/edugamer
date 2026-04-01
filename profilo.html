@@ -113,6 +113,21 @@ Copia
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        const IMAGE_MODEL = "gemini-3-pro-image-preview";
+
+        const PIRATE_LEVELS = {
+            1: "a young cheerful pirate apprentice with a tiny bandana and big curious eyes, just starting their adventure on the seas",
+            2: "a young pirate wearing a straw hat, carrying a small sword, with a determined and hopeful expression",
+            3: "a brave pirate with a cutlass, a few battle scars, a confident grin, and a colorful bandana",
+            4: "a seasoned pirate explorer with a worn long coat, a compass, and battle-hardened eyes full of experience",
+            5: "a powerful pirate warrior dual-wielding swords, muscular build, fierce eyes, impressive stance",
+            6: "a pirate champion with a magnificent flowing coat, a unique legendary weapon, and a commanding powerful presence",
+            7: "a legendary pirate with glowing supernatural powers, an elaborate ornate outfit, radiating immense strength",
+            8: "a grandmaster pirate warlord in an epic black coat with golden details, surrounded by an aura of dark power",
+            9: "an emperor-level pirate with divine aura, golden accessories, terrifying power, commander of thousands",
+            10: "the Pirate King at the absolute peak of power, wearing a legendary crown, radiating ultimate freedom and unstoppable strength"
+        };
+
         const App = () => {
             const [stats, setStats] = useState(null);
             const [level, setLevel] = useState(null);
@@ -121,6 +136,12 @@ Copia
             const [activeTab, setActiveTab] = useState('overview');
             const [showResetModal, setShowResetModal] = useState(false);
             const [tapCount, setTapCount] = useState(0);
+
+            // Wanted Poster
+            const [playerName, setPlayerName] = useState('');
+            const [generatedPoster, setGeneratedPoster] = useState(null);
+            const [isGenerating, setIsGenerating] = useState(false);
+            const [posterError, setPosterError] = useState(null);
 
             // Carica dati
             const loadData = () => {
@@ -256,6 +277,60 @@ Report generato da EduGamer`;
                 setShowReportMenu(false);
             };
 
+            const generateWantedPoster = async () => {
+                const key = localStorage.getItem('gemini_api_key');
+                if (!key) return;
+                setIsGenerating(true);
+                setPosterError(null);
+                setGeneratedPoster(null);
+                const lvl = Math.min(Math.max(level.level, 1), 10);
+                const bounty = (stats.totalXP * 1000000).toLocaleString('it-IT');
+                const prompt = `Create a One Piece anime manga style WANTED poster image, faithful to the iconic style of the series.
+
+Layout and style:
+- Aged parchment/sepia warm paper texture as background
+- Thick black decorative border frame around the whole poster
+- Bold vintage serif "WANTED" text at the very top
+- "DEAD OR ALIVE" text just below in smaller bold letters
+- Central hand-drawn manga portrait illustration of: ${PIRATE_LEVELS[lvl]}. The character fills the portrait area, drawn in the exact One Piece manga/anime art style by Eiichiro Oda.
+- The pirate name "${playerName.toUpperCase()}" in large bold text at the bottom of the portrait
+- Bounty amount "Berry ${bounty}" displayed prominently below the name
+- "MARINE" official seal/stamp at the very bottom center
+- Warm golden-brown vintage color palette, sepia tones
+
+Make it look exactly like the iconic wanted posters from the One Piece anime series. Portrait only, no background scene.`;
+
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${IMAGE_MODEL}:generateContent?key=${key}`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            generationConfig: { responseModalities: ["IMAGE"] }
+                        })
+                    });
+                    const data = await res.json();
+                    const parts = data?.candidates?.[0]?.content?.parts || [];
+                    const imgPart = parts.find(p => p.inlineData);
+                    if (imgPart) {
+                        setGeneratedPoster({ data: imgPart.inlineData.data, mime: imgPart.inlineData.mimeType });
+                    } else {
+                        setPosterError("Nessuna immagine ricevuta. Riprova!");
+                    }
+                } catch(e) {
+                    setPosterError("Errore di rete. Controlla la connessione.");
+                }
+                setIsGenerating(false);
+            };
+
+            const downloadPoster = () => {
+                if (!generatedPoster) return;
+                const a = document.createElement('a');
+                a.href = `data:${generatedPoster.mime};base64,${generatedPoster.data}`;
+                a.download = `wanted_${playerName}_lv${level.level}_edugamer.png`;
+                a.click();
+            };
+
             if (!stats || !level) {
                 return (
                     <div className="h-full flex items-center justify-center">
@@ -315,24 +390,31 @@ Report generato da EduGamer`;
                     )}
 
                     {/* TABS */}
-                    <div className="flex gap-2 shrink-0">
-                        <button 
+                    <div className="flex gap-2 shrink-0 flex-wrap">
+                        <button
                             onClick={() => setActiveTab('overview')}
-                            className={`tab-btn flex-1 py-2 rounded-xl font-bold ${activeTab === 'overview' ? 'bg-blue-600 text-white active' : 'bg-slate-800 text-slate-400'}`}
+                            className={`tab-btn flex-1 py-2 rounded-xl font-bold text-sm ${activeTab === 'overview' ? 'bg-blue-600 text-white active' : 'bg-slate-800 text-slate-400'}`}
                         >
                             📊 Panoramica
                         </button>
-                        <button 
+                        <button
                             onClick={() => setActiveTab('achievements')}
-                            className={`tab-btn flex-1 py-2 rounded-xl font-bold ${activeTab === 'achievements' ? 'bg-yellow-600 text-white active' : 'bg-slate-800 text-slate-400'}`}
+                            className={`tab-btn flex-1 py-2 rounded-xl font-bold text-sm ${activeTab === 'achievements' ? 'bg-yellow-600 text-white active' : 'bg-slate-800 text-slate-400'}`}
                         >
                             🏆 Trofei ({unlockedCount}/{achievements.length})
                         </button>
-                        <button 
+                        <button
                             onClick={() => setActiveTab('stats')}
-                            className={`tab-btn flex-1 py-2 rounded-xl font-bold ${activeTab === 'stats' ? 'bg-green-600 text-white active' : 'bg-slate-800 text-slate-400'}`}
+                            className={`tab-btn flex-1 py-2 rounded-xl font-bold text-sm ${activeTab === 'stats' ? 'bg-green-600 text-white active' : 'bg-slate-800 text-slate-400'}`}
                         >
                             📈 Statistiche
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('wanted')}
+                            className={`tab-btn flex-1 py-2 rounded-xl font-bold text-sm ${activeTab === 'wanted' ? 'bg-orange-600 text-white active' : 'bg-slate-800 text-slate-400'}`}
+                            style={activeTab === 'wanted' ? {boxShadow:'0 0 15px rgba(234,88,12,0.5)'} : {}}
+                        >
+                            🏴‍☠️ Wanted
                         </button>
                     </div>
 
@@ -569,6 +651,73 @@ Report generato da EduGamer`;
                                 )}
                             </div>
                         )}
+                        {/* WANTED POSTER */}
+                        {activeTab === 'wanted' && (
+                            <div className="space-y-4">
+                                <div className="text-center">
+                                    <div className="text-5xl mb-2">🏴‍☠️</div>
+                                    <h3 className="text-xl font-bold text-orange-400">Il tuo Wanted Poster</h3>
+                                    <p className="text-slate-400 text-sm mt-1">Livello {level.level} — {level.name} — Taglia: {(stats.totalXP * 1000000).toLocaleString('it-IT')} Berry</p>
+                                </div>
+
+                                <div className="bg-slate-800 rounded-xl p-4 space-y-3 border-2 border-orange-700">
+                                    <label className="text-sm font-bold text-slate-300 block">Il tuo nome da pirata:</label>
+                                    <input
+                                        type="text"
+                                        value={playerName}
+                                        onChange={e => setPlayerName(e.target.value)}
+                                        placeholder="Es: Luffy, Marco, Sofia..."
+                                        maxLength={20}
+                                        className="w-full bg-slate-900 border-2 border-slate-600 rounded-xl p-3 text-white text-lg outline-none focus:border-orange-500 font-bold"
+                                    />
+                                    <button
+                                        onClick={generateWantedPoster}
+                                        disabled={!playerName.trim() || isGenerating || !localStorage.getItem('gemini_api_key')}
+                                        className="w-full py-4 rounded-xl font-bold text-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        style={{background: 'linear-gradient(135deg, #ea580c, #fbbf24)', color: '#0a0e17'}}
+                                    >
+                                        {isGenerating ? '🎨 Generando il poster...' : '🏴‍☠️ GENERA WANTED POSTER!'}
+                                    </button>
+                                    {!localStorage.getItem('gemini_api_key') && (
+                                        <p className="text-red-400 text-xs text-center">⚠️ Configura la chiave API nella Home</p>
+                                    )}
+                                </div>
+
+                                {isGenerating && (
+                                    <div className="flex flex-col items-center gap-3 py-8">
+                                        <div className="text-6xl animate-bounce">⚓</div>
+                                        <p className="text-orange-400 font-bold animate-pulse text-center">L'AI sta disegnando il tuo poster One Piece...</p>
+                                        <p className="text-slate-500 text-sm">Può richiedere qualche secondo</p>
+                                    </div>
+                                )}
+
+                                {posterError && (
+                                    <div className="bg-red-900/50 border border-red-500 rounded-xl p-3 text-center text-red-300">
+                                        ❌ {posterError}
+                                    </div>
+                                )}
+
+                                {generatedPoster && !isGenerating && (
+                                    <div className="space-y-3">
+                                        <img
+                                            src={`data:${generatedPoster.mime};base64,${generatedPoster.data}`}
+                                            alt={`Wanted Poster di ${playerName}`}
+                                            className="w-full rounded-2xl border-4 border-yellow-600"
+                                            style={{boxShadow:'0 0 30px rgba(234,179,8,0.5)'}}
+                                        />
+                                        <div className="flex gap-3">
+                                            <button onClick={downloadPoster} className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold active:scale-95 flex items-center justify-center gap-2 border-2 border-green-400">
+                                                💾 Salva il Poster
+                                            </button>
+                                            <button onClick={generateWantedPoster} className="flex-1 bg-slate-700 text-white py-3 rounded-xl font-bold active:scale-95 border-2 border-slate-500">
+                                                🔄 Rigenera
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                     </div>
 
                     {/* MODAL RESET */}
