@@ -176,7 +176,7 @@ Esempio di stile giusto:
 
 Obiettivo: Spiegare concetti difficili in modo semplice e amichevole. Rispondi sempre in italiano.`;
 
-        const chatWithAI = async (history, msg, isQuizRequest = false) => {
+        const chatWithAI = async (history, msg, isQuizRequest = false, materia = null) => {
             const key = DB.getKey();
             if(!key) throw new Error("Manca API Key!");
             
@@ -341,7 +341,7 @@ Obiettivo: Spiegare concetti difficili in modo semplice e amichevole. Rispondi s
                 }
 
                 try {
-                    const reply = await chatWithAI(messages, msgToSend, isQuiz);
+                    const reply = await chatWithAI(messages, msgToSend, isQuiz, materia);
                     setMessages([...newHist, { role: 'model', text: reply }]);
                     speak(reply);
                     DB.addXP(isQuiz ? 20 : 10, isQuiz ? 'quiz' : 'chat');
