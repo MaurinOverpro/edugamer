@@ -197,7 +197,13 @@ Obiettivo: Spiegare concetti difficili in modo semplice e amichevole. Rispondi s
                 parts: [{ text: "Capito! Sarò un tutor chiaro e userò esempi adatti a un ragazzo. 👍" }]
             };
 
-            const userContents = history.map(m => ({
+            // Skip the initial model welcome message from history to avoid consecutive model turns
+            // (modelAck already occupies the first 'model' slot in the API conversation)
+            const historyToSend = (history.length > 0 && history[0].role === 'model')
+                ? history.slice(1)
+                : history;
+
+            const userContents = historyToSend.map(m => ({
                 role: m.role === 'user' ? 'user' : 'model',
                 parts: [{ text: m.text }]
             }));
@@ -211,8 +217,11 @@ Obiettivo: Spiegare concetti difficili in modo semplice e amichevole. Rispondi s
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ contents })
             });
-            
-            if(!res.ok) throw new Error("Errore Chat");
+
+            if(!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error?.message || `Errore API ${res.status}`);
+            }
             const data = await res.json();
             return data.candidates[0].content.parts[0].text;
         };
@@ -336,8 +345,9 @@ Obiettivo: Spiegare concetti difficili in modo semplice e amichevole. Rispondi s
                     setMessages([...newHist, { role: 'model', text: reply }]);
                     speak(reply);
                     DB.addXP(isQuiz ? 20 : 10, isQuiz ? 'quiz' : 'chat');
-                } catch(e) { 
-                    setMessages([...newHist, { role: 'model', text: "❌ Ops! Qualcosa non ha funzionato. Riprova!" }]); 
+                } catch(e) {
+                    console.error('[Tutor] Errore API:', e.message);
+                    setMessages([...newHist, { role: 'model', text: `❌ Ops! Qualcosa non ha funzionato. Riprova!\n\n_(${e.message})_` }]);
                 }
                 setLoading(false);
             };
