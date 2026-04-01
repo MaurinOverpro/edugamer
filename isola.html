@@ -10,7 +10,8 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
         * { box-sizing: border-box; }
-        body { background: #071020; color: white; font-family: 'Verdana', sans-serif; margin: 0; height: 100dvh; overflow: hidden; }
+        html, body { height: 100%; margin: 0; padding: 0; }
+        body { background: #071020; color: white; font-family: 'Verdana', sans-serif; overflow: hidden; }
 
         @keyframes wave-scroll { to   { transform: translateX(-50%); } }
         @keyframes float       { 0%,100% { transform: translateY(0);   } 50% { transform: translateY(-5px); } }
@@ -119,6 +120,16 @@
         getWantedPoster: () => {
             try { return JSON.parse(localStorage.getItem('edugamer_wanted_poster')||'null'); } catch { return null; }
         },
+        getAvatarHistory: () => {
+            try { return JSON.parse(localStorage.getItem('isola_avatars_history')||'[]'); } catch { return []; }
+        },
+        saveAvatarToHistory: (avatarUrl, name, level) => {
+            if (!avatarUrl?.startsWith('data:')) return;
+            const history = DB.getAvatarHistory();
+            const entry = { avatarUrl, name, level, date: new Date().toISOString() };
+            const deduped = history.filter(h => h.avatarUrl !== avatarUrl);
+            localStorage.setItem('isola_avatars_history', JSON.stringify([entry, ...deduped].slice(0, 8)));
+        },
     };
 
     /* ── AI ─────────────────────────────────────────────────── */
@@ -168,7 +179,11 @@
             if (!photoB64) return;
             if (!DB.getKey()) { setError("⚠️ Chiave API mancante — vai alla Home per inserirla"); return; }
             setGenerating(true); setError('');
-            try { const url = await AI.generateAvatar(photoB64, photoMime, name||'Pirata'); setAvatarUrl(url); setPhotoB64(null); }
+            try {
+                const url = await AI.generateAvatar(photoB64, photoMime, name||'Pirata');
+                setAvatarUrl(url); setPhotoB64(null);
+                DB.saveAvatarToHistory(url, name.trim()||'Pirata', DB.getStats().level);
+            }
             catch (e) { setError("Errore: " + e.message); }
             finally   { setGenerating(false); }
         };
@@ -666,6 +681,53 @@
         </div>
     );
 
+    /* ── AVATAR HISTORY MODAL ──────────────────────────────── */
+    const AvatarHistoryModal = ({ history, onClose }) => (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overlay-enter"
+            style={{background:'rgba(0,0,0,0.88)'}} onClick={onClose}>
+            <div style={{
+                background:'linear-gradient(160deg,#1e293b,#0f172a)',
+                border:'2px solid rgba(251,191,36,0.3)',
+                borderRadius:'20px', width:'100%', maxWidth:'380px',
+                maxHeight:'82vh', overflow:'hidden', display:'flex', flexDirection:'column'
+            }} onClick={e => e.stopPropagation()}>
+                <div style={{padding:'16px 20px 12px', borderBottom:'1px solid rgba(251,191,36,0.12)', flexShrink:0, textAlign:'center'}}>
+                    <div style={{fontSize:'32px', marginBottom:'4px'}}>🕰️</div>
+                    <h2 style={{color:'#fbbf24', fontWeight:900, fontSize:'18px', margin:0}}>Storico Avatar</h2>
+                    <p style={{color:'#64748b', fontSize:'12px', margin:'4px 0 0'}}>I tuoi avatar pirata nel tempo</p>
+                </div>
+                <div style={{overflowY:'auto', padding:'16px', flex:1}}>
+                    <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'12px'}}>
+                        {history.map((item, i) => (
+                            <div key={i} style={{textAlign:'center'}}>
+                                <div style={{
+                                    width:'80px', height:'80px', borderRadius:'50%',
+                                    overflow:'hidden', margin:'0 auto 6px',
+                                    border: i === 0 ? '3px solid #fbbf24' : '2px solid rgba(71,85,105,0.5)',
+                                    boxShadow: i === 0 ? '0 0 18px rgba(251,191,36,0.5)' : 'none',
+                                    background:'#0f172a', display:'flex', alignItems:'center', justifyContent:'center'
+                                }}>
+                                    {item.avatarUrl?.startsWith('data:')
+                                        ? <img src={item.avatarUrl} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                                        : <span style={{fontSize:'36px'}}>{item.avatarUrl || '🏴‍☠️'}</span>}
+                                </div>
+                                {i === 0 && <div style={{fontSize:'9px', color:'#fbbf24', fontWeight:'bold', marginBottom:'2px'}}>ATTUALE</div>}
+                                <div style={{fontSize:'11px', color:'#94a3b8', fontWeight:'bold'}}>Lv.{item.level}</div>
+                                <div style={{fontSize:'10px', color:'#475569'}}>{new Date(item.date).toLocaleDateString('it-IT',{day:'numeric',month:'short'})}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <div style={{padding:'12px 16px', flexShrink:0, borderTop:'1px solid rgba(71,85,105,0.2)'}}>
+                    <button onClick={onClose}
+                        style={{width:'100%', padding:'12px', borderRadius:'12px', background:'rgba(30,41,59,0.8)', border:'1px solid rgba(71,85,105,0.4)', color:'white', fontWeight:'bold', cursor:'pointer', fontSize:'14px'}}>
+                        ✕ Chiudi
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+
     /* ── WANTED POSTER MODAL ───────────────────────────────── */
     const WantedPosterModal = ({ poster, onClose }) => (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overlay-enter"
@@ -698,19 +760,25 @@
 
     /* ── APP ────────────────────────────────────────────────── */
     const App = () => {
-        const [stage,        setStage]        = useState('loading');
-        const [profile,      setProfile]      = useState(null);
-        const [stats,        setStats]        = useState({ xp:0, level:1 });
-        const [selectedZone, setSelectedZone] = useState(null);
-        const [justUnlocked, setJustUnlocked] = useState(null);
-        const [showParchment,setShowParchment]= useState(false);
-        const [wantedPoster, setWantedPoster] = useState(null);
-        const [showWanted,   setShowWanted]   = useState(false);
+        const [stage,         setStage]         = useState('loading');
+        const [profile,       setProfile]       = useState(null);
+        const [stats,         setStats]         = useState({ xp:0, level:1 });
+        const [selectedZone,  setSelectedZone]  = useState(null);
+        const [justUnlocked,  setJustUnlocked]  = useState(null);
+        const [showParchment, setShowParchment] = useState(false);
+        const [wantedPoster,  setWantedPoster]  = useState(null);
+        const [showWanted,    setShowWanted]     = useState(false);
+        const [avatarHistory, setAvatarHistory] = useState([]);
+        const [showHistory,   setShowHistory]   = useState(false);
+        const [isLandscape,   setIsLandscape]   = useState(
+            () => window.innerWidth > window.innerHeight + 50 && window.innerWidth >= 640
+        );
 
         useEffect(() => {
             const p = DB.getProfile(), s = DB.getStats();
             setStats(s); setProfile(p);
             setWantedPoster(DB.getWantedPoster());
+            setAvatarHistory(DB.getAvatarHistory());
             setStage(p ? 'island' : 'onboarding');
             const onXP = () => {
                 const ns = DB.getStats();
@@ -727,6 +795,18 @@
             return () => { window.removeEventListener('edugamer-xp-added', onXP); window.removeEventListener('xpChanged', onXP); };
         }, []);
 
+        useEffect(() => {
+            const check = () => setIsLandscape(window.innerWidth > window.innerHeight + 50 && window.innerWidth >= 640);
+            window.addEventListener('resize', check);
+            const onOrient = () => setTimeout(check, 250);
+            window.addEventListener('orientationchange', onOrient);
+            return () => { window.removeEventListener('resize', check); window.removeEventListener('orientationchange', onOrient); };
+        }, []);
+
+        useEffect(() => {
+            if (stage === 'island') setAvatarHistory(DB.getAvatarHistory());
+        }, [stage]);
+
         const xp = xpProgress(stats.xp);
 
         if (stage === 'loading') return (
@@ -738,105 +818,250 @@
             <Onboarding existing={profile} onComplete={p => { setProfile(p); setStage('island'); }}/>
         );
 
+        // ── Shared mini card ────────────────────────────────────
+        const WantedMiniCard = ({ size=60 }) => {
+            const imgW = size - 8; const imgH = Math.round(imgW * 1.3);
+            return wantedPoster ? (
+                <button onClick={() => setShowWanted(true)}
+                    style={{display:'block', background:'none', border:'none', padding:0, cursor:'pointer'}}>
+                    <div style={{background:'linear-gradient(135deg,#1a0800,#3d1a00)', border:'2px solid #ca8a04',
+                        borderRadius:'10px', padding:'4px', boxShadow:'0 0 18px rgba(202,138,4,0.5)', width:size+'px'}}>
+                        <img src={`data:${wantedPoster.mime};base64,${wantedPoster.data}`}
+                            style={{width:imgW+'px', height:imgH+'px', objectFit:'cover', borderRadius:'6px', display:'block'}}/>
+                        <div style={{textAlign:'center', fontSize:'7px', color:'#fbbf24', fontWeight:'bold', marginTop:'3px', letterSpacing:'0.08em'}}>WANTED</div>
+                    </div>
+                </button>
+            ) : (
+                <a href="profilo.html" style={{display:'block'}}>
+                    <div style={{background:'rgba(10,20,40,0.85)', border:'2px dashed rgba(202,138,4,0.35)',
+                        borderRadius:'10px', padding:'8px 4px', textAlign:'center', width:size+'px', boxShadow:'0 0 8px rgba(0,0,0,0.4)'}}>
+                        <div style={{fontSize:'22px'}}>🏴‍☠️</div>
+                        <div style={{fontSize:'6.5px', color:'rgba(202,138,4,0.65)', fontWeight:'bold', lineHeight:'1.3', marginTop:'3px', letterSpacing:'0.04em'}}>CREA<br/>POSTER</div>
+                    </div>
+                </a>
+            );
+        };
+
+        // ── Shared modals ────────────────────────────────────────
+        const Modals = () => <>
+            {selectedZone  && <ZoneModal zone={selectedZone} onClose={() => setSelectedZone(null)}/>}
+            {justUnlocked  && <LevelUpOverlay zone={justUnlocked} onClose={() => setJustUnlocked(null)}/>}
+            {showParchment && <ParchmentModal onClose={() => setShowParchment(false)}/>}
+            {showWanted && wantedPoster && <WantedPosterModal poster={wantedPoster} onClose={() => setShowWanted(false)}/>}
+            {showHistory && avatarHistory.length > 0 && <AvatarHistoryModal history={avatarHistory} onClose={() => setShowHistory(false)}/>}
+        </>;
+
+        // ── Avatar button helper ─────────────────────────────────
+        const AvatarBtn = ({ size=44, fontSize='20px' }) => (
+            <button onClick={() => setStage('onboarding')}
+                style={{width:size+'px', height:size+'px', borderRadius:'50%', border:'2px solid #fbbf24',
+                    flexShrink:0, overflow:'hidden', background:'#1e293b', cursor:'pointer',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    boxShadow:'0 0 14px rgba(251,191,36,0.35)'}}>
+                {profile?.avatarUrl?.startsWith('data:')
+                    ? <img src={profile.avatarUrl} style={{width:'100%', height:'100%', objectFit:'cover'}}/>
+                    : <span style={{fontSize}}>{profile?.avatarUrl || '🏴‍☠️'}</span>}
+            </button>
+        );
+
+        // ════════════════════════════════════════════════════════
+        // LANDSCAPE LAYOUT (tablets / desktop)
+        // ════════════════════════════════════════════════════════
+        if (isLandscape) return (
+            <div style={{position:'fixed', inset:0, display:'flex', overflow:'hidden', background:'#071020'}}>
+
+                {/* ── LEFT: Island Map (58%) ── */}
+                <div style={{flex:'0 0 58%', position:'relative', overflow:'hidden', height:'100%'}}>
+                    <div className="wave-layer   absolute inset-0 pointer-events-none"/>
+                    <div className="wave-layer-2 absolute inset-0 pointer-events-none opacity-60"/>
+                    <div style={{width:'100%', height:'100%'}}>
+                        <IslandSVG level={stats.level} onZoneClick={setSelectedZone}/>
+                    </div>
+                    {/* Wanted card — bottom left of map */}
+                    <div style={{position:'absolute', bottom:'16px', left:'16px', zIndex:10}}>
+                        <WantedMiniCard size={68}/>
+                    </div>
+                    {/* Hint overlay */}
+                    <div style={{position:'absolute', bottom:0, left:0, right:0, textAlign:'center',
+                        padding:'5px', background:'rgba(5,12,26,0.65)', color:'#475569', fontSize:'11px', zIndex:5}}>
+                        🗺️ Tocca una zona per esplorarla
+                    </div>
+                </div>
+
+                {/* ── RIGHT: Info Panel (42%) ── */}
+                <div style={{flex:'0 0 42%', display:'flex', flexDirection:'column', overflow:'hidden',
+                    background:'rgba(5,12,26,0.97)', borderLeft:'1px solid rgba(251,191,36,0.15)'}}>
+
+                    {/* Avatar + Name + XP */}
+                    <div style={{padding:'18px 20px 14px', flexShrink:0, borderBottom:'1px solid rgba(251,191,36,0.08)'}}>
+                        <div style={{display:'flex', alignItems:'center', gap:'14px', marginBottom:'12px'}}>
+                            <AvatarBtn size={68} fontSize="28px"/>
+                            <div style={{flex:1, minWidth:0}}>
+                                <div style={{color:'#fcd34d', fontWeight:900, fontSize:'19px', lineHeight:1.2,
+                                    overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                                    {profile?.name || 'Pirata'}
+                                </div>
+                                <div style={{color:'#64748b', fontSize:'12px', marginTop:'3px'}}>
+                                    Lv.{stats.level} · {LEVEL_TITLES[stats.level]}
+                                </div>
+                            </div>
+                            {avatarHistory.length > 0 && (
+                                <button onClick={() => setShowHistory(true)}
+                                    style={{width:'36px', height:'36px', borderRadius:'10px', flexShrink:0,
+                                        background:'rgba(30,41,59,0.8)', border:'1px solid rgba(100,116,139,0.35)',
+                                        fontSize:'18px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                                    🕰️
+                                </button>
+                            )}
+                        </div>
+                        {/* XP Bar */}
+                        <div style={{display:'flex', justifyContent:'space-between', marginBottom:'5px', fontSize:'11px'}}>
+                            <span style={{color:'#fbbf24', fontWeight:'bold'}}>{xp.cur} / {xp.needed} XP</span>
+                            <span style={{color:'#475569'}}>{xp.pct}%</span>
+                        </div>
+                        <div className="xp-bar-anim" style={{height:'9px', background:'#1e293b', borderRadius:'9999px', overflow:'hidden'}}>
+                            <div style={{height:'100%', width:`${xp.pct}%`, background:'linear-gradient(90deg,#fbbf24,#f97316)',
+                                borderRadius:'9999px', transition:'width 0.7s ease-out'}}/>
+                        </div>
+                    </div>
+
+                    {/* Zone list — scrollable */}
+                    <div style={{flex:1, overflowY:'auto', padding:'10px 16px'}}>
+                        <div style={{fontSize:'10px', color:'#475569', fontWeight:'bold', textTransform:'uppercase',
+                            letterSpacing:'0.1em', marginBottom:'8px'}}>
+                            Zone dell'Isola · {stats.xp} XP totali
+                        </div>
+                        <div style={{display:'flex', flexDirection:'column', gap:'5px'}}>
+                            {ZONES.map(zone => {
+                                const unlocked = stats.level >= zone.unlockLevel;
+                                return (
+                                    <button key={zone.id}
+                                        disabled={!unlocked || !zone.link}
+                                        onClick={() => unlocked && zone.link && (window.location.href = zone.link)}
+                                        style={{
+                                            display:'flex', alignItems:'center', gap:'10px',
+                                            padding:'9px 11px', borderRadius:'11px', textAlign:'left', width:'100%',
+                                            background: unlocked ? `${zone.color}10` : 'rgba(15,23,42,0.5)',
+                                            border:`1px solid ${unlocked ? zone.color+'30' : 'rgba(51,65,85,0.4)'}`,
+                                            cursor: unlocked && zone.link ? 'pointer' : 'default',
+                                            opacity: unlocked ? 1 : 0.42, color:'white',
+                                            transition:'transform 0.12s', fontSize:'inherit'
+                                        }}>
+                                        <span style={{fontSize:'20px', flexShrink:0}}>{zone.emoji}</span>
+                                        <div style={{flex:1, minWidth:0}}>
+                                            <div style={{fontWeight:'bold', fontSize:'12px',
+                                                color: unlocked ? '#e2e8f0' : '#475569',
+                                                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                                                {zone.name}
+                                            </div>
+                                            <div style={{fontSize:'10px', color: unlocked ? zone.color : '#334155', marginTop:'1px'}}>
+                                                {unlocked ? CHARACTERS[zone.charId]?.name : `Sblocca al Lv.${zone.unlockLevel}`}
+                                            </div>
+                                        </div>
+                                        <span style={{color: unlocked ? zone.color : '#334155', fontSize:'14px', flexShrink:0}}>
+                                            {unlocked ? (zone.link ? '→' : '🔒') : '🔒'}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Bottom action buttons */}
+                    <div style={{padding:'10px 16px 14px', flexShrink:0, borderTop:'1px solid rgba(251,191,36,0.08)',
+                        display:'flex', gap:'8px'}}>
+                        <button onClick={() => setShowParchment(true)}
+                            style={{flex:1, padding:'10px', borderRadius:'12px', fontSize:'20px', cursor:'pointer',
+                                background:'rgba(120,80,10,0.3)', border:'1px solid rgba(139,100,16,0.35)'}}>
+                            📜
+                        </button>
+                        <a href="profilo.html"
+                            style={{flex:1, padding:'10px', borderRadius:'12px', fontSize:'20px',
+                                background:'rgba(99,40,160,0.3)', border:'1px solid rgba(139,92,246,0.35)',
+                                display:'flex', alignItems:'center', justifyContent:'center', textDecoration:'none'}}>
+                            🏆
+                        </a>
+                        <a href="index.html"
+                            style={{flex:1, padding:'10px', borderRadius:'12px', fontSize:'20px',
+                                background:'rgba(30,41,59,0.8)', border:'1px solid rgba(71,85,105,0.35)',
+                                display:'flex', alignItems:'center', justifyContent:'center', textDecoration:'none'}}>
+                            🏠
+                        </a>
+                    </div>
+                </div>
+
+                <Modals/>
+            </div>
+        );
+
+        // ════════════════════════════════════════════════════════
+        // PORTRAIT LAYOUT (smartphones)
+        // ════════════════════════════════════════════════════════
         return (
-            <div className="h-screen w-screen flex flex-col overflow-hidden"
-                style={{background:'#071020', position:'fixed', top:0, left:0}}>
+            <div style={{position:'fixed', inset:0, display:'flex', flexDirection:'column', overflow:'hidden', background:'#071020'}}>
 
                 {/* TOP BAR */}
-                <div className="flex-shrink-0 flex items-center gap-3 px-3 py-2.5"
-                    style={{background:'rgba(5,12,26,0.96)', borderBottom:'1px solid rgba(251,191,36,0.15)', backdropFilter:'blur(12px)'}}>
-                    <button onClick={() => setStage('onboarding')}
-                        className="w-11 h-11 rounded-full border-2 border-yellow-400 flex items-center justify-center overflow-hidden bg-slate-800 flex-shrink-0 active:scale-90 transition-transform"
-                        style={{boxShadow:'0 0 14px rgba(251,191,36,0.35)'}}>
-                        {profile?.avatarUrl?.startsWith('data:')
-                            ? <img src={profile.avatarUrl} className="w-full h-full object-cover"/>
-                            : <span className="text-xl">{profile?.avatarUrl || '🏴‍☠️'}</span>}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline justify-between gap-1 mb-1">
-                            <span className="text-yellow-300 font-black text-sm truncate leading-none">{profile?.name || 'Pirata'}</span>
-                            <span className="text-slate-500 text-xs flex-shrink-0 leading-none">Lv.{stats.level} · {LEVEL_TITLES[stats.level]}</span>
+                <div style={{flexShrink:0, display:'flex', alignItems:'center', gap:'10px', padding:'8px 12px',
+                    background:'rgba(5,12,26,0.96)', borderBottom:'1px solid rgba(251,191,36,0.15)', backdropFilter:'blur(12px)'}}>
+                    <AvatarBtn size={44} fontSize="20px"/>
+                    <div style={{flex:1, minWidth:0}}>
+                        <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:'4px'}}>
+                            <span style={{color:'#fcd34d', fontWeight:900, fontSize:'14px',
+                                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                                {profile?.name || 'Pirata'}
+                            </span>
+                            <span style={{color:'#64748b', fontSize:'11px', flexShrink:0, marginLeft:'4px'}}>
+                                Lv.{stats.level} · {LEVEL_TITLES[stats.level]}
+                            </span>
                         </div>
-                        <div className="h-2 bg-slate-800 rounded-full overflow-hidden xp-bar-anim">
-                            <div className="h-full rounded-full transition-all duration-700"
-                                style={{width:`${xp.pct}%`, background:'linear-gradient(90deg,#fbbf24,#f97316)', boxShadow:'0 0 8px rgba(251,191,36,0.5)'}}/>
+                        <div className="xp-bar-anim" style={{height:'8px', background:'#1e293b', borderRadius:'9999px', overflow:'hidden'}}>
+                            <div style={{height:'100%', width:`${xp.pct}%`, background:'linear-gradient(90deg,#fbbf24,#f97316)',
+                                borderRadius:'9999px', transition:'width 0.7s ease-out', boxShadow:'0 0 8px rgba(251,191,36,0.5)'}}/>
                         </div>
-                        <div className="text-slate-600 text-xs mt-0.5">{xp.cur} / {xp.needed} XP</div>
+                        <div style={{color:'#475569', fontSize:'10px', marginTop:'2px'}}>{xp.cur} / {xp.needed} XP</div>
                     </div>
-                    {/* Parchment button */}
+                    {avatarHistory.length > 0 && (
+                        <button onClick={() => setShowHistory(true)}
+                            style={{width:'38px', height:'38px', borderRadius:'10px', flexShrink:0,
+                                background:'rgba(30,41,59,0.8)', border:'1px solid rgba(100,116,139,0.35)',
+                                fontSize:'18px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                            🕰️
+                        </button>
+                    )}
                     <button onClick={() => setShowParchment(true)}
-                        className="w-10 h-10 rounded-xl bg-amber-900/50 border border-amber-700/50 flex items-center justify-center text-xl flex-shrink-0 active:scale-90 transition-transform"
-                        title="Cos'è l'Isola?">
+                        style={{width:'38px', height:'38px', borderRadius:'10px', flexShrink:0,
+                            background:'rgba(120,80,10,0.3)', border:'1px solid rgba(139,100,16,0.4)',
+                            fontSize:'18px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
                         📜
                     </button>
                     <a href="index.html"
-                        className="w-10 h-10 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-center text-xl flex-shrink-0 active:scale-90 transition-transform">
+                        style={{width:'38px', height:'38px', borderRadius:'10px', flexShrink:0,
+                            background:'rgba(30,41,59,0.8)', border:'1px solid rgba(71,85,105,0.4)',
+                            fontSize:'18px', display:'flex', alignItems:'center', justifyContent:'center', textDecoration:'none'}}>
                         🏠
                     </a>
                 </div>
 
                 {/* MAP */}
-                <div className="flex-1 relative overflow-hidden">
+                <div style={{flex:1, position:'relative', overflow:'hidden'}}>
                     <div className="wave-layer   absolute inset-0 pointer-events-none"/>
                     <div className="wave-layer-2 absolute inset-0 pointer-events-none opacity-60"/>
-                    <div style={{width:'100%', height:'100%', maxWidth:'520px', margin:'0 auto'}}>
+                    <div style={{width:'100%', height:'100%'}}>
                         <IslandSVG level={stats.level} onZoneClick={setSelectedZone}/>
                     </div>
-
-                    {/* WANTED POSTER CARD — bottom left */}
+                    {/* Wanted card — bottom left */}
                     <div style={{position:'absolute', bottom:'16px', left:'16px', zIndex:10}}>
-                        {wantedPoster ? (
-                            <button onClick={() => setShowWanted(true)}
-                                className="active:scale-90 transition-transform"
-                                style={{display:'block', background:'none', border:'none', padding:0, cursor:'pointer'}}>
-                                <div style={{
-                                    background:'linear-gradient(135deg,#1a0800,#3d1a00)',
-                                    border:'2px solid #ca8a04',
-                                    borderRadius:'10px',
-                                    padding:'4px',
-                                    boxShadow:'0 0 18px rgba(202,138,4,0.5)',
-                                    width:'60px'
-                                }}>
-                                    <img src={`data:${wantedPoster.mime};base64,${wantedPoster.data}`}
-                                        style={{width:'52px', height:'68px', objectFit:'cover', borderRadius:'6px', display:'block'}}/>
-                                    <div style={{textAlign:'center', fontSize:'7px', color:'#fbbf24', fontWeight:'bold', marginTop:'3px', letterSpacing:'0.08em'}}>
-                                        WANTED
-                                    </div>
-                                </div>
-                            </button>
-                        ) : (
-                            <a href="profilo.html"
-                                className="active:scale-90 transition-transform"
-                                style={{display:'block'}}>
-                                <div style={{
-                                    background:'rgba(10,20,40,0.85)',
-                                    border:'2px dashed rgba(202,138,4,0.35)',
-                                    borderRadius:'10px',
-                                    padding:'8px 4px',
-                                    textAlign:'center',
-                                    width:'60px',
-                                    boxShadow:'0 0 8px rgba(0,0,0,0.4)'
-                                }}>
-                                    <div style={{fontSize:'22px'}}>🏴‍☠️</div>
-                                    <div style={{fontSize:'6.5px', color:'rgba(202,138,4,0.65)', fontWeight:'bold', lineHeight:'1.3', marginTop:'3px', letterSpacing:'0.04em'}}>
-                                        CREA<br/>POSTER
-                                    </div>
-                                </div>
-                            </a>
-                        )}
+                        <WantedMiniCard size={60}/>
                     </div>
                 </div>
 
                 {/* BOTTOM HINT */}
-                <div className="flex-shrink-0 text-center py-1.5 text-slate-600 text-xs"
-                    style={{background:'rgba(5,12,26,0.92)'}}>
+                <div style={{flexShrink:0, textAlign:'center', padding:'5px', color:'#475569', fontSize:'11px',
+                    background:'rgba(5,12,26,0.92)'}}>
                     🗺️ Tocca una zona per esplorarla · {stats.xp} XP · Livello {stats.level}
                 </div>
 
-                {selectedZone  && <ZoneModal zone={selectedZone} onClose={() => setSelectedZone(null)}/>}
-                {justUnlocked  && <LevelUpOverlay zone={justUnlocked} onClose={() => setJustUnlocked(null)}/>}
-                {showParchment && <ParchmentModal onClose={() => setShowParchment(false)}/>}
-                {showWanted && wantedPoster && <WantedPosterModal poster={wantedPoster} onClose={() => setShowWanted(false)}/>}
+                <Modals/>
             </div>
         );
     };
