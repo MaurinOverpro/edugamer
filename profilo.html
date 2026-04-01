@@ -140,7 +140,12 @@ Copia
             // Wanted Poster
             const [playerName, setPlayerName] = useState('');
             const [uploadedPhoto, setUploadedPhoto] = useState(null); // { base64, mime, preview }
-            const [generatedPoster, setGeneratedPoster] = useState(null);
+            const [generatedPoster, setGeneratedPoster] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('edugamer_wanted_poster');
+                    return saved ? JSON.parse(saved) : null;
+                } catch { return null; }
+            });
             const [isGenerating, setIsGenerating] = useState(false);
             const [posterError, setPosterError] = useState(null);
 
@@ -350,7 +355,16 @@ Strict requirements:
                     const resParts = data?.candidates?.[0]?.content?.parts || [];
                     const imgPart = resParts.find(p => p.inlineData);
                     if (imgPart) {
-                        setGeneratedPoster({ data: imgPart.inlineData.data, mime: imgPart.inlineData.mimeType });
+                        const posterData = {
+                            data: imgPart.inlineData.data,
+                            mime: imgPart.inlineData.mimeType,
+                            name: playerName,
+                            level: level.level,
+                            xp: stats.totalXP,
+                            date: new Date().toISOString()
+                        };
+                        setGeneratedPoster(posterData);
+                        localStorage.setItem('edugamer_wanted_poster', JSON.stringify(posterData));
                     } else {
                         setPosterError("Nessuna immagine ricevuta. Riprova!");
                     }
@@ -386,7 +400,21 @@ Strict requirements:
                             🏠
                         </a>
                         <div className="flex-1 bg-slate-800 rounded-xl p-3 flex items-center gap-3">
-                            <div className="text-4xl">{level.icon}</div>
+                            <div
+                                className="flex-shrink-0 active:scale-90 transition-transform"
+                                onClick={() => generatedPoster && setActiveTab('wanted')}
+                                style={{cursor: generatedPoster ? 'pointer' : 'default'}}
+                            >
+                                {generatedPoster
+                                    ? <img
+                                        src={`data:${generatedPoster.mime};base64,${generatedPoster.data}`}
+                                        className="object-cover rounded-lg"
+                                        style={{width:'48px', height:'60px', border:'2px solid #ca8a04', boxShadow:'0 0 12px rgba(202,138,4,0.5)'}}
+                                        title="Vedi il tuo Wanted Poster"
+                                      />
+                                    : <div className="text-4xl">{level.icon}</div>
+                                }
+                            </div>
                             <div className="flex-1">
                                 <div className="flex justify-between items-center mb-1">
                                     <span 
@@ -691,6 +719,17 @@ Strict requirements:
                         {/* WANTED POSTER */}
                         {activeTab === 'wanted' && (
                             <div className="space-y-4">
+                                {generatedPoster && level.level > generatedPoster.level && (
+                                    <div className="bg-gradient-to-r from-yellow-700 to-orange-700 rounded-xl p-3 flex items-center gap-3 border-2 border-yellow-400"
+                                        style={{boxShadow:'0 0 16px rgba(202,138,4,0.4)'}}>
+                                        <span className="text-3xl">🆙</span>
+                                        <div className="flex-1">
+                                            <div className="font-bold text-sm text-yellow-100">Sei salito di livello!</div>
+                                            <div className="text-xs text-yellow-200 opacity-90 mt-0.5">Rigenera il tuo Wanted Poster per riflettere il nuovo rango</div>
+                                        </div>
+                                        <span className="text-2xl">🏴‍☠️</span>
+                                    </div>
+                                )}
                                 <div className="text-center">
                                     <div className="text-5xl mb-2">🏴‍☠️</div>
                                     <h3 className="text-xl font-bold text-orange-400">Il tuo Wanted Poster</h3>
