@@ -379,20 +379,27 @@ Rispondi SOLO con JSON:
             const exportComparisonPDF = () => {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
-                const W = doc.internal.pageSize.getWidth();
-                const m = 20, uw = W - m * 2;
+                const m = 20, uw = 170;
                 let y = 25;
+
+                // jsPDF usa solo Latin-1: rimuove emoji e normalizza virgolette/apostrofi tipografici
+                const clean = (t) => (t || '')
+                    .replace(/[\u2018\u2019\u201A\u201B\u02BC]/g, "'")
+                    .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+                    .replace(/\u2026/g, '...')
+                    .replace(/[\u2013\u2014]/g, '-')
+                    .replace(/[^\x00-\xFF]/g, '');
 
                 const checkPage = (needed = 20) => { if (y + needed > 280) { doc.addPage(); y = 20; } };
 
                 // Titolo
                 doc.setTextColor(37, 99, 235);
                 doc.setFontSize(20);
-                doc.text(title, W / 2, y, { align: 'center' });
+                doc.text(clean(title), 105, y, { align: 'center' });
                 y += 8;
                 doc.setTextColor(100, 116, 139);
                 doc.setFontSize(10);
-                doc.text('Confronto versioni · EduGamer Metodo Inclusivo', W / 2, y, { align: 'center' });
+                doc.text('Confronto versioni - EduGamer Metodo Inclusivo', 105, y, { align: 'center' });
                 y += 12;
 
                 // --- Sezione 1: versione studente ---
@@ -401,13 +408,13 @@ Rispondi SOLO con JSON:
                 doc.setTextColor(30, 41, 59);
                 doc.setFontSize(12);
                 doc.setFont(undefined, 'bold');
-                doc.text('La tua versione  ✏️', m + 4, y + 5.5);
+                doc.text('La tua versione', m + 4, y + 5.5);
                 doc.setFont(undefined, 'normal');
                 y += 12;
 
                 doc.setTextColor(51, 65, 85);
                 doc.setFontSize(12);
-                const linesStudent = doc.splitTextToSize(studentText || finalText, uw);
+                const linesStudent = doc.splitTextToSize(clean(studentText || finalText), uw);
                 linesStudent.forEach(line => { checkPage(7); doc.text(line, m, y); y += 6.5; });
                 y += 8;
 
@@ -418,12 +425,12 @@ Rispondi SOLO con JSON:
                 doc.setTextColor(157, 23, 77);
                 doc.setFontSize(12);
                 doc.setFont(undefined, 'bold');
-                doc.text('Versione Magica  ✨  (AI EduGamer)', m + 4, y + 5.5);
+                doc.text('Versione Magica - AI EduGamer', m + 4, y + 5.5);
                 doc.setFont(undefined, 'normal');
                 y += 12;
 
                 doc.setTextColor(30, 41, 59);
-                const linesMagic = doc.splitTextToSize(fluentText, uw);
+                const linesMagic = doc.splitTextToSize(clean(fluentText), uw);
                 linesMagic.forEach(line => { checkPage(7); doc.text(line, m, y); y += 6.5; });
                 y += 10;
 
@@ -431,15 +438,15 @@ Rispondi SOLO con JSON:
                 checkPage(14);
                 doc.setDrawColor(203, 213, 225);
                 doc.setLineWidth(0.5);
-                doc.line(m, y, W - m, y);
+                doc.line(m, y, 210 - m, y);
                 y += 6;
                 doc.setTextColor(100, 116, 139);
                 doc.setFontSize(10);
-                doc.text(`Idee: ${ideas.length} · Errori corretti: ${errors.length} · Creato con EduGamer`, W / 2, y, { align: 'center' });
+                doc.text(`Idee: ${ideas.length} - Errori corretti: ${errors.length} - Creato con EduGamer`, 105, y, { align: 'center' });
 
                 doc.save(`${title.replace(/\s+/g, '_')}_Confronto_EduGamer.pdf`);
                 DB.addXP(25);
-                speak("Il confronto tra le due versioni è pronto da condividere!");
+                speak("Il confronto tra le due versioni e' pronto da condividere!");
             };
 
             // RENDER UI //
