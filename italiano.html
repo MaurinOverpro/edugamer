@@ -123,6 +123,7 @@ Rispondi SOLO con JSON:
             const [isChecking, setIsChecking] = useState(false);
 
             const [fluentText, setFluentText] = useState('');
+            const [studentText, setStudentText] = useState('');
             const [styleComment, setStyleComment] = useState('');
             const [aiMessage, setAiMessage] = useState(null);
 
@@ -255,6 +256,7 @@ Rispondi SOLO con JSON:
 
             // Funzione di Stile Spostata in alto per sicurezza Javascript
             const startStyling = async (textBase) => {
+                setStudentText(textBase);
                 setStage('style');
                 setIsChecking(true);
                 try {
@@ -372,6 +374,72 @@ Rispondi SOLO con JSON:
                 doc.save(`${title.replace(/\s+/g, '_')}_EduGamer.pdf`);
                 DB.addXP(20);
                 speak("Il tuo capolavoro è pronto da stampare e consegnare!");
+            };
+
+            const exportComparisonPDF = () => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const W = doc.internal.pageSize.getWidth();
+                const m = 20, uw = W - m * 2;
+                let y = 25;
+
+                const checkPage = (needed = 20) => { if (y + needed > 280) { doc.addPage(); y = 20; } };
+
+                // Titolo
+                doc.setTextColor(37, 99, 235);
+                doc.setFontSize(20);
+                doc.text(title, W / 2, y, { align: 'center' });
+                y += 8;
+                doc.setTextColor(100, 116, 139);
+                doc.setFontSize(10);
+                doc.text('Confronto versioni · EduGamer Metodo Inclusivo', W / 2, y, { align: 'center' });
+                y += 12;
+
+                // --- Sezione 1: versione studente ---
+                doc.setFillColor(241, 245, 249);
+                doc.roundedRect(m, y, uw, 8, 2, 2, 'F');
+                doc.setTextColor(30, 41, 59);
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text('La tua versione  ✏️', m + 4, y + 5.5);
+                doc.setFont(undefined, 'normal');
+                y += 12;
+
+                doc.setTextColor(51, 65, 85);
+                doc.setFontSize(12);
+                const linesStudent = doc.splitTextToSize(studentText || finalText, uw);
+                linesStudent.forEach(line => { checkPage(7); doc.text(line, m, y); y += 6.5; });
+                y += 8;
+
+                // --- Sezione 2: versione magica ---
+                checkPage(20);
+                doc.setFillColor(253, 242, 248);
+                doc.roundedRect(m, y, uw, 8, 2, 2, 'F');
+                doc.setTextColor(157, 23, 77);
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text('Versione Magica  ✨  (AI EduGamer)', m + 4, y + 5.5);
+                doc.setFont(undefined, 'normal');
+                y += 12;
+
+                doc.setTextColor(30, 41, 59);
+                const linesMagic = doc.splitTextToSize(fluentText, uw);
+                linesMagic.forEach(line => { checkPage(7); doc.text(line, m, y); y += 6.5; });
+                y += 10;
+
+                // Footer
+                checkPage(14);
+                doc.setDrawColor(203, 213, 225);
+                doc.setLineWidth(0.5);
+                doc.line(m, y, W - m, y);
+                y += 6;
+                doc.setTextColor(100, 116, 139);
+                doc.setFontSize(10);
+                doc.text(`Idee: ${ideas.length} · Errori corretti: ${errors.length} · Creato con EduGamer`, W / 2, y, { align: 'center' });
+
+                doc.save(`${title.replace(/\s+/g, '_')}_Confronto_EduGamer.pdf`);
+                DB.addXP(25);
+                speak("Il confronto tra le due versioni è pronto da condividere!");
             };
 
             // RENDER UI //
@@ -565,6 +633,9 @@ Rispondi SOLO con JSON:
                                             ✨ ACCETTA LA MAGIA
                                         </button>
                                     </div>
+                                    <button onClick={exportComparisonPDF} className="w-full bg-amber-600 hover:bg-amber-500 py-4 rounded-2xl font-bold text-white text-lg active:scale-95 border-2 border-amber-400 flex items-center justify-center gap-2 transition-transform">
+                                        <span className="text-2xl">📊</span> SALVA CONFRONTO PDF
+                                    </button>
                                 </>
                             )}
                         </div>
@@ -590,13 +661,20 @@ Rispondi SOLO con JSON:
                             <div className="bg-slate-800 p-6 sm:p-8 rounded-3xl border-2 border-slate-700 w-full text-xl sm:text-2xl leading-loose text-gray-200 shadow-inner h-max">
                                 {finalText.split('\n').map((par, i) => <p key={i} className="mb-6">{par}</p>)}
                             </div>
-                            <div className="flex flex-col sm:flex-row gap-4 w-full mt-auto mb-4">
-                                <button onClick={() => speak(finalText)} className="flex-1 bg-purple-600 py-4 sm:py-5 rounded-2xl font-bold text-white text-lg sm:text-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 border-2 border-purple-400 transition-transform">
-                                    <span className="text-2xl">🔊</span> ASCOLTA
-                                </button>
-                                <button onClick={exportPDF} className="flex-1 bg-red-600 py-4 sm:py-5 rounded-2xl font-bold text-white text-lg sm:text-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 border-2 border-red-400 transition-transform">
-                                    <span className="text-2xl">📄</span> SCARICA PDF
-                                </button>
+                            <div className="flex flex-col gap-3 w-full mt-auto mb-4">
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                    <button onClick={() => speak(finalText)} className="flex-1 bg-purple-600 py-4 sm:py-5 rounded-2xl font-bold text-white text-lg sm:text-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 border-2 border-purple-400 transition-transform">
+                                        <span className="text-2xl">🔊</span> ASCOLTA
+                                    </button>
+                                    <button onClick={exportPDF} className="flex-1 bg-red-600 py-4 sm:py-5 rounded-2xl font-bold text-white text-lg sm:text-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 border-2 border-red-400 transition-transform">
+                                        <span className="text-2xl">📄</span> SCARICA PDF
+                                    </button>
+                                </div>
+                                {fluentText && (
+                                    <button onClick={exportComparisonPDF} className="w-full bg-amber-600 hover:bg-amber-500 py-4 rounded-2xl font-bold text-white text-lg active:scale-95 border-2 border-amber-400 flex items-center justify-center gap-2 transition-transform">
+                                        <span className="text-2xl">📊</span> SCARICA CONFRONTO PDF
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
