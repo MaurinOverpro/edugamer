@@ -74,14 +74,14 @@
 
     /* SVG viewBox: 400 × 520 */
     const ZONES = [
-        { id:'porto',      name:'Porto dei Pirati',    emoji:'⚓', unlockLevel:1,  x:200, y:420, color:'#38bdf8', link:'index.html',      charId:'squall'    },
-        { id:'caverna',    name:'Caverna dei Numeri',  emoji:'🔢', unlockLevel:2,  x:82,  y:318, color:'#fbbf24', link:'matematica.html', charId:'numerus'   },
-        { id:'giungla',    name:'Giungla dei Segreti', emoji:'🌴', unlockLevel:2,  x:318, y:285, color:'#4ade80', link:'lavagna.html',    charId:'zara'      },
-        { id:'biblioteca', name:'Biblioteca Sommersa', emoji:'📜', unlockLevel:3,  x:100, y:195, color:'#c084fc', link:'italiano.html',   charId:'isabella'  },
-        { id:'torre',      name:"Torre dell'Oracolo",  emoji:'🔮', unlockLevel:4,  x:305, y:158, color:'#f0abfc', link:'tutor.html',      charId:'mordecai'  },
-        { id:'grotta',     name:'Grotta degli Enigmi', emoji:'🗺️', unlockLevel:5,  x:200, y:235, color:'#fb923c', link:'discover.html',   charId:'rex'       },
-        { id:'cripta',     name:'Cripta del Tesoro',   emoji:'💎', unlockLevel:6,  x:300, y:378, color:'#fde68a', link:'profilo.html',    charId:'barbanera' },
-        { id:'fortezza',   name:'Fortezza del Corsaro',emoji:'🏰', unlockLevel:10, x:200, y:72,  color:'#f87171', link:null,              charId:'corsaro'   },
+        { id:'porto',      name:'Porto dei Pirati',    emoji:'⚓', unlockLevel:1,  x:200, y:420, color:'#38bdf8', link:'index.html',    pathKey:null,          charId:'squall'    },
+        { id:'caverna',    name:'Caverna dei Numeri',  emoji:'🔢', unlockLevel:2,  x:82,  y:318, color:'#fbbf24', link:null,            pathKey:'matematico',  charId:'numerus'   },
+        { id:'giungla',    name:'Giungla dei Segreti', emoji:'🌴', unlockLevel:2,  x:318, y:285, color:'#4ade80', link:null,            pathKey:'cartografo',  charId:'zara'      },
+        { id:'biblioteca', name:'Biblioteca Sommersa', emoji:'📜', unlockLevel:3,  x:100, y:195, color:'#c084fc', link:null,            pathKey:'scrittore',   charId:'isabella'  },
+        { id:'torre',      name:"Torre dell'Oracolo",  emoji:'🔮', unlockLevel:4,  x:305, y:158, color:'#f0abfc', link:null,            pathKey:'fedele',      charId:'mordecai'  },
+        { id:'grotta',     name:'Grotta degli Enigmi', emoji:'🗺️', unlockLevel:5,  x:200, y:235, color:'#fb923c', link:null,            pathKey:null,          charId:'rex'       },
+        { id:'cripta',     name:'Cripta del Tesoro',   emoji:'💎', unlockLevel:6,  x:300, y:378, color:'#fde68a', link:'profilo.html',  pathKey:null,          charId:'barbanera' },
+        { id:'fortezza',   name:'Fortezza del Corsaro',emoji:'🏰', unlockLevel:10, x:200, y:72,  color:'#f87171', link:null,            pathKey:null,          charId:'corsaro'   },
     ];
 
     const PATHS = [
@@ -119,6 +119,10 @@
         },
         getWantedPoster: () => {
             try { return JSON.parse(localStorage.getItem('edugamer_wanted_poster')||'null'); } catch { return null; }
+        },
+        getPaths: () => {
+            if (window.EduGamer?.getPaths) return window.EduGamer.getPaths();
+            return [];
         },
         getAvatarHistory: () => {
             try { return JSON.parse(localStorage.getItem('isola_avatars_history')||'[]'); } catch { return []; }
@@ -320,7 +324,9 @@
     );
 
     /* ── ISLAND SVG ─────────────────────────────────────────── */
-    const IslandSVG = ({ level, onZoneClick }) => (
+    const IslandSVG = ({ level, onZoneClick, avatarHistory = [] }) => {
+        const avatarBubbles = avatarHistory.filter(h => h.avatarUrl?.startsWith('data:')).slice(0, 3);
+        return (
         <svg viewBox="0 0 400 520" style={{width:'100%',height:'100%',display:'block'}} preserveAspectRatio="xMidYMid meet">
             <defs>
                 <radialGradient id="ocean-deep" cx="50%" cy="50%">
@@ -348,6 +354,11 @@
                     <feGaussianBlur stdDeviation="4" result="b"/>
                     <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
                 </filter>
+                {avatarBubbles.map((_, i) => (
+                    <clipPath key={'avclip'+i} id={'av-clip-'+i}>
+                        <circle cx={32} cy={355 + i * 44} r="14"/>
+                    </clipPath>
+                ))}
             </defs>
 
             {/* ── OCEAN ── */}
@@ -494,6 +505,14 @@
             {/* Snow cap */}
             <polygon points="200,38 212,62 188,62"  fill="#e8dcc8" opacity="0.55"/>
 
+            {/* ── LAKE (centro isola) ── */}
+            <ellipse cx="205" cy="258" rx="28" ry="17" fill="#0d3060" opacity="0.92"/>
+            <ellipse cx="205" cy="258" rx="23" ry="13" fill="#1a5294" opacity="0.78"/>
+            <ellipse cx="205" cy="255" rx="15" ry="8"  fill="#2272c8" opacity="0.55"/>
+            <line x1="197" y1="254" x2="213" y2="254" stroke="rgba(120,200,255,0.45)" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="200" y1="261" x2="210" y2="261" stroke="rgba(120,200,255,0.28)" strokeWidth="1"   strokeLinecap="round"/>
+            <ellipse cx="205" cy="258" rx="29" ry="18" fill="none" stroke="rgba(56,189,248,0.32)" strokeWidth="1"/>
+
             {/* ── VEGETATION DETAIL ── */}
             {/* Tree clusters */}
             {[
@@ -581,6 +600,20 @@
                 );
             })}
 
+            {/* ── AVATAR HISTORY BUBBLES ── */}
+            {avatarBubbles.map((av, i) => {
+                const bx = 32, by = 355 + i * 44;
+                return (
+                    <g key={'av'+i} opacity="0.92">
+                        <circle cx={bx} cy={by} r="17" fill="rgba(10,18,38,0.95)" stroke="#fbbf24" strokeWidth="2"/>
+                        <image href={av.avatarUrl} x={bx-14} y={by-14} width="28" height="28"
+                            clipPath={'url(#av-clip-'+i+')'} preserveAspectRatio="xMidYMid slice"/>
+                        <circle cx={bx} cy={by} r="17" fill="none" stroke="#fbbf24" strokeWidth="2"/>
+                        <text x={bx} y={by+28} textAnchor="middle" fontSize="7.5" fill="#fbbf24" fontWeight="bold" fontFamily="Verdana">Lv.{av.level}</text>
+                    </g>
+                );
+            })}
+
             {/* ── COMPASS ROSE ── */}
             <g transform="translate(352, 468)">
                 {/* Outer decorative ring */}
@@ -611,17 +644,20 @@
                 <text x="-27" y="3"   textAnchor="middle" fontSize="7" fill="#c8b890">O</text>
             </g>
         </svg>
-    );
+        );
+    };
 
     /* ── ZONE MODAL ─────────────────────────────────────────── */
-    const ZoneModal = ({ zone, onClose }) => {
+    const ZoneModal = ({ zone, onClose, paths = [] }) => {
         const char = CHARACTERS[zone.charId];
+        const path = zone.pathKey ? paths.find(p => p.key === zone.pathKey) : null;
         return (
             <div className="fixed inset-0 z-50 flex items-end justify-center p-3"
                 style={{background:'rgba(0,0,0,0.78)'}} onClick={onClose}>
                 <div className="w-full max-w-lg rounded-3xl overflow-hidden modal-enter"
                     style={{background:'linear-gradient(160deg,#1e293b,#0f172a)', border:`2px solid ${zone.color}`, boxShadow:`0 0 50px ${zone.color}40`}}
                     onClick={e => e.stopPropagation()}>
+                    {/* Header */}
                     <div className="flex items-center gap-4 p-5 pb-4" style={{borderBottom:`1px solid ${zone.color}25`}}>
                         <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0"
                             style={{background:`${zone.color}18`, border:`2px solid ${zone.color}`, boxShadow:`0 0 18px ${zone.color}40`}}>
@@ -634,21 +670,67 @@
                         <button onClick={onClose} className="w-10 h-10 rounded-full bg-slate-700 text-slate-300 text-lg flex items-center justify-center flex-shrink-0">✕</button>
                     </div>
                     <div className="p-5 pt-4">
-                        <div className="rounded-2xl p-4 mb-5 italic text-sm text-slate-200 leading-relaxed"
+                        {/* Character greeting */}
+                        <div className="rounded-2xl p-4 mb-4 italic text-sm text-slate-200 leading-relaxed"
                             style={{background:`${zone.color}10`, border:`1px solid ${zone.color}25`}}>
                             "{char.greeting}"
                         </div>
-                        {zone.link ? (
+
+                        {/* Path stats */}
+                        {path ? (
+                            <div>
+                                <div style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'12px'}}>
+                                    <span style={{fontSize:'30px'}}>{path.emoji}</span>
+                                    <div>
+                                        <div style={{color:'#e2e8f0', fontWeight:900, fontSize:'17px'}}>{path.tierName}</div>
+                                        <div style={{color:zone.color, fontSize:'12px', marginTop:'2px'}}>{path.desc}</div>
+                                    </div>
+                                    <div style={{marginLeft:'auto', textAlign:'right'}}>
+                                        <span style={{color:zone.color, fontWeight:900, fontSize:'26px'}}>{path.value}</span>
+                                    </div>
+                                </div>
+                                {/* Progress bar */}
+                                <div style={{marginBottom:'10px'}}>
+                                    <div style={{display:'flex', justifyContent:'space-between', fontSize:'11px', marginBottom:'5px', color:'#64748b'}}>
+                                        <span style={{color:'#94a3b8', fontWeight:'bold'}}>{path.tierName}</span>
+                                        <span>{path.isMax ? '🏆 MASSIMO!' : `→ ${path.nextTierName} (${path.nextTierMin})`}</span>
+                                    </div>
+                                    <div style={{height:'10px', background:'rgba(15,23,42,0.8)', borderRadius:'9999px', overflow:'hidden', border:`1px solid ${zone.color}20`}}>
+                                        <div style={{height:'100%', width:`${path.progress}%`,
+                                            background:`linear-gradient(90deg,${zone.color}88,${zone.color})`,
+                                            borderRadius:'9999px', transition:'width 0.6s ease-out'}}/>
+                                    </div>
+                                    <div style={{textAlign:'right', fontSize:'10px', color:'#475569', marginTop:'3px'}}>{path.progress}%</div>
+                                </div>
+                                {path.isMax ? (
+                                    <div style={{textAlign:'center', padding:'10px', background:`${zone.color}18`, borderRadius:'12px',
+                                        border:`1px solid ${zone.color}40`, fontSize:'13px', color:zone.color, fontWeight:'bold'}}>
+                                        🏆 Hai raggiunto il rango massimo!
+                                    </div>
+                                ) : (
+                                    <div style={{textAlign:'center', padding:'10px', background:`${zone.color}08`, borderRadius:'12px',
+                                        border:`1px solid ${zone.color}20`, fontSize:'12px', color:'#94a3b8'}}>
+                                        Continua a studiare per diventare <strong style={{color:zone.color}}>{path.nextTierName}</strong>!
+                                    </div>
+                                )}
+                            </div>
+                        ) : zone.link ? (
                             <a href={zone.link}
                                 className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-black text-lg text-black active:scale-95 transition-transform"
                                 style={{background:`linear-gradient(135deg,${zone.color},${zone.color}bb)`, boxShadow:`0 4px 24px ${zone.color}50`}}>
                                 {zone.emoji} ENTRA NELLA ZONA!
                             </a>
-                        ) : (
+                        ) : zone.id === 'fortezza' ? (
                             <div className="text-center py-4 rounded-2xl bg-slate-800/80 border border-slate-700">
                                 <p className="text-2xl mb-2">🏆</p>
                                 <p className="text-slate-300 font-bold text-sm">Raggiungi il Livello 10</p>
                                 <p className="text-slate-500 text-xs mt-1">per sbloccare la Fortezza del Gran Corsaro</p>
+                            </div>
+                        ) : (
+                            <div className="text-center py-4 rounded-2xl bg-slate-800/80 border border-slate-700">
+                                <p className="text-2xl mb-2">🗝️</p>
+                                <p className="text-slate-300 font-bold text-sm">Zona in esplorazione</p>
+                                <p className="text-slate-500 text-xs mt-1">I segreti si riveleranno con il tempo</p>
                             </div>
                         )}
                     </div>
@@ -773,15 +855,18 @@
         const [isLandscape,   setIsLandscape]   = useState(
             () => window.innerWidth > window.innerHeight + 50 && window.innerWidth >= 640
         );
+        const [paths,         setPaths]         = useState([]);
 
         useEffect(() => {
             const p = DB.getProfile(), s = DB.getStats();
             setStats(s); setProfile(p);
             setWantedPoster(DB.getWantedPoster());
             setAvatarHistory(DB.getAvatarHistory());
+            setPaths(DB.getPaths());
             setStage(p ? 'island' : 'onboarding');
             const onXP = () => {
                 const ns = DB.getStats();
+                setPaths(DB.getPaths());
                 setStats(prev => {
                     if (ns.level > prev.level) {
                         const z = ZONES.find(z => z.unlockLevel === ns.level);
@@ -844,7 +929,7 @@
 
         // ── Shared modals ────────────────────────────────────────
         const Modals = () => <>
-            {selectedZone  && <ZoneModal zone={selectedZone} onClose={() => setSelectedZone(null)}/>}
+            {selectedZone  && <ZoneModal zone={selectedZone} paths={paths} onClose={() => setSelectedZone(null)}/>}
             {justUnlocked  && <LevelUpOverlay zone={justUnlocked} onClose={() => setJustUnlocked(null)}/>}
             {showParchment && <ParchmentModal onClose={() => setShowParchment(false)}/>}
             {showWanted && wantedPoster && <WantedPosterModal poster={wantedPoster} onClose={() => setShowWanted(false)}/>}
@@ -875,7 +960,7 @@
                     <div className="wave-layer   absolute inset-0 pointer-events-none"/>
                     <div className="wave-layer-2 absolute inset-0 pointer-events-none opacity-60"/>
                     <div style={{width:'100%', height:'100%'}}>
-                        <IslandSVG level={stats.level} onZoneClick={setSelectedZone}/>
+                        <IslandSVG level={stats.level} onZoneClick={setSelectedZone} avatarHistory={avatarHistory}/>
                     </div>
                     {/* Wanted card — bottom left of map */}
                     <div style={{position:'absolute', bottom:'16px', left:'16px', zIndex:10}}>
@@ -925,46 +1010,50 @@
                         </div>
                     </div>
 
-                    {/* Zone list — scrollable */}
-                    <div style={{flex:1, overflowY:'auto', padding:'10px 16px'}}>
+                    {/* 4 Percorsi — scrollable */}
+                    <div style={{flex:1, overflowY:'auto', padding:'10px 14px'}}>
                         <div style={{fontSize:'10px', color:'#475569', fontWeight:'bold', textTransform:'uppercase',
                             letterSpacing:'0.1em', marginBottom:'8px'}}>
-                            Zone dell'Isola · {stats.xp} XP totali
+                            I tuoi percorsi · {stats.xp} XP totali
                         </div>
-                        <div style={{display:'flex', flexDirection:'column', gap:'5px'}}>
-                            {ZONES.map(zone => {
-                                const unlocked = stats.level >= zone.unlockLevel;
-                                return (
-                                    <button key={zone.id}
-                                        disabled={!unlocked || !zone.link}
-                                        onClick={() => unlocked && zone.link && (window.location.href = zone.link)}
-                                        style={{
-                                            display:'flex', alignItems:'center', gap:'10px',
-                                            padding:'9px 11px', borderRadius:'11px', textAlign:'left', width:'100%',
-                                            background: unlocked ? `${zone.color}10` : 'rgba(15,23,42,0.5)',
-                                            border:`1px solid ${unlocked ? zone.color+'30' : 'rgba(51,65,85,0.4)'}`,
-                                            cursor: unlocked && zone.link ? 'pointer' : 'default',
-                                            opacity: unlocked ? 1 : 0.42, color:'white',
-                                            transition:'transform 0.12s', fontSize:'inherit'
-                                        }}>
-                                        <span style={{fontSize:'20px', flexShrink:0}}>{zone.emoji}</span>
-                                        <div style={{flex:1, minWidth:0}}>
-                                            <div style={{fontWeight:'bold', fontSize:'12px',
-                                                color: unlocked ? '#e2e8f0' : '#475569',
-                                                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-                                                {zone.name}
+                        {paths.length === 0 ? (
+                            <div style={{color:'#334155', fontSize:'12px', textAlign:'center', padding:'20px 0'}}>
+                                Caricamento percorsi...
+                            </div>
+                        ) : (
+                            <div style={{display:'flex', flexDirection:'column', gap:'7px'}}>
+                                {paths.map(path => (
+                                    <div key={path.key} style={{
+                                        padding:'11px 13px', borderRadius:'13px',
+                                        background:`${path.color}0d`,
+                                        border:`1px solid ${path.color}28`
+                                    }}>
+                                        <div style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'7px'}}>
+                                            <span style={{fontSize:'20px', flexShrink:0}}>{path.emoji}</span>
+                                            <div style={{flex:1, minWidth:0}}>
+                                                <div style={{fontWeight:'bold', fontSize:'12px', color:'#e2e8f0',
+                                                    overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                                                    {path.name} · <span style={{color:path.color}}>{path.tierName}</span>
+                                                </div>
+                                                <div style={{fontSize:'10px', color:'#64748b', marginTop:'1px'}}>
+                                                    {path.value} {path.desc.toLowerCase()}
+                                                    {!path.isMax && ` · → ${path.nextTierName}`}
+                                                </div>
                                             </div>
-                                            <div style={{fontSize:'10px', color: unlocked ? zone.color : '#334155', marginTop:'1px'}}>
-                                                {unlocked ? CHARACTERS[zone.charId]?.name : `Sblocca al Lv.${zone.unlockLevel}`}
-                                            </div>
+                                            {path.isMax
+                                                ? <span style={{fontSize:'16px', flexShrink:0}}>🏆</span>
+                                                : <span style={{color:'#475569', fontSize:'11px', flexShrink:0, fontWeight:'bold'}}>{path.progress}%</span>
+                                            }
                                         </div>
-                                        <span style={{color: unlocked ? zone.color : '#334155', fontSize:'14px', flexShrink:0}}>
-                                            {unlocked ? (zone.link ? '→' : '🔒') : '🔒'}
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                        </div>
+                                        <div style={{height:'5px', background:'rgba(10,18,38,0.7)', borderRadius:'9999px', overflow:'hidden'}}>
+                                            <div style={{height:'100%', width:`${path.progress}%`,
+                                                background:`linear-gradient(90deg,${path.color}88,${path.color})`,
+                                                borderRadius:'9999px', transition:'width 0.7s ease-out'}}/>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {/* Bottom action buttons */}
@@ -1047,7 +1136,7 @@
                     <div className="wave-layer   absolute inset-0 pointer-events-none"/>
                     <div className="wave-layer-2 absolute inset-0 pointer-events-none opacity-60"/>
                     <div style={{width:'100%', height:'100%'}}>
-                        <IslandSVG level={stats.level} onZoneClick={setSelectedZone}/>
+                        <IslandSVG level={stats.level} onZoneClick={setSelectedZone} avatarHistory={avatarHistory}/>
                     </div>
                     {/* Wanted card — bottom left */}
                     <div style={{position:'absolute', bottom:'16px', left:'16px', zIndex:10}}>

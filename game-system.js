@@ -62,6 +62,79 @@ const EduGamer = {
         { id: "early_bird", name: "Mattiniero", desc: "Studia prima delle 7:00", icon: "🐦", xpReward: 25, rarity: "comune", condition: (s) => s.earlyBird }
     ],
 
+    // ==================== 4 PERCORSI DI CRESCITA ====================
+    PATHS_CONFIG: [
+        {
+            key: 'cartografo',
+            name: 'Cartografo', emoji: '🗺️', color: '#4ade80',
+            desc: 'Mappe mentali create',
+            getValue: (s) => s.mapsCreated || 0,
+            tiers: [
+                { name: 'Mozzo',           min: 0   },
+                { name: 'Timoniere',       min: 10  },
+                { name: 'Navigatore',      min: 30  },
+                { name: 'Gran Navigatore', min: 100 },
+            ],
+        },
+        {
+            key: 'scrittore',
+            name: 'Scrittore', emoji: '✍️', color: '#c084fc',
+            desc: 'Testi scritti e corretti',
+            getValue: (s) => s.textsChecked || 0,
+            tiers: [
+                { name: 'Copista',        min: 0  },
+                { name: 'Cronista',       min: 10 },
+                { name: 'Bardo',          min: 25 },
+                { name: 'Poeta del Mare', min: 50 },
+            ],
+        },
+        {
+            key: 'matematico',
+            name: 'Matematico', emoji: '🔢', color: '#fbbf24',
+            desc: 'Problemi risolti',
+            getValue: (s) => s.problemsSolved || 0,
+            tiers: [
+                { name: 'Contabile',      min: 0   },
+                { name: 'Tesoriere',      min: 5   },
+                { name: 'Mastro',         min: 20  },
+                { name: 'Gran Tesoriere', min: 100 },
+            ],
+        },
+        {
+            key: 'fedele',
+            name: 'Fedele', emoji: '🔥', color: '#f97316',
+            desc: 'Giorni consecutivi di studio',
+            getValue: (s) => s.maxStreak || 0,
+            tiers: [
+                { name: 'Recluta',       min: 0  },
+                { name: 'Marinaio',      min: 3  },
+                { name: 'Luogotenente', min: 7  },
+                { name: 'Capitano',      min: 30 },
+            ],
+        },
+    ],
+
+    getPaths: function() {
+        const stats = this.loadStats();
+        return this.PATHS_CONFIG.map(config => {
+            const value = config.getValue(stats);
+            let tierIndex = 0;
+            config.tiers.forEach((t, i) => { if (value >= t.min) tierIndex = i; });
+            const tier     = config.tiers[tierIndex];
+            const nextTier = config.tiers[tierIndex + 1];
+            const progress = nextTier
+                ? Math.min(100, Math.round((value - tier.min) / (nextTier.min - tier.min) * 100))
+                : 100;
+            return {
+                key: config.key, name: config.name, emoji: config.emoji,
+                color: config.color, desc: config.desc, value,
+                tierIndex, tierName: tier.name,
+                nextTierName: nextTier?.name, nextTierMin: nextTier?.min,
+                progress, isMax: !nextTier,
+            };
+        });
+    },
+
     // ==================== STORAGE KEYS ====================
     STORAGE_KEYS: {
         stats: 'edugamer_stats',
