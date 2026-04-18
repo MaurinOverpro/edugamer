@@ -6,17 +6,18 @@
 
 const EduGamer = {
     // ==================== CONFIGURAZIONE LIVELLI ====================
+    // Tema pirata — nomenclatura allineata a isola.html (fonte di verità)
     LEVELS: [
-        { level: 1, name: "Principiante", xpRequired: 0, icon: "🥉", color: "#cd7f32" },
-        { level: 2, name: "Apprendista", xpRequired: 100, icon: "🥉", color: "#cd7f32" },
-        { level: 3, name: "Studente", xpRequired: 300, icon: "🥈", color: "#c0c0c0" },
-        { level: 4, name: "Esperto", xpRequired: 600, icon: "🥈", color: "#c0c0c0" },
-        { level: 5, name: "Maestro", xpRequired: 1000, icon: "🥇", color: "#ffd700" },
-        { level: 6, name: "Campione", xpRequired: 1500, icon: "🥇", color: "#ffd700" },
-        { level: 7, name: "Leggenda", xpRequired: 2500, icon: "💎", color: "#00d4ff" },
-        { level: 8, name: "Mito", xpRequired: 4000, icon: "👑", color: "#ff6b00" },
-        { level: 9, name: "Divinità", xpRequired: 6000, icon: "⚡", color: "#a855f7" },
-        { level: 10, name: "Immortale", xpRequired: 10000, icon: "🌟", color: "#ff0080" }
+        { level: 1,  name: "Marinaio",      xpRequired: 0,     icon: "⚓",  color: "#cd7f32" },
+        { level: 2,  name: "Esploratore",   xpRequired: 100,   icon: "🧭",  color: "#cd7f32" },
+        { level: 3,  name: "Navigatore",    xpRequired: 300,   icon: "🗺️",  color: "#c0c0c0" },
+        { level: 4,  name: "Corsaro",       xpRequired: 600,   icon: "🗡️",  color: "#c0c0c0" },
+        { level: 5,  name: "Avventuriero",  xpRequired: 1000,  icon: "🏴‍☠️", color: "#ffd700" },
+        { level: 6,  name: "Cacciatore",    xpRequired: 1500,  icon: "🎯",  color: "#ffd700" },
+        { level: 7,  name: "Leggenda",      xpRequired: 2500,  icon: "💎",  color: "#00d4ff" },
+        { level: 8,  name: "Gran Maestro",  xpRequired: 4000,  icon: "👑",  color: "#ff6b00" },
+        { level: 9,  name: "Anima Antica",  xpRequired: 6000,  icon: "⚡",  color: "#a855f7" },
+        { level: 10, name: "Gran Corsaro",  xpRequired: 10000, icon: "🌟",  color: "#ff0080" }
     ],
 
     // ==================== CONFIGURAZIONE ACHIEVEMENT ====================
@@ -52,9 +53,9 @@ const EduGamer = {
         { id: "streak_100", name: "Leggenda Vivente", desc: "100 giorni consecutivi", icon: "🏆", xpReward: 500, rarity: "leggendario", condition: (s) => s.maxStreak >= 100 },
         
         // Livelli
-        { id: "level_5", name: "Maestro", desc: "Raggiungi livello 5", icon: "🥇", xpReward: 100, rarity: "raro", condition: (s) => s.level >= 5 },
-        { id: "level_8", name: "Mito", desc: "Raggiungi livello 8", icon: "👑", xpReward: 200, rarity: "epico", condition: (s) => s.level >= 8 },
-        { id: "level_10", name: "Immortale", desc: "Raggiungi livello 10", icon: "🌟", xpReward: 500, rarity: "leggendario", condition: (s) => s.level >= 10 },
+        { id: "level_5", name: "Avventuriero", desc: "Raggiungi livello 5", icon: "🏴‍☠️", xpReward: 100, rarity: "raro", condition: (s) => s.level >= 5 },
+        { id: "level_8", name: "Gran Maestro", desc: "Raggiungi livello 8", icon: "👑", xpReward: 200, rarity: "epico", condition: (s) => s.level >= 8 },
+        { id: "level_10", name: "Gran Corsaro", desc: "Raggiungi livello 10", icon: "🌟", xpReward: 500, rarity: "leggendario", condition: (s) => s.level >= 10 },
         
         // Speciali
         { id: "all_modules", name: "Tuttofare", desc: "Usa tutti i 4 moduli in un giorno", icon: "🌈", xpReward: 75, rarity: "raro", condition: (s) => s.allModulesToday },

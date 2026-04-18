@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Isola Misteriosa - EduGamer</title>
+    <!-- FONT OPENDYSLEXIC (accessibilità DSA) -->
+    <link href="https://fonts.cdnfonts.com/css/opendyslexic" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -11,7 +13,9 @@
     <style>
         * { box-sizing: border-box; }
         html, body { height: 100%; margin: 0; padding: 0; }
-        body { background: #071020; color: white; font-family: 'Verdana', sans-serif; overflow: hidden; }
+        body { background: #071020; color: white; font-family: 'OpenDyslexic', Verdana, sans-serif; letter-spacing: 0.02em; line-height: 1.6; overflow: hidden; }
+        /* Titoli decorativi brevi — tocco "pirata" su manoscritto */
+        .title-pirate { font-family: Georgia, 'Times New Roman', serif; letter-spacing: normal; }
 
         @keyframes wave-scroll { to   { transform: translateX(-50%); } }
         @keyframes float       { 0%,100% { transform: translateY(0);   } 50% { transform: translateY(-5px); } }
@@ -43,7 +47,7 @@
         .zone-btn:active { transform: scale(0.88); }
         .zone-locked { filter: grayscale(1) brightness(0.38); cursor: default; pointer-events: none; }
 
-        input { font-family: 'Verdana', sans-serif; }
+        input { font-family: 'OpenDyslexic', Verdana, sans-serif; }
         input:focus { outline: none; }
         ::-webkit-scrollbar { width: 0; }
     </style>
@@ -103,7 +107,39 @@
     };
 
     const PRESET_AVATARS = ['🏴‍☠️','🦜','⚓','💀','🗡️','🔮','🐙','🌊','🗺️','💎','🦊','🐉'];
-    const LEVEL_TITLES   = ['','Marinaio','Esploratore','Navigatore','Corsaro','Avventuriero','Cacciatore','Leggenda','Gran Maestro','Anima Antica','Gran Corsaro'];
+    /* Nome del livello — fonte di verità in game-system.js (window.EduGamer.LEVELS) */
+    const getLevelName = (level) => {
+        const L = window.EduGamer?.LEVELS?.[level - 1];
+        return L?.name || '';
+    };
+
+    /* ── ISLAND SVG PATH ────────────────────────────────────── */
+    /* Silhouette dell'isola: coordinate assolute nel viewBox 400×520.
+       Condivisa tra shadow, beach e foam layer per evitare drift. */
+    const ISLAND_PATH_D = "M 200 22 " +
+        "L 208 16 L 214 26 L 222 20 L 232 28 L 240 22 L 246 34 L 258 28 " +
+        "C 272 28, 286 44, 298 62 " +
+        "L 306 54 L 310 66 L 322 60 L 328 74 L 338 68 L 346 82 " +
+        "C 358 104, 368 130, 368 158 " +
+        "L 378 164 L 368 180 " +
+        "C 372 204, 368 228, 358 252 " +
+        "L 368 262 L 354 276 L 364 286 L 350 300 " +
+        "C 346 324, 336 348, 324 370 " +
+        "L 336 380 L 320 394 L 330 404 L 316 414 " +
+        "C 300 432, 278 446, 248 452 " +
+        "L 240 446 L 244 460 L 228 452 L 220 462 L 208 454 " +
+        "C 186 456, 164 450, 144 440 " +
+        "L 136 452 L 124 440 L 112 450 L 100 434 " +
+        "C 80 418, 62 396, 50 370 " +
+        "L 38 378 L 42 358 L 28 364 L 34 344 " +
+        "C 24 320, 22 294, 26 268 " +
+        "L 14 260 L 26 240 L 18 224 L 30 218 " +
+        "C 26 196, 32 172, 44 150 " +
+        "L 34 140 L 46 128 L 38 114 L 50 108 " +
+        "C 62 86, 80 66, 102 52 " +
+        "L 92 42 L 104 38 L 100 26 L 114 32 " +
+        "C 132 22, 156 18, 180 20 " +
+        "L 186 14 L 194 22 L 200 22 Z";
 
     /* ── DB ─────────────────────────────────────────────────── */
     const DB = {
@@ -210,7 +246,7 @@
                 <div className="w-full max-w-md">
                     <div className="text-center mb-8">
                         <div className="text-7xl mb-3" style={{filter:'drop-shadow(0 0 20px rgba(251,191,36,0.6))'}}>🏴‍☠️</div>
-                        <h1 className="text-3xl font-black text-yellow-400 tracking-tight mb-1"
+                        <h1 className="title-pirate text-3xl font-black text-yellow-400 tracking-tight mb-1"
                             style={{textShadow:'0 0 30px rgba(251,191,36,0.5)'}}>ISOLA MISTERIOSA</h1>
                         <p className="text-slate-400 text-sm">{existing ? 'Modifica il tuo profilo pirata' : 'Crea il tuo profilo per salpare'}</p>
                     </div>
@@ -291,13 +327,13 @@
 
                 <div className="text-center mb-4">
                     <div className="text-5xl mb-2">📜</div>
-                    <h2 className="text-2xl font-black text-amber-900" style={{fontFamily:'Georgia,serif', textShadow:'1px 1px 2px rgba(100,60,0,0.3)'}}>
+                    <h2 className="title-pirate text-2xl font-black text-amber-900" style={{textShadow:'1px 1px 2px rgba(100,60,0,0.3)'}}>
                         L'Isola Misteriosa
                     </h2>
                     <div className="h-0.5 bg-amber-700/40 my-3 mx-4 rounded"/>
                 </div>
 
-                <div className="text-amber-900 text-sm leading-relaxed space-y-3" style={{fontFamily:'Georgia,serif'}}>
+                <div className="text-amber-900 text-sm leading-relaxed space-y-3">
                     <p>🏴‍☠️ <strong>Benvenuto, coraggioso esploratore!</strong></p>
                     <p>L'Isola Misteriosa è il tuo mondo di avventura e conoscenza. Ogni angolo nasconde un tesoro — non d'oro, ma di sapere.</p>
                     <p>Qui <strong>studiare è un'avventura</strong>. Ogni attività che completi nei moduli di EduGamer ti porta nuovi punti esperienza (<strong>XP</strong>). Più XP accumuli, più livelli sali — e più zone si svelano dalla nebbia.</p>
@@ -315,8 +351,7 @@
 
                 <div className="h-0.5 bg-amber-700/40 my-4 mx-4 rounded"/>
                 <button onClick={onClose}
-                    className="w-full py-3 rounded-xl font-bold text-amber-900 border-2 border-amber-700 bg-amber-200/60 active:scale-95 transition-transform"
-                    style={{fontFamily:'Georgia,serif'}}>
+                    className="title-pirate w-full py-3 rounded-xl font-bold text-amber-900 border-2 border-amber-700 bg-amber-200/60 active:scale-95 transition-transform">
                     Chiudi la pergamena
                 </button>
             </div>
@@ -388,57 +423,11 @@
             )}
 
             {/* ── ISLAND SHADOW (blur layer behind) ── */}
-            <path d="M 200 42
-                L 215 34 L 228 42 L 242 26 L 256 36
-                C 278 28, 300 46, 322 72
-                L 332 64 L 340 80
-                C 356 100, 366 128, 364 158
-                L 372 170 L 362 188
-                C 364 210, 362 235, 354 258
-                L 362 272 L 350 290
-                C 346 312, 338 338, 330 360
-                L 340 372 L 326 390
-                C 314 408, 294 424, 268 436
-                C 248 444, 226 446, 204 444
-                C 182 446, 160 440, 140 430
-                L 130 438 L 118 422
-                C 100 406, 82 386, 74 364
-                L 62 376 L 56 356
-                C 46 334, 40 308, 40 282
-                L 32 268 L 44 252
-                C 40 230, 44 206, 52 184
-                L 44 170 L 56 154
-                C 62 132, 76 108, 94 88
-                L 84 74 L 98 62
-                C 118 46, 146 34, 172 30
-                L 184 24 L 200 42 Z"
+            <path d={ISLAND_PATH_D}
                 fill="#000" opacity="0.4" style={{filter:'url(#soft-blur)'}}/>
 
             {/* ── BEACH (outer) ── */}
-            <path d="M 200 42
-                L 215 34 L 228 42 L 242 26 L 256 36
-                C 278 28, 300 46, 322 72
-                L 332 64 L 340 80
-                C 356 100, 366 128, 364 158
-                L 372 170 L 362 188
-                C 364 210, 362 235, 354 258
-                L 362 272 L 350 290
-                C 346 312, 338 338, 330 360
-                L 340 372 L 326 390
-                C 314 408, 294 424, 268 436
-                C 248 444, 226 446, 204 444
-                C 182 446, 160 440, 140 430
-                L 130 438 L 118 422
-                C 100 406, 82 386, 74 364
-                L 62 376 L 56 356
-                C 46 334, 40 308, 40 282
-                L 32 268 L 44 252
-                C 40 230, 44 206, 52 184
-                L 44 170 L 56 154
-                C 62 132, 76 108, 94 88
-                L 84 74 L 98 62
-                C 118 46, 146 34, 172 30
-                L 184 24 L 200 42 Z"
+            <path d={ISLAND_PATH_D}
                 fill="url(#beach-fill)" stroke="#5a3205" strokeWidth="2.5"
                 style={{filter:'url(#isle-shadow)'}}/>
 
@@ -470,30 +459,7 @@
                 fill="url(#island-fill)"/>
 
             {/* ── FOAM / SURF LINE ── */}
-            <path d="M 200 42
-                L 215 34 L 228 42 L 242 26 L 256 36
-                C 278 28, 300 46, 322 72
-                L 332 64 L 340 80
-                C 356 100, 366 128, 364 158
-                L 372 170 L 362 188
-                C 364 210, 362 235, 354 258
-                L 362 272 L 350 290
-                C 346 312, 338 338, 330 360
-                L 340 372 L 326 390
-                C 314 408, 294 424, 268 436
-                C 248 444, 226 446, 204 444
-                C 182 446, 160 440, 140 430
-                L 130 438 L 118 422
-                C 100 406, 82 386, 74 364
-                L 62 376 L 56 356
-                C 46 334, 40 308, 40 282
-                L 32 268 L 44 252
-                C 40 230, 44 206, 52 184
-                L 44 170 L 56 154
-                C 62 132, 76 108, 94 88
-                L 84 74 L 98 62
-                C 118 46, 146 34, 172 30
-                L 184 24 L 200 42 Z"
+            <path d={ISLAND_PATH_D}
                 fill="none"
                 stroke="rgba(200,235,255,0.28)" strokeWidth="6"
                 strokeDasharray="8,12" className="foam-anim"/>
@@ -585,7 +551,7 @@
                         <rect x={zone.x-48} y={zone.y+28} width="96" height={l2 ? 26 : 14}
                             rx="5" fill="rgba(0,0,0,0.55)" opacity={unlocked ? 0.8 : 0.4}/>
                         {/* Label text — always fully readable, 2 lines if needed */}
-                        <text textAnchor="middle" fontSize="8.5" fontWeight="bold" fontFamily="Verdana"
+                        <text textAnchor="middle" fontSize="8.5" fontWeight="bold" fontFamily="OpenDyslexic, Verdana, sans-serif"
                             fill={unlocked ? '#e2e8f0' : '#555'}>
                             <tspan x={zone.x} y={zone.y + 39}>{l1}</tspan>
                             {l2 && <tspan x={zone.x} dy="11">{l2}</tspan>}
@@ -609,7 +575,7 @@
                         <image href={av.avatarUrl} x={bx-14} y={by-14} width="28" height="28"
                             clipPath={'url(#av-clip-'+i+')'} preserveAspectRatio="xMidYMid slice"/>
                         <circle cx={bx} cy={by} r="17" fill="none" stroke="#fbbf24" strokeWidth="2"/>
-                        <text x={bx} y={by+28} textAnchor="middle" fontSize="7.5" fill="#fbbf24" fontWeight="bold" fontFamily="Verdana">Lv.{av.level}</text>
+                        <text x={bx} y={by+28} textAnchor="middle" fontSize="7.5" fill="#fbbf24" fontWeight="bold" fontFamily="OpenDyslexic, Verdana, sans-serif">Lv.{av.level}</text>
                     </g>
                 );
             })}
@@ -840,6 +806,44 @@
         </div>
     );
 
+    /* ── SHARED UI PRIMITIVES (fuori da App per evitare remount ad ogni render) ── */
+    const WantedMiniCard = ({ wantedPoster, onShow, size = 60 }) => {
+        const imgW = size - 8;
+        const imgH = Math.round(imgW * 1.3);
+        return wantedPoster ? (
+            <button onClick={onShow} aria-label="Mostra il tuo Wanted Poster"
+                style={{display:'block', background:'none', border:'none', padding:0, cursor:'pointer'}}>
+                <div style={{background:'linear-gradient(135deg,#1a0800,#3d1a00)', border:'2px solid #ca8a04',
+                    borderRadius:'10px', padding:'4px', boxShadow:'0 0 18px rgba(202,138,4,0.5)', width:size+'px'}}>
+                    <img src={`data:${wantedPoster.mime};base64,${wantedPoster.data}`}
+                        alt="Il tuo poster Wanted"
+                        style={{width:imgW+'px', height:imgH+'px', objectFit:'cover', borderRadius:'6px', display:'block'}}/>
+                    <div style={{textAlign:'center', fontSize:'7px', color:'#fbbf24', fontWeight:'bold', marginTop:'3px', letterSpacing:'0.08em'}}>WANTED</div>
+                </div>
+            </button>
+        ) : (
+            <a href="profilo.html" style={{display:'block'}} aria-label="Crea il tuo poster Wanted">
+                <div style={{background:'rgba(10,20,40,0.85)', border:'2px dashed rgba(202,138,4,0.35)',
+                    borderRadius:'10px', padding:'8px 4px', textAlign:'center', width:size+'px', boxShadow:'0 0 8px rgba(0,0,0,0.4)'}}>
+                    <div style={{fontSize:'22px'}}>🏴‍☠️</div>
+                    <div style={{fontSize:'6.5px', color:'rgba(202,138,4,0.65)', fontWeight:'bold', lineHeight:'1.3', marginTop:'3px', letterSpacing:'0.04em'}}>CREA<br/>POSTER</div>
+                </div>
+            </a>
+        );
+    };
+
+    const AvatarBtn = ({ profile, onEdit, size = 44, fontSize = '20px' }) => (
+        <button onClick={onEdit} aria-label="Modifica il tuo profilo pirata"
+            style={{width:size+'px', height:size+'px', borderRadius:'50%', border:'2px solid #fbbf24',
+                flexShrink:0, overflow:'hidden', background:'#1e293b', cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                boxShadow:'0 0 14px rgba(251,191,36,0.35)'}}>
+            {profile?.avatarUrl?.startsWith('data:')
+                ? <img src={profile.avatarUrl} alt="" style={{width:'100%', height:'100%', objectFit:'cover'}}/>
+                : <span style={{fontSize}}>{profile?.avatarUrl || '🏴‍☠️'}</span>}
+        </button>
+    );
+
     /* ── APP ────────────────────────────────────────────────── */
     const App = () => {
         const [stage,         setStage]         = useState('loading');
@@ -903,51 +907,15 @@
             <Onboarding existing={profile} onComplete={p => { setProfile(p); setStage('island'); }}/>
         );
 
-        // ── Shared mini card ────────────────────────────────────
-        const WantedMiniCard = ({ size=60 }) => {
-            const imgW = size - 8; const imgH = Math.round(imgW * 1.3);
-            return wantedPoster ? (
-                <button onClick={() => setShowWanted(true)}
-                    style={{display:'block', background:'none', border:'none', padding:0, cursor:'pointer'}}>
-                    <div style={{background:'linear-gradient(135deg,#1a0800,#3d1a00)', border:'2px solid #ca8a04',
-                        borderRadius:'10px', padding:'4px', boxShadow:'0 0 18px rgba(202,138,4,0.5)', width:size+'px'}}>
-                        <img src={`data:${wantedPoster.mime};base64,${wantedPoster.data}`}
-                            style={{width:imgW+'px', height:imgH+'px', objectFit:'cover', borderRadius:'6px', display:'block'}}/>
-                        <div style={{textAlign:'center', fontSize:'7px', color:'#fbbf24', fontWeight:'bold', marginTop:'3px', letterSpacing:'0.08em'}}>WANTED</div>
-                    </div>
-                </button>
-            ) : (
-                <a href="profilo.html" style={{display:'block'}}>
-                    <div style={{background:'rgba(10,20,40,0.85)', border:'2px dashed rgba(202,138,4,0.35)',
-                        borderRadius:'10px', padding:'8px 4px', textAlign:'center', width:size+'px', boxShadow:'0 0 8px rgba(0,0,0,0.4)'}}>
-                        <div style={{fontSize:'22px'}}>🏴‍☠️</div>
-                        <div style={{fontSize:'6.5px', color:'rgba(202,138,4,0.65)', fontWeight:'bold', lineHeight:'1.3', marginTop:'3px', letterSpacing:'0.04em'}}>CREA<br/>POSTER</div>
-                    </div>
-                </a>
-            );
-        };
-
-        // ── Shared modals ────────────────────────────────────────
-        const Modals = () => <>
+        // Modali condizionali — inlinati più sotto in ogni layout per evitare
+        // il bug di remount che avevano dentro un sotto-componente definito in App.
+        const renderModals = () => <>
             {selectedZone  && <ZoneModal zone={selectedZone} paths={paths} onClose={() => setSelectedZone(null)}/>}
             {justUnlocked  && <LevelUpOverlay zone={justUnlocked} onClose={() => setJustUnlocked(null)}/>}
             {showParchment && <ParchmentModal onClose={() => setShowParchment(false)}/>}
             {showWanted && wantedPoster && <WantedPosterModal poster={wantedPoster} onClose={() => setShowWanted(false)}/>}
             {showHistory && avatarHistory.length > 0 && <AvatarHistoryModal history={avatarHistory} onClose={() => setShowHistory(false)}/>}
         </>;
-
-        // ── Avatar button helper ─────────────────────────────────
-        const AvatarBtn = ({ size=44, fontSize='20px' }) => (
-            <button onClick={() => setStage('onboarding')}
-                style={{width:size+'px', height:size+'px', borderRadius:'50%', border:'2px solid #fbbf24',
-                    flexShrink:0, overflow:'hidden', background:'#1e293b', cursor:'pointer',
-                    display:'flex', alignItems:'center', justifyContent:'center',
-                    boxShadow:'0 0 14px rgba(251,191,36,0.35)'}}>
-                {profile?.avatarUrl?.startsWith('data:')
-                    ? <img src={profile.avatarUrl} style={{width:'100%', height:'100%', objectFit:'cover'}}/>
-                    : <span style={{fontSize}}>{profile?.avatarUrl || '🏴‍☠️'}</span>}
-            </button>
-        );
 
         // ════════════════════════════════════════════════════════
         // LANDSCAPE LAYOUT (tablets / desktop)
@@ -964,7 +932,7 @@
                     </div>
                     {/* Wanted card — bottom left of map */}
                     <div style={{position:'absolute', bottom:'16px', left:'16px', zIndex:10}}>
-                        <WantedMiniCard size={68}/>
+                        <WantedMiniCard wantedPoster={wantedPoster} onShow={() => setShowWanted(true)} size={68}/>
                     </div>
                     {/* Hint overlay */}
                     <div style={{position:'absolute', bottom:0, left:0, right:0, textAlign:'center',
@@ -980,14 +948,14 @@
                     {/* Avatar + Name + XP */}
                     <div style={{padding:'18px 20px 14px', flexShrink:0, borderBottom:'1px solid rgba(251,191,36,0.08)'}}>
                         <div style={{display:'flex', alignItems:'center', gap:'14px', marginBottom:'12px'}}>
-                            <AvatarBtn size={68} fontSize="28px"/>
+                            <AvatarBtn profile={profile} onEdit={() => setStage('onboarding')} size={68} fontSize="28px"/>
                             <div style={{flex:1, minWidth:0}}>
                                 <div style={{color:'#fcd34d', fontWeight:900, fontSize:'19px', lineHeight:1.2,
                                     overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                                     {profile?.name || 'Pirata'}
                                 </div>
                                 <div style={{color:'#64748b', fontSize:'12px', marginTop:'3px'}}>
-                                    Lv.{stats.level} · {LEVEL_TITLES[stats.level]}
+                                    Lv.{stats.level} · {getLevelName(stats.level)}
                                 </div>
                             </div>
                             {avatarHistory.length > 0 && (
@@ -1079,7 +1047,7 @@
                     </div>
                 </div>
 
-                <Modals/>
+                {renderModals()}
             </div>
         );
 
@@ -1092,7 +1060,7 @@
                 {/* TOP BAR */}
                 <div style={{flexShrink:0, display:'flex', alignItems:'center', gap:'10px', padding:'8px 12px',
                     background:'rgba(5,12,26,0.96)', borderBottom:'1px solid rgba(251,191,36,0.15)', backdropFilter:'blur(12px)'}}>
-                    <AvatarBtn size={44} fontSize="20px"/>
+                    <AvatarBtn profile={profile} onEdit={() => setStage('onboarding')} size={44} fontSize="20px"/>
                     <div style={{flex:1, minWidth:0}}>
                         <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:'4px'}}>
                             <span style={{color:'#fcd34d', fontWeight:900, fontSize:'14px',
@@ -1100,7 +1068,7 @@
                                 {profile?.name || 'Pirata'}
                             </span>
                             <span style={{color:'#64748b', fontSize:'11px', flexShrink:0, marginLeft:'4px'}}>
-                                Lv.{stats.level} · {LEVEL_TITLES[stats.level]}
+                                Lv.{stats.level} · {getLevelName(stats.level)}
                             </span>
                         </div>
                         <div className="xp-bar-anim" style={{height:'8px', background:'#1e293b', borderRadius:'9999px', overflow:'hidden'}}>
@@ -1140,7 +1108,7 @@
                     </div>
                     {/* Wanted card — bottom left */}
                     <div style={{position:'absolute', bottom:'16px', left:'16px', zIndex:10}}>
-                        <WantedMiniCard size={60}/>
+                        <WantedMiniCard wantedPoster={wantedPoster} onShow={() => setShowWanted(true)} size={60}/>
                     </div>
                 </div>
 
@@ -1150,7 +1118,7 @@
                     🗺️ Tocca una zona per esplorarla · {stats.xp} XP · Livello {stats.level}
                 </div>
 
-                <Modals/>
+                {renderModals()}
             </div>
         );
     };

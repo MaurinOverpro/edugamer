@@ -71,3 +71,17 @@ All modules call the Google Gemini API directly from the browser:
 ### Accessibility Conventions
 
 All modules use OpenDyslexic font, `letter-spacing: 0.02–0.08em`, `line-height: 1.6–1.8`, dark theme (`#0a0e17` background), and minimum 56px touch targets. Maintain these when editing UI.
+
+Load the font via: `<link href="https://fonts.cdnfonts.com/css/opendyslexic" rel="stylesheet">` and use the stack `'OpenDyslexic', Verdana, sans-serif`.
+
+### Theme & Naming Conventions
+
+The app is themed around the **pirate world** (Isola Misteriosa, Wanted posters, Berry currency). This is not a cosmetic choice — it's the narrative anchor for the specific student using the app.
+
+**Font rules:**
+- Body text, prose, buttons, form fields → **OpenDyslexic** (non-negotiable for DSA accessibility)
+- Decorative titles (≤5 words, large size only) **may** use `Georgia, 'Times New Roman', serif` via the `.title-pirate` helper class in `isola.html`. Never apply to paragraphs or reading content.
+
+**Level naming — single source of truth:** `EduGamer.LEVELS` in `game-system.js`. All modules that display the level name must read from `window.EduGamer.LEVELS[level-1].name` rather than maintaining a local copy. Current progression: Marinaio → Esploratore → Navigatore → Corsaro → Avventuriero → Cacciatore → Leggenda → Gran Maestro → Anima Antica → Gran Corsaro.
+
+**Color palette:** neon/fluo colors (gold `#fbbf24`, electric blue `#38bdf8`, purple `#c084fc`, acid green `#4ade80`) are retained but narrated as pirate metaphors — treasure gold, deep water, abyssal phosphorescence, tropical jungle. Do not introduce generic "fantasy" or "RPG" terminology that breaks the pirate fiction.
