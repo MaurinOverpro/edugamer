@@ -47,7 +47,8 @@ Shared singleton loaded in every module via `<script src="game-system.js">`. Exp
 ### AI Integration
 
 All modules call the Google Gemini API directly from the browser:
-- Model: `gemini-3-flash-preview` (gemini-2.5-flash was deprecated in March 2026)
+- **Text model**: `gemini-3-flash-preview` (gemini-2.5-flash deprecated March 2026)
+- **Image model**: `gemini-3.1-flash-image-preview` aka "Nano Banana 2" (gemini-2.5-flash-image deprecated April 2026). For higher fidelity use `gemini-3-pro-image-preview` ("Nano Banana Pro").
 - Endpoint: `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`
 - The key is retrieved from localStorage before each call
 

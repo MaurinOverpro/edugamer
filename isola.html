@@ -59,7 +59,7 @@
 
     /* ── CONSTANTS ──────────────────────────────────────────── */
     const MODEL_TEXT  = "gemini-3-flash-preview";
-    const MODEL_IMAGE = "gemini-2.5-flash-image";
+    const MODEL_IMAGE = "gemini-3.1-flash-image-preview";
     const LEVEL_XP    = [0, 100, 300, 600, 1000, 1500, 2500, 4000, 6000, 10000];
 
     const calcLevel   = (xp) => { let l = 1; LEVEL_XP.forEach((t, i) => { if (xp >= t) l = i + 1; }); return Math.min(l, 10); };
