@@ -468,13 +468,19 @@ Rispondi SOLO con JSON valido:
                 </div>
 
                 <div key={animKey} className="card-enter flex-1 flex flex-col">
-                    <div className={`rounded-2xl border p-6 flex flex-col gap-4 shadow-xl flex-1
+                    <div className={`rounded-2xl border p-6 flex flex-col gap-4 shadow-xl flex-1 relative
                         ${isSelected
                             ? 'bg-indigo-950/60 border-indigo-500'
                             : 'bg-slate-800/80 border-slate-600'}`}>
+                        <button
+                            onClick={speaking ? stop : () => speak(`${card.concept}. ${card.text}`)}
+                            aria-label={speaking ? 'Ferma lettura' : 'Ascolta'}
+                            className={`absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-lg border transition-all active:scale-90 ${speaking ? 'border-indigo-400 bg-indigo-900/70 text-indigo-300' : 'border-slate-600 bg-slate-900/60 text-slate-400 hover:text-white hover:border-slate-400'}`}>
+                            {speaking ? '⏹' : '🔊'}
+                        </button>
                         <div className="flex items-start gap-3">
                             <span className="text-3xl">{catIcon}</span>
-                            <div>
+                            <div className="pr-8">
                                 <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-0.5">Scheda {current + 1}</p>
                                 <h2 className="text-xl font-black text-white leading-tight">{card.concept}</h2>
                             </div>
@@ -491,7 +497,6 @@ Rispondi SOLO con JSON valido:
                             className="px-4 py-3 rounded-xl border border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30 transition-all active:scale-95">
                             ←
                         </button>
-                        <SpeakBtn text={`${card.concept}. ${card.text}`} speak={speak} stop={stop} speaking={speaking} small={true} />
                         <button onClick={handleSkip}
                             className="flex-1 py-3 rounded-xl border border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-all active:scale-95">
                             {atLast ? 'Fine schede' : 'Salta →'}
