@@ -464,7 +464,6 @@ Rispondi SOLO con JSON valido:
                             <div className="h-full bg-indigo-500 transition-all duration-300 rounded-full" style={{width:`${progress}%`}}></div>
                         </div>
                     </div>
-                    <SpeakBtn text={`${card.concept}. ${card.text}`} speak={speak} stop={stop} speaking={speaking} small={true} />
                     <span className="text-xs text-slate-400 shrink-0">{current + 1}/{cards.length}</span>
                 </div>
 
@@ -492,6 +491,7 @@ Rispondi SOLO con JSON valido:
                             className="px-4 py-3 rounded-xl border border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30 transition-all active:scale-95">
                             ←
                         </button>
+                        <SpeakBtn text={`${card.concept}. ${card.text}`} speak={speak} stop={stop} speaking={speaking} small={true} />
                         <button onClick={handleSkip}
                             className="flex-1 py-3 rounded-xl border border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-all active:scale-95">
                             {atLast ? 'Fine schede' : 'Salta →'}
