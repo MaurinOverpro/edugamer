@@ -92,7 +92,54 @@
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useEffect, useRef } = React;
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ── TTS ENGINE ──────────────────────────────────────────── */
+function useSpeech() {
+    const [speaking, setSpeaking] = useState(false);
+    const utterRef = useRef(null);
+
+    const speak = useCallback((text) => {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        const utt = new SpeechSynthesisUtterance(text);
+        utt.lang = 'it-IT';
+        utt.rate = 0.92;
+        utt.onstart = () => setSpeaking(true);
+        utt.onend   = () => setSpeaking(false);
+        utt.onerror = () => setSpeaking(false);
+        utterRef.current = utt;
+        window.speechSynthesis.speak(utt);
+    }, []);
+
+    const stop = useCallback(() => {
+        window.speechSynthesis?.cancel();
+        setSpeaking(false);
+    }, []);
+
+    // Ferma la voce se si naviga via
+    useEffect(() => () => window.speechSynthesis?.cancel(), []);
+
+    return { speaking, speak, stop };
+}
+
+function SpeakBtn({ text, speak, stop, speaking, small }) {
+    const base = small
+        ? "shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border transition-all active:scale-90"
+        : "flex items-center gap-2 px-3 py-2 rounded-xl border transition-all active:scale-95 text-sm font-bold";
+    const active = speaking
+        ? `${base} border-indigo-400 bg-indigo-900/60 text-indigo-300`
+        : `${base} border-slate-600 bg-slate-800/60 text-slate-400 hover:text-white hover:border-slate-400`;
+    return (
+        <button
+            onClick={speaking ? stop : () => speak(text)}
+            aria-label={speaking ? "Ferma lettura" : "Ascolta"}
+            className={active}>
+            {speaking ? '⏹' : '🔊'}
+            {!small && <span>{speaking ? 'Ferma' : 'Ascolta'}</span>}
+        </button>
+    );
+}
 
 const MODEL = 'gemini-3-flash-preview';
 const getKey = () => localStorage.getItem('gemini_api_key') || '';
@@ -145,6 +192,7 @@ function PhaseInput({ onNext }) {
     const [chosenTitle, setChosenTitle] = useState('');
     const [error, setError]           = useState('');
     const inputRef = useRef();
+    const { speaking, speak, stop } = useSpeech();
 
     useEffect(() => { inputRef.current?.focus(); }, []);
 
@@ -245,11 +293,14 @@ Rispondi SOLO con JSON valido:
                     <label className="block text-xs text-slate-400 mb-3 uppercase tracking-widest">Scegli un titolo (o modificalo)</label>
                     <div className="flex flex-col gap-2 mb-3">
                         {titles.map((t, i) => (
-                            <button key={i} onClick={() => setChosenTitle(t.title)}
-                                className={`title-option ${chosenTitle === t.title ? 'chosen' : ''}`}>
-                                <div className="font-bold text-white text-sm mb-1">{t.title}</div>
-                                <div className="text-slate-400 text-xs">{t.why}</div>
-                            </button>
+                            <div key={i} className={`title-option ${chosenTitle === t.title ? 'chosen' : ''}`}
+                                style={{display:'flex', alignItems:'flex-start', gap:'10px'}}>
+                                <button onClick={() => setChosenTitle(t.title)} className="flex-1 text-left">
+                                    <div className="font-bold text-white text-sm mb-1">{t.title}</div>
+                                    <div className="text-slate-400 text-xs">{t.why}</div>
+                                </button>
+                                <SpeakBtn text={`${t.title}. ${t.why}`} speak={speak} stop={stop} speaking={speaking} small={true} />
+                            </div>
                         ))}
                     </div>
                     <label className="block text-xs text-slate-400 mb-1">Oppure scrivi il tuo titolo:</label>
@@ -282,8 +333,16 @@ function PhaseCards({ topic, title, level, onDone }) {
     const [error, setError]       = useState('');
     const [category, setCategory] = useState('generale');
     const [animKey, setAnimKey]   = useState(0);
+    const { speaking, speak, stop } = useSpeech();
 
     useEffect(() => { generateCards(); }, []);
+
+    // Auto-leggi la scheda quando cambia
+    useEffect(() => {
+        if (cards && cards[current]) {
+            speak(`${cards[current].concept}. ${cards[current].text}`);
+        }
+    }, [animKey]);
 
     useEffect(() => {
         function onKey(e) {
@@ -405,6 +464,7 @@ Rispondi SOLO con JSON valido:
                             <div className="h-full bg-indigo-500 transition-all duration-300 rounded-full" style={{width:`${progress}%`}}></div>
                         </div>
                     </div>
+                    <SpeakBtn text={`${card.concept}. ${card.text}`} speak={speak} stop={stop} speaking={speaking} small={true} />
                     <span className="text-xs text-slate-400 shrink-0">{current + 1}/{cards.length}</span>
                 </div>
 
@@ -548,6 +608,15 @@ function PhaseComposing() {
 function PhaseResult({ research, title, level, selected, onRestart }) {
     const [exportingPdf, setExportingPdf]   = useState(false);
     const [exportingPptx, setExportingPptx] = useState(false);
+    const { speaking, speak, stop } = useSpeech();
+
+    function buildFullText() {
+        const parts = [];
+        if (research.intro) parts.push(research.intro);
+        (research.sections || []).forEach(s => parts.push(`${s.heading}. ${s.content}`));
+        if (research.conclusion) parts.push(`Conclusione. ${research.conclusion}`);
+        return parts.join(' ');
+    }
 
     function safeFileName() {
         return title.replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_').slice(0,40) || 'ricerca';
@@ -692,6 +761,9 @@ function PhaseResult({ research, title, level, selected, onRestart }) {
                 <p className="text-indigo-300 font-bold text-sm">{title}</p>
                 <div className="inline-flex items-center gap-2 mt-2 bg-yellow-900/40 border border-yellow-600 rounded-full px-4 py-1 text-yellow-300 text-xs font-bold">
                     +50 XP guadagnati!
+                </div>
+                <div className="mt-3">
+                    <SpeakBtn text={buildFullText()} speak={speak} stop={stop} speaking={speaking} small={false} />
                 </div>
             </div>
 
