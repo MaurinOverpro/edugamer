@@ -63,6 +63,15 @@ All modules call the Google Gemini API directly from the browser:
 | Markdown | marked.js |
 | AI | Google Gemini 3 Flash Preview API |
 
+### Git & Deploy Workflow
+
+After completing any code change, always:
+1. `git add <modified files>` (by name, never `git add .`)
+2. `git commit -m "..."` with a descriptive message
+3. `git push` to origin/main
+
+GitHub Pages is configured on this repo (`maurinoverpro.github.io/edugamer`). Every push to main deploys automatically — no extra steps needed.
+
 ### Pitfalls to avoid
 
 - **`game-system.js` must be loaded at the bottom of `<body>`**, after the `<script type="text/babel">` block. Loading it in `<head>` causes it to run before React initializes.
