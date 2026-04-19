@@ -141,7 +141,8 @@ function SpeakBtn({ text, speak, stop, speaking, small }) {
     );
 }
 
-const MODEL = 'gemini-3-flash-preview';
+const MODEL       = 'gemini-3-flash-preview';
+const IMAGE_MODEL = 'gemini-3.1-flash-image-preview';
 const getKey = () => localStorage.getItem('gemini_api_key') || '';
 
 async function callGemini(prompt) {
@@ -165,6 +166,28 @@ async function callGemini(prompt) {
     const data = await res.json();
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
     return JSON.parse(raw);
+}
+
+async function generateSlideImage(subject) {
+    try {
+        const key = getKey();
+        const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${IMAGE_MODEL}:generateContent?key=${key}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: `Simple flat design illustration for a school presentation slide about: "${subject}". Colorful, educational, no text in the image, clean white background.` }] }],
+                    generationConfig: { responseModalities: ['IMAGE'] }
+                })
+            }
+        );
+        if (!res.ok) return null;
+        const data = await res.json();
+        const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+        if (!part) return null;
+        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+    } catch { return null; }
 }
 
 const LEVELS = [
@@ -611,8 +634,9 @@ function PhaseComposing() {
 
 /* ── PHASE RESULT ────────────────────────────────────────── */
 function PhaseResult({ research, title, level, selected, onRestart }) {
-    const [exportingPdf, setExportingPdf]   = useState(false);
-    const [exportingPptx, setExportingPptx] = useState(false);
+    const [exportingPdf, setExportingPdf]     = useState(false);
+    const [exportingPptx, setExportingPptx]   = useState(false);
+    const [pptxStatus, setPptxStatus]         = useState('');
     const { speaking, speak, stop } = useSpeech();
 
     function buildFullText() {
@@ -721,33 +745,52 @@ function PhaseResult({ research, title, level, selected, onRestart }) {
     async function exportPPTX() {
         setExportingPptx(true);
         try {
+            const INDIGO = '3730a3', WHITE = 'FFFFFF', DARK = '1e293b';
+
+            // Raccogli le slide da generare (con immagine)
+            const slideItems = [];
+            if (research.intro) slideItems.push({ heading: 'Introduzione', body: research.intro });
+            (research.sections || []).forEach(sec => slideItems.push({ heading: sec.heading, body: sec.content }));
+            if (research.conclusion) slideItems.push({ heading: 'Conclusione', body: research.conclusion });
+
+            // Genera immagini in parallelo
+            setPptxStatus(`Genero ${slideItems.length} immagini…`);
+            const images = await Promise.all(
+                slideItems.map(item => generateSlideImage(`${item.heading}: ${item.body.slice(0, 120)}`))
+            );
+
+            setPptxStatus('Compongo la presentazione…');
             const pptx = new PptxGenJS();
             pptx.layout = 'LAYOUT_16x9';
 
-            const INDIGO = '3730a3', WHITE = 'FFFFFF', DARK = '1e293b', LIGHT = 'f1f5f9';
-
-            const addContentSlide = (heading, body) => {
+            const addSlide = (heading, body, imgData) => {
                 const sl = pptx.addSlide();
                 sl.background = { color: WHITE };
+                // Banda header
                 sl.addShape(pptx.ShapeType.rect, { x:0, y:0, w:10, h:0.55, fill:{ color:INDIGO } });
                 sl.addText(heading, { x:0.4, y:0.08, w:9.2, h:0.42, fontSize:18, bold:true, color:WHITE, fontFace:'Helvetica' });
-                sl.addText(body,    { x:0.5, y:0.75, w:9,   h:4.4,  fontSize:14, color:DARK,  fontFace:'Helvetica', wrap:true, valign:'top', align:'left' });
+                if (imgData) {
+                    // Layout 60/40: testo sinistra, immagine destra
+                    sl.addText(body, { x:0.4, y:0.7, w:5.6, h:4.6, fontSize:13, color:DARK, fontFace:'Helvetica', wrap:true, valign:'top', align:'left' });
+                    sl.addImage({ data: imgData, x:6.1, y:0.7, w:3.6, h:3.6, sizing:{ type:'contain', w:3.6, h:3.6 } });
+                } else {
+                    // Layout full-width senza immagine
+                    sl.addText(body, { x:0.4, y:0.7, w:9.2, h:4.6, fontSize:14, color:DARK, fontFace:'Helvetica', wrap:true, valign:'top', align:'left' });
+                }
             };
 
             // Copertina
             const cover = pptx.addSlide();
             cover.background = { color: INDIGO };
-            cover.addText(title, { x:0.5, y:1.6, w:9, h:2, fontSize:36, bold:true, color:WHITE, align:'center', fontFace:'Helvetica' });
-            cover.addText(LEVELS.find(l => l.key === level)?.label || '', { x:0.5, y:3.8, w:9, h:0.5, fontSize:16, color:'c7d2fe', align:'center', fontFace:'Helvetica' });
-            cover.addText('EduGamer OS', { x:0.5, y:4.7, w:9, h:0.4, fontSize:12, color:'6366f1', align:'center', fontFace:'Helvetica' });
+            cover.addText(title, { x:0.5, y:1.5, w:9, h:2, fontSize:34, bold:true, color:WHITE, align:'center', fontFace:'Helvetica' });
+            cover.addText(LEVELS.find(l => l.key === level)?.label || '', { x:0.5, y:3.7, w:9, h:0.5, fontSize:16, color:'c7d2fe', align:'center', fontFace:'Helvetica' });
+            cover.addText('EduGamer OS', { x:0.5, y:4.6, w:9, h:0.4, fontSize:12, color:'6366f1', align:'center', fontFace:'Helvetica' });
 
-            if (research.intro)      addContentSlide('Introduzione', research.intro);
-            (research.sections || []).forEach(sec => addContentSlide(sec.heading, sec.content));
-            if (research.conclusion) addContentSlide('Conclusione', research.conclusion);
+            slideItems.forEach((item, i) => addSlide(item.heading, item.body, images[i]));
 
             if (research.keywords?.length) {
                 const kwText = research.keywords.map(kw => `${kw.term}: ${kw.definition}`).join('\n\n');
-                addContentSlide('Parole chiave', kwText);
+                addSlide('Parole chiave', kwText, null);
             }
 
             await pptx.writeFile({ fileName: `${safeFileName()}.pptx` });
@@ -755,6 +798,7 @@ function PhaseResult({ research, title, level, selected, onRestart }) {
             alert('Errore PowerPoint: ' + e.message);
         } finally {
             setExportingPptx(false);
+            setPptxStatus('');
         }
     }
 
@@ -811,8 +855,9 @@ function PhaseResult({ research, title, level, selected, onRestart }) {
                     {exportingPdf ? '…' : '📄'} PDF
                 </button>
                 <button onClick={exportPPTX} disabled={exportingPptx}
-                    className="flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold transition-all active:scale-95 disabled:opacity-50">
-                    {exportingPptx ? '…' : '📊'} PowerPoint
+                    className="flex flex-col items-center justify-center gap-0.5 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold transition-all active:scale-95 disabled:opacity-50">
+                    <span>{exportingPptx ? '⏳' : '📊'} PowerPoint</span>
+                    {pptxStatus && <span className="text-[10px] text-slate-300 font-normal">{pptxStatus}</span>}
                 </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
