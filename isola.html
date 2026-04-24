@@ -867,7 +867,8 @@
             setWantedPoster(DB.getWantedPoster());
             setAvatarHistory(DB.getAvatarHistory());
             setPaths(DB.getPaths());
-            setStage(p ? 'island' : 'onboarding');
+            const editMode = new URLSearchParams(window.location.search).get('edit') === '1';
+            setStage((p && !editMode) ? 'island' : 'onboarding');
             const onXP = () => {
                 const ns = DB.getStats();
                 setPaths(DB.getPaths());

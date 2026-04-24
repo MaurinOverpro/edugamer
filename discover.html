@@ -48,12 +48,12 @@
         }
         .animate-fade { animation: fadeIn 0.4s ease-out; }
 
-        /* PULSE ANIMATION */
-        @keyframes pulse {
+        /* SCALE PULSE — usa .animate-scale, non sovrascrive Tailwind animate-pulse */
+        @keyframes scale-pulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
         }
-        .animate-pulse { animation: pulse 2s infinite; }
+        .animate-scale { animation: scale-pulse 2s infinite; }
 
         /* GLOW EFFECT */
         .glow-green {
@@ -337,24 +337,34 @@ Rispondi SOLO con il JSON, senza markdown, senza prefissi.`;
                 }]
             };
             
-            const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                }
-            );
-            
-            if (!res.ok) throw new Error("Errore chiamata Gemini");
-            
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), 30000);
+            let res;
+            try {
+                res = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
+                    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctrl.signal }
+                );
+            } catch(e) {
+                clearTimeout(timer);
+                if (e.name === 'AbortError') throw new Error('Tempo scaduto (30s). Controlla la connessione e riprova.');
+                throw e;
+            }
+            clearTimeout(timer);
+
+            if (!res.ok) {
+                if (res.status === 429) throw new Error('Limite giornaliero raggiunto. Riprova tra qualche ora.');
+                throw new Error(`Errore AI (${res.status})`);
+            }
+
             const data = await res.json();
             let text = data.candidates[0].content.parts[0].text;
-            
+
             // Pulisci JSON da eventuali markdown
             text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-            
-            return JSON.parse(text);
+
+            try { return JSON.parse(text); }
+            catch { throw new Error("L'AI ha risposto in modo non valido. Riprova con un'immagine più nitida."); }
         }
 
         // CHIAMATA GEMINI per hint dinamico
@@ -1335,7 +1345,7 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
                     <div className="h-screen overflow-y-auto p-4 flex items-center justify-center">
                         <div className="max-w-2xl w-full animate-fade py-8">
                             <div className="text-center mb-6">
-                                <div className="text-7xl md:text-9xl mb-3 animate-pulse">🎉</div>
+                                <div className="text-7xl md:text-9xl mb-3 animate-scale">🎉</div>
                                 <h1 className="text-3xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-3">
                                     PROBLEMA RISOLTO!
                                 </h1>

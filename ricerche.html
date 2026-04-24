@@ -160,6 +160,7 @@ async function callGemini(prompt) {
         }
     );
     if (!res.ok) {
+        if (res.status === 429) throw new Error('Limite giornaliero raggiunto. Riprova tra qualche ora o domani.');
         const err = await res.json().catch(() => ({}));
         throw new Error(err?.error?.message || `Errore API ${res.status}`);
     }
