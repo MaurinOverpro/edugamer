@@ -87,7 +87,8 @@
 
         const DB = {
             getKey: () => localStorage.getItem('gemini_api_key'),
-            addXP: (amount) => {
+            addXP: (amount, source='matematica', action='activity') => {
+                if (window.EduGamer) return window.EduGamer.addXP(amount, source, action);
                 const next = parseInt(localStorage.getItem('edu_xp') || '0') + amount;
                 localStorage.setItem('edu_xp', next.toString());
                 window.dispatchEvent(new Event('xpChanged'));
@@ -98,7 +99,7 @@
         const solveProblem = async (img) => {
             const key = DB.getKey();
             if(!key) throw new Error("Manca API Key!");
-            const prompt = `Sei un maestro di sostegno per un ragazzo di 9-10 anni con DSA.
+            const prompt = `Sei un insegnante di sostegno per uno studente di scuola media (11-14 anni) con DSA.
             Risolvi questo problema in modo CHIARO e SEMPLICE.
             
             Struttura la risposta così:

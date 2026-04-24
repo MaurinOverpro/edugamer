@@ -182,9 +182,13 @@
         // DATABASE & UTILITY
         const DB = {
             getKey: () => localStorage.getItem('gemini_api_key'),
-            getXP: () => parseInt(localStorage.getItem('edu_xp') || '0'),
-            addXP: (amount) => {
-                const next = DB.getXP() + amount;
+            getXP: () => {
+                const stats = JSON.parse(localStorage.getItem('edugamer_stats') || '{}');
+                return stats.xp !== undefined ? stats.xp : parseInt(localStorage.getItem('edu_xp') || '0');
+            },
+            addXP: (amount, source='discover', action='activity') => {
+                if (window.EduGamer) return window.EduGamer.addXP(amount, source, action);
+                const next = parseInt(localStorage.getItem('edu_xp') || '0') + amount;
                 localStorage.setItem('edu_xp', next.toString());
                 window.dispatchEvent(new Event('xpChanged'));
                 return next;
@@ -192,7 +196,7 @@
         };
 
         // MASTER PROMPT per Gemini
-        const MASTER_PROMPT = `Sei un tutor esperto per studenti con DSA (discalculia, dislessia) di età 9-12 anni.
+        const MASTER_PROMPT = `Sei un tutor esperto per studenti con DSA (discalculia, dislessia) di scuola media (11-14 anni).
 
 TIPI DI PROBLEMI CHE POTRESTI INCONTRARE:
 1. SEMPLICI: 1 operazione diretta (es: "5 mele + 3 mele")
@@ -966,7 +970,7 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
                 else if (val === '⌫') setCalcDisplay(p => p.slice(0, -1));
                 else if (val === '=') {
                     try {
-                        const result = eval(calcDisplay.replace('×', '*').replace('÷', '/'));
+                        const result = eval(calcDisplay.replace(/×/g, '*').replace(/÷/g, '/'));
                         setCalcDisplay(String(Math.round(result * 100) / 100));
                     } catch {
                         setCalcDisplay('Err');
