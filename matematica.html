@@ -422,7 +422,17 @@
                                         <div className="text-center text-yellow-400 font-bold mt-1">= {rem}</div>
                                     </div>
                                 )}
-                                <div className="bg-slate-800 p-3 rounded-xl border-2 border-green-500 text-center"><div className="text-sm text-slate-400 mb-1">Ho fatto</div><div className="text-xl font-bold text-green-400">{floorQuotient} gruppi {rem > 0 && <span className="text-yellow-400 text-base ml-2">+ resto {rem}</span>}</div></div>
+                                <div className="bg-slate-800 p-3 rounded-xl border-2 border-green-500 text-center">
+                                        <div className="text-sm text-slate-400 mb-2">Ho fatto {floorQuotient} gruppi {rem > 0 && <span className="text-yellow-400">+ resto {rem}</span>}</div>
+                                        <div className="text-3xl font-black text-white tracking-wide">
+                                            <span className="text-slate-300">{a}</span>
+                                            <span className="text-yellow-400 mx-2">÷</span>
+                                            <span className="text-slate-300">{b}</span>
+                                            <span className="text-slate-500 mx-2">=</span>
+                                            <span className="text-green-400">{floorQuotient}</span>
+                                            {rem > 0 && <span className="text-yellow-400 text-xl ml-2">r.{rem}</span>}
+                                        </div>
+                                    </div>
                             </div>
                         );
                     }
