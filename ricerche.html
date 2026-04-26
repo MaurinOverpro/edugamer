@@ -192,10 +192,25 @@ async function generateSlideImage(subject) {
 }
 
 const LEVELS = [
-    { key: 'media',     label: 'Scuola Media',        desc: '11–13 anni', icon: '🧭' },
-    { key: 'superiore', label: 'Scuola Superiore',    desc: '14–18 anni', icon: '⚓' },
-    { key: 'adulti',    label: 'Università / Adulti', desc: '19+ anni',   icon: '🏴‍☠️' },
+    { key: 'elementari', label: 'Scuola Elementare',  desc: '6–10 anni',  icon: '🐚' },
+    { key: 'media',      label: 'Scuola Media',        desc: '11–13 anni', icon: '🧭' },
+    { key: 'superiore',  label: 'Scuola Superiore',    desc: '14–18 anni', icon: '⚓' },
+    { key: 'adulti',     label: 'Università / Adulti', desc: '19+ anni',   icon: '🏴‍☠️' },
 ];
+
+function dsaNote(level) {
+    if (level !== 'elementari') return '';
+    return `
+ATTENZIONE — bambino con DSA di 6-10 anni:
+- Frasi brevissime: massimo 10 parole ciascuna
+- Solo vocabolario semplice; se usi un termine nuovo spiegalo subito con un esempio concreto tratto dall'argomento stesso della ricerca
+- Un concetto solo per scheda/sezione, senza digressioni
+- Tono caldo, incoraggiante, mai freddo o accademico
+- Esempi concreti sempre pertinenti all'argomento della ricerca, non oggetti o situazioni estranee al tema
+- Nessun elenco puntato: frasi intere e continue
+- Ripeti le informazioni chiave in modo leggermente diverso per rinforzare
+- Evita parentesi, note a margine e costruzioni subordinate lunghe`;
+}
 
 const CATEGORY_ICONS = {
     storia:      '📜',
@@ -210,7 +225,7 @@ const CATEGORY_ICONS = {
 /* ── PHASE INPUT ─────────────────────────────────────────── */
 function PhaseInput({ onNext }) {
     const [topic, setTopic]           = useState('');
-    const [level, setLevel]           = useState('media');
+    const [level, setLevel]           = useState('elementari');
     const [loading, setLoading]       = useState(false);
     const [titles, setTitles]         = useState(null);
     const [chosenTitle, setChosenTitle] = useState('');
@@ -227,6 +242,7 @@ function PhaseInput({ onNext }) {
             const lvlLabel = LEVELS.find(l => l.key === level)?.label;
             const data = await callGemini(`
 Sei un tutor scolastico italiano esperto in DSA. Lo studente è in "${lvlLabel}".
+${dsaNote(level)}
 Argomento indicato: "${topic.trim()}"
 
 Proponi 3 titoli diversi per una ricerca scolastica. I titoli devono essere:
@@ -270,7 +286,7 @@ Rispondi SOLO con JSON valido:
 
             <div className="mb-6">
                 <label className="block text-xs text-slate-400 mb-2 uppercase tracking-widest">Livello scolastico</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                     {LEVELS.map(l => (
                         <button key={l.key} onClick={() => setLevel(l.key)}
                             className={`flex flex-col items-center gap-1 p-3 rounded-xl border transition-all text-sm font-bold
@@ -385,6 +401,7 @@ function PhaseCards({ topic, title, level, onDone }) {
             const lvlLabel = LEVELS.find(l => l.key === level)?.label;
             const data = await callGemini(`
 Sei un tutor scolastico italiano esperto in DSA. Lo studente è in "${lvlLabel}".
+${dsaNote(level)}
 Argomento: "${topic}" — Titolo ricerca: "${title}"
 
 Genera esattamente 12 schede-concetto per costruire questa ricerca. Ogni scheda deve:
@@ -903,6 +920,7 @@ function App() {
 
             const data = await callGemini(`
 Sei un tutor scolastico italiano esperto in DSA. Lo studente è in "${lvlLabel}".
+${dsaNote(inputData.level)}
 Scrivi una ricerca scolastica con titolo: "${inputData.title}"
 
 Usa ESCLUSIVAMENTE queste schede-concetto scelte dallo studente, senza aggiungere informazioni esterne:
