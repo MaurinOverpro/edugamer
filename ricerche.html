@@ -166,7 +166,8 @@ async function callGemini(prompt) {
     }
     const data = await res.json();
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    return JSON.parse(raw);
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    return JSON.parse(cleaned);
 }
 
 async function generateSlideImage(subject) {
@@ -242,14 +243,13 @@ function PhaseInput({ onNext }) {
             const lvlLabel = LEVELS.find(l => l.key === level)?.label;
             const data = await callGemini(`
 Sei un tutor scolastico italiano esperto in DSA. Lo studente è in "${lvlLabel}".
-${dsaNote(level)}
 Argomento indicato: "${topic.trim()}"
 
 Proponi 3 titoli diversi per una ricerca scolastica. I titoli devono essere:
 - Chiari, specifici, adatti all'età
 - Diversi per angolazione (es. cronologica, tematica, comparativa…)
 - In italiano senza gergo tecnico eccessivo
-
+${dsaNote(level)}
 Rispondi SOLO con JSON valido:
 {
   "titles": [
@@ -401,7 +401,6 @@ function PhaseCards({ topic, title, level, onDone }) {
             const lvlLabel = LEVELS.find(l => l.key === level)?.label;
             const data = await callGemini(`
 Sei un tutor scolastico italiano esperto in DSA. Lo studente è in "${lvlLabel}".
-${dsaNote(level)}
 Argomento: "${topic}" — Titolo ricerca: "${title}"
 
 Genera esattamente 12 schede-concetto per costruire questa ricerca. Ogni scheda deve:
@@ -411,7 +410,7 @@ Genera esattamente 12 schede-concetto per costruire questa ricerca. Ogni scheda 
 - Coprire angolazioni diverse: contesto, cause, effetti, personaggi, dati, curiosità, confronti…
 
 Scegli la categoria più adatta tra: storia, scienze, geografia, letteratura, matematica, natura, generale.
-
+${dsaNote(level)}
 Rispondi SOLO con JSON valido:
 {
   "category": "storia",
@@ -920,7 +919,6 @@ function App() {
 
             const data = await callGemini(`
 Sei un tutor scolastico italiano esperto in DSA. Lo studente è in "${lvlLabel}".
-${dsaNote(inputData.level)}
 Scrivi una ricerca scolastica con titolo: "${inputData.title}"
 
 Usa ESCLUSIVAMENTE queste schede-concetto scelte dallo studente, senza aggiungere informazioni esterne:
@@ -931,7 +929,7 @@ La ricerca deve:
 - Avere frasi brevi (max 25 parole), zero gergo tecnico non spiegato
 - Connettere le schede in un testo scorrevole e coerente
 - Avere una sezione per ogni 1-2 schede
-
+${dsaNote(inputData.level)}
 Rispondi SOLO con JSON valido:
 {
   "intro": "Paragrafo introduttivo (4-5 frasi).",
