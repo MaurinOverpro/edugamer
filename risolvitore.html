@@ -299,7 +299,17 @@ async function handleFoto(event) {
 async function extractTextFromImage(imgData, mimeType) {
     const key = getKey();
     if (!key) throw new Error('API Key mancante! Vai alla Home → Impostazioni.');
-    const prompt = 'Trascrivi esattamente il testo di questo problema matematico. Rispondi SOLO con il testo del problema, senza aggiungere nulla.';
+    const prompt = `Sei un assistente per studenti delle medie. Guarda questa immagine ed estrai il testo del problema matematico.
+
+IGNORA completamente (NON trascrivere):
+- Numeri e lettere di esercizio prima del testo: "1.", "2.", "3.", "a)", "b)", "c)", "Es. 1", "Esercizio 2", "N°3" ecc.
+- Numeri di pagina, intestazioni, titoli di capitolo o sezione
+- Istruzioni generali come "Risolvi i seguenti problemi", "Calcola", "Completa"
+- Qualsiasi testo che non faccia parte della narrazione del problema
+
+ESTRAI solo la parte che racconta il problema vero e proprio: il testo narrativo con i dati numerici che lo studente deve usare per risolvere.
+
+Rispondi SOLO con il testo pulito del problema, senza spiegazioni né aggiunte.`;
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ contents:[{ parts:[{ text:prompt },{ inlineData:{ mimeType, data:imgData.split(',')[1] } }] }] })
