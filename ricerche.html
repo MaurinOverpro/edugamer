@@ -655,6 +655,13 @@ function PhaseResult({ research, title, level, selected, onRestart }) {
     const [exportingPptx, setExportingPptx]   = useState(false);
     const [pptxStatus, setPptxStatus]         = useState('');
     const { speaking, speak, stop } = useSpeech();
+    const [quizPhase, setQuizPhase]     = useState('idle'); // idle | generating | active | results
+    const [quizQs, setQuizQs]           = useState([]);
+    const [quizIdx, setQuizIdx]         = useState(0);
+    const [quizAnswers, setQuizAnswers] = useState([]);
+    useEffect(() => {
+        if (quizPhase === 'active' && quizQs[quizIdx]) speak(quizQs[quizIdx].domanda);
+    }, [quizIdx, quizPhase]);
 
     function buildFullText() {
         const parts = [];
@@ -666,6 +673,64 @@ function PhaseResult({ research, title, level, selected, onRestart }) {
 
     function safeFileName() {
         return title.replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_').slice(0,40) || 'ricerca';
+    }
+
+    async function generateQuiz() {
+        setQuizPhase('generating');
+        stop();
+        try {
+            const sections = (research.sections || []).map(s => `${s.heading}: ${s.content}`).join('\n');
+            const fullText = [research.intro, sections, research.conclusion].filter(Boolean).join('\n');
+            const data = await callGemini(`Sei un tutor scolastico italiano. Basandoti SOLO su questa ricerca, crea 6 domande a risposta multipla per verificare la comprensione dello studente.
+
+Titolo ricerca: "${title}"
+Testo:
+${fullText}
+
+Regole obbligatorie:
+- Esattamente 6 domande, ciascuna su un argomento diverso della ricerca
+- 3 opzioni per domanda, mai ambigue
+- Domanda massimo 20 parole, ogni opzione massimo 10 parole
+- Una sola risposta corretta (campo "corretta": indice 0, 1 o 2)
+- Spiegazione breve del perché è corretta, massimo 15 parole
+- Linguaggio semplice adatto a studenti delle medie con DSA
+
+Rispondi SOLO con JSON valido (array di 6 oggetti):
+[{"domanda":"...","opzioni":["...","...","..."],"corretta":0,"spiegazione":"..."}]`);
+            if (!Array.isArray(data) || data.length === 0) throw new Error('Formato quiz non valido');
+            setQuizQs(data);
+            setQuizIdx(0);
+            setQuizAnswers([]);
+            setQuizPhase('active');
+        } catch(e) {
+            alert('Errore generazione quiz: ' + e.message);
+            setQuizPhase('idle');
+        }
+    }
+
+    function handleAnswer(idx) {
+        const q = quizQs[quizIdx];
+        const correct = idx === q.corretta;
+        setQuizAnswers(prev => [...prev, idx]);
+        if (correct) {
+            speak('Corretto! ' + q.spiegazione);
+            if (window.EduGamer) window.EduGamer.addXP(5, 'ricerche', 'quiz_correct');
+        } else {
+            speak('Non proprio. La risposta giusta è: ' + q.opzioni[q.corretta] + '. ' + q.spiegazione);
+        }
+    }
+
+    function handleNext() {
+        if (quizIdx < quizQs.length - 1) {
+            setQuizIdx(prev => prev + 1);
+        } else {
+            const correctCount = quizAnswers.filter((a, i) => a === quizQs[i].corretta).length;
+            if (correctCount === quizQs.length && window.EduGamer) {
+                window.EduGamer.addXP(20, 'ricerche', 'quiz_perfect');
+            }
+            stop();
+            setQuizPhase('results');
+        }
     }
 
     async function exportPDF() {
@@ -819,6 +884,118 @@ function PhaseResult({ research, title, level, selected, onRestart }) {
         }
     }
 
+    if (quizPhase === 'generating') return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-5 px-4 text-center">
+            <div className="spinner"></div>
+            <h2 className="text-xl font-black text-indigo-300">Preparo il quiz…</h2>
+            <p className="text-slate-400 text-sm max-w-xs">Creo le domande dalla tua ricerca su "{title}"</p>
+        </div>
+    );
+
+    if (quizPhase === 'active') {
+        const q = quizQs[quizIdx];
+        const answered = quizAnswers.length > quizIdx;
+        const pickedIdx = answered ? quizAnswers[quizIdx] : null;
+        const isCorrect = answered && pickedIdx === q.corretta;
+        const labels = ['A', 'B', 'C'];
+        return (
+            <div className="max-w-xl mx-auto px-4 py-6 min-h-screen flex flex-col">
+                <div className="flex items-center gap-3 mb-6">
+                    <button onClick={() => { stop(); setQuizPhase('idle'); }}
+                        className="text-slate-400 hover:text-white text-sm font-bold transition-colors shrink-0">
+                        ← Ricerca
+                    </button>
+                    <div className="flex-1">
+                        <div className="flex justify-between text-xs text-slate-500 mb-1">
+                            <span className="font-bold text-indigo-300">Quiz</span>
+                            <span>{quizIdx + 1} / {quizQs.length}</span>
+                        </div>
+                        <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                                style={{width: `${((quizIdx + (answered ? 1 : 0)) / quizQs.length) * 100}%`}} />
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-slate-800/60 border border-slate-600 rounded-2xl p-5 mb-5 card-enter">
+                    <div className="flex items-start gap-3">
+                        <p className="text-lg font-bold text-white leading-relaxed flex-1">{q.domanda}</p>
+                        <SpeakBtn text={q.domanda} speak={speak} stop={stop} speaking={speaking} small />
+                    </div>
+                </div>
+                <div className="flex flex-col gap-3 mb-5">
+                    {q.opzioni.map((opt, i) => {
+                        let cls = "w-full py-4 px-5 rounded-2xl font-bold text-left text-base border-2 transition-all ";
+                        if (!answered)        cls += "border-slate-600 bg-slate-800 text-white active:scale-95 hover:border-indigo-400";
+                        else if (i === q.corretta)  cls += "border-green-400 bg-green-900/40 text-green-200";
+                        else if (i === pickedIdx)    cls += "border-red-400 bg-red-900/30 text-red-300";
+                        else                        cls += "border-slate-700 bg-slate-800/30 text-slate-500";
+                        return (
+                            <button key={i} className={cls} disabled={answered} onClick={() => handleAnswer(i)}>
+                                <span className="text-slate-400 mr-2">{labels[i]}.</span>{opt}
+                            </button>
+                        );
+                    })}
+                </div>
+                {answered && (
+                    <div className={`rounded-2xl p-4 mb-5 border-2 card-enter ${isCorrect ? 'border-green-500 bg-green-900/20' : 'border-red-500 bg-red-900/20'}`}>
+                        <p className="font-black text-lg mb-1">{isCorrect ? '✅ Corretto!' : '❌ Non proprio…'}</p>
+                        <p className="text-sm text-slate-300 leading-relaxed">{q.spiegazione}</p>
+                    </div>
+                )}
+                {answered && (
+                    <button onClick={handleNext}
+                        className="mt-auto w-full py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-lg transition-all active:scale-95">
+                        {quizIdx < quizQs.length - 1 ? 'Prossima domanda →' : '🏆 Vedi risultati'}
+                    </button>
+                )}
+            </div>
+        );
+    }
+
+    if (quizPhase === 'results') {
+        const correctCount = quizAnswers.filter((a, i) => a === quizQs[i].corretta).length;
+        const total = quizQs.length;
+        const pct = Math.round((correctCount / total) * 100);
+        const xpEarned = correctCount * 5 + (correctCount === total ? 20 : 0);
+        let emoji, msg;
+        if (pct === 100)      { emoji = '🏆'; msg = "Perfetto! Sei pronto per l'interrogazione!"; }
+        else if (pct >= 70)   { emoji = '⭐'; msg = 'Ottimo! Ripassi ancora i punti sbagliati.'; }
+        else if (pct >= 50)   { emoji = '💪'; msg = 'Buon inizio! Rileggi la ricerca e riprova.'; }
+        else                  { emoji = '📚'; msg = 'Continua a studiare, ce la fai!'; }
+        return (
+            <div className="max-w-xl mx-auto px-4 py-8 min-h-screen flex flex-col items-center justify-center">
+                <div className="text-7xl mb-4">{emoji}</div>
+                <h2 className="text-3xl font-black text-white mb-1">{correctCount} / {total}</h2>
+                <p className="text-indigo-300 font-bold text-xl mb-2">{pct}%</p>
+                <p className="text-slate-300 text-center mb-6 max-w-xs">{msg}</p>
+                <div className="w-full bg-slate-800/60 border border-slate-700 rounded-2xl p-4 mb-5">
+                    {quizQs.map((q, i) => {
+                        const ok = quizAnswers[i] === q.corretta;
+                        return (
+                            <div key={i} className="flex items-start gap-3 py-2.5 border-b border-slate-700 last:border-0">
+                                <span className="text-lg shrink-0 mt-0.5">{ok ? '✅' : '❌'}</span>
+                                <p className="text-sm text-slate-300 flex-1 leading-snug">{q.domanda}</p>
+                            </div>
+                        );
+                    })}
+                </div>
+                <div className="bg-yellow-900/30 border border-yellow-600 rounded-xl px-5 py-3 mb-6 w-full text-center">
+                    <p className="text-yellow-300 font-bold">+{xpEarned} XP guadagnati! 🌟</p>
+                </div>
+                <div className="flex flex-col gap-3 w-full">
+                    <button onClick={() => { setQuizIdx(0); setQuizAnswers([]); setQuizPhase('active'); }}
+                        className="w-full py-3 rounded-xl bg-indigo-700 hover:bg-indigo-600 text-white font-bold transition-all active:scale-95">
+                        🔁 Rifai il quiz
+                    </button>
+                    <button onClick={() => setQuizPhase('idle')}
+                        className="w-full py-3 rounded-xl border border-slate-600 bg-slate-800 text-slate-300 font-bold transition-all active:scale-95">
+                        ← Torna alla ricerca
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-2xl mx-auto px-4 py-8">
             <div className="text-center mb-6">
@@ -877,6 +1054,10 @@ function PhaseResult({ research, title, level, selected, onRestart }) {
                     {pptxStatus && <span className="text-[10px] text-slate-300 font-normal">{pptxStatus}</span>}
                 </button>
             </div>
+            <button onClick={generateQuiz}
+                className="w-full py-3 rounded-xl bg-indigo-700 hover:bg-indigo-600 text-white font-bold transition-all active:scale-95 mb-3 flex items-center justify-center gap-2">
+                🎯 Fai il Quiz di verifica
+            </button>
             <div className="grid grid-cols-2 gap-3">
                 <button onClick={onRestart}
                     className="py-3 rounded-xl border border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-all active:scale-95">
