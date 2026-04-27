@@ -511,73 +511,34 @@
                         )}
 
                         {mode === 'solver' && (
-                            <div className="scroll-area p-3">
-                                
-                                {/* MODULI GUIDATI */}
-                                <div className="grid grid-cols-2 gap-3 mb-4">
-                                    <a href="discover.html" className="no-underline block active:scale-95">
-                                        <div className="rounded-xl p-4 text-center h-full" style={{background:'linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15))',border:'2px solid rgba(99,102,241,0.4)'}}>
-                                            <div className="text-3xl mb-2">🎯</div>
-                                            <div className="font-bold text-blue-300 text-sm mb-1">DISCOVER</div>
-                                            <div className="text-xs text-slate-400">Foto → impari il metodo</div>
-                                        </div>
-                                    </a>
-                                    <a href="risolvitore.html" className="no-underline block active:scale-95">
-                                        <div className="rounded-xl p-4 text-center h-full" style={{background:'linear-gradient(135deg,rgba(249,115,22,0.15),rgba(234,179,8,0.15))',border:'2px solid rgba(249,115,22,0.4)'}}>
-                                            <div className="text-3xl mb-2">🔍</div>
-                                            <div className="font-bold text-orange-300 text-sm mb-1">RISOLVITORE</div>
-                                            <div className="text-xs text-slate-400">Testo → passi guidati</div>
+                            <div className="scroll-area p-4 flex flex-col gap-4">
+                                <div className="text-center pt-3">
+                                    <div className="text-4xl mb-2">🔍</div>
+                                    <div className="text-xl font-bold text-white">Come vuoi inserire il problema?</div>
+                                </div>
+                                <a href="risolvitore.html" className="no-underline block active:scale-95 transition-transform">
+                                    <div className="rounded-2xl p-5 text-center" style={{background:'linear-gradient(135deg,rgba(59,130,246,0.2),rgba(99,102,241,0.2))',border:'2px solid rgba(99,102,241,0.5)'}}>
+                                        <div className="text-4xl mb-2">📷</div>
+                                        <div className="font-bold text-blue-300 text-lg">SCATTA UNA FOTO</div>
+                                        <div className="text-sm text-slate-400 mt-1">Inquadra il testo del problema</div>
+                                    </div>
+                                </a>
+                                <a href="risolvitore.html?input=testo" className="no-underline block active:scale-95 transition-transform">
+                                    <div className="rounded-2xl p-5 text-center" style={{background:'linear-gradient(135deg,rgba(249,115,22,0.2),rgba(234,179,8,0.2))',border:'2px solid rgba(249,115,22,0.5)'}}>
+                                        <div className="text-4xl mb-2">✍️</div>
+                                        <div className="font-bold text-orange-300 text-lg">SCRIVI IL PROBLEMA</div>
+                                        <div className="text-sm text-slate-400 mt-1">Digita o incolla il testo</div>
+                                    </div>
+                                </a>
+                                <div className="border-t border-slate-700 pt-2">
+                                    <a href="discover.html" className="no-underline block active:scale-95 transition-transform">
+                                        <div className="rounded-xl p-4 text-center" style={{background:'linear-gradient(135deg,rgba(102,126,234,0.1),rgba(118,75,162,0.1))',border:'1px solid rgba(99,102,241,0.3)'}}>
+                                            <div className="text-2xl mb-1">🎯</div>
+                                            <div className="font-bold text-indigo-300">METODO DISCOVER</div>
+                                            <div className="text-xs text-slate-500">Impara il metodo di risoluzione guidato</div>
                                         </div>
                                     </a>
                                 </div>
-                                <div className="text-xs text-slate-500 text-center mb-3">— oppure risoluzione rapida con AI ⬇️ —</div>
-
-                                {!solverImg ? (
-                                    <div className="flex flex-col items-center justify-center min-h-[300px] gap-4 text-center">
-                                        <div className="text-5xl animate-bounce">📐</div>
-                                        <h2 className="text-xl font-bold text-white">FOTO AL PROBLEMA</h2>
-                                        <p className="text-slate-400 text-sm">Scatta una foto al problema di matematica</p>
-                                        <label className="bg-blue-600 text-white font-bold py-3 px-6 rounded-xl cursor-pointer shadow-lg flex items-center gap-2 active:scale-95">
-                                            <input type="file" onChange={handleUpload} className="hidden" accept="image/*" />
-                                            📷 SCATTA FOTO
-                                        </label>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col gap-3">
-                                        <div className="flex gap-2 items-center bg-slate-800 p-2 rounded-xl border border-slate-600 shrink-0">
-                                            <img src={solverImg} className="h-14 w-14 rounded-lg object-cover border-2 border-slate-500" />
-                                            <button onClick={runSolver} disabled={loading} className="flex-1 bg-green-600 text-white font-bold py-2 rounded-xl active:scale-95">
-                                                {loading ? '⏳ Leggo...' : '🚀 RISOLVI'}
-                                            </button>
-                                            <button onClick={()=>{setSolverImg(null); setSolution(null);}} className="bg-red-600 text-white px-3 py-2 rounded-xl font-bold active:scale-95">🗑️</button>
-                                        </div>
-                                        
-                                        {solution && (
-                                            <div className="bg-slate-800/50 rounded-xl border border-slate-600 p-3">
-                                                <div className="flex gap-2 mb-3 flex-wrap">
-                                                    <button onClick={() => speak(solution)} className="share-btn bg-purple-600 text-white text-sm py-2 px-3">
-                                                        🔊 Leggi
-                                                    </button>
-                                                    <button onClick={() => window.speechSynthesis.cancel()} className="share-btn bg-red-600 text-white text-sm py-2 px-3">
-                                                        ⏹️ Stop
-                                                    </button>
-                                                    <button onClick={() => setShowShareMenu(true)} className="share-btn bg-green-600 text-white text-sm py-2 px-3">
-                                                        📤 Condividi
-                                                    </button>
-                                                </div>
-                                                
-                                                <div className="prose prose-invert text-sm" dangerouslySetInnerHTML={{__html: marked.parse(solution)}}></div>
-                                            </div>
-                                        )}
-                                        
-                                        {!solution && !loading && (
-                                            <div className="flex flex-col items-center justify-center py-8 text-slate-500">
-                                                <div className="text-4xl mb-3">✨</div>
-                                                <p>Premi RISOLVI per vedere la soluzione</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
                             </div>
                         )}
                     </div>
