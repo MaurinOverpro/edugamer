@@ -657,96 +657,102 @@ function downloadPDF(){
     const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
     const W=210,M=18,CW=W-M*2;
     const today=new Date().toLocaleDateString('it-IT',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    // Strip emoji and non-Latin-1 chars (jsPDF Helvetica supports only Latin-1)
+    const px=s=>String(s).replace(/—|–/g,'-').replace(/[^\x00-\xFF]/g,'').replace(/\s+/g,' ').trim();
     const sc=(...c)=>doc.setTextColor(...c);
     const sf=(...c)=>doc.setFillColor(...c);
     const sd=(...c)=>doc.setDrawColor(...c);
-    const wt=(t,mw,fs)=>{doc.setFontSize(fs);return doc.splitTextToSize(String(t),mw);};
+    const wt=(t,mw,fs)=>{doc.setFontSize(fs);return doc.splitTextToSize(px(String(t)),mw);};
+    const newPage=()=>{doc.addPage();sf(255,255,255);doc.rect(0,0,W,297,'F');};
 
-    // ---- COVER ----
-    sf(15,23,42);doc.rect(0,0,W,297,'F');
-    sf(22,163,74);doc.roundedRect(M,20,CW,14,4,4,'F');
-    sc(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(16);
-    doc.text('🔍 RISOLVITORE — EduGamer',W/2,30,{align:'center'});
+    // ---- COVER (white, stampabile) ----
+    sf(255,255,255);doc.rect(0,0,W,297,'F');
+    sf(22,163,74);doc.roundedRect(M,14,CW,16,4,4,'F');
+    sc(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(15);
+    doc.text('RISOLVITORE - EduGamer',W/2,25,{align:'center'});
     // Problem box
-    sf(30,41,59);doc.roundedRect(M,44,CW,70,6,6,'F');
-    sf(22,163,74);doc.rect(M,44,4,70,'F');
-    sc(74,222,128);doc.setFontSize(11);doc.setFont('helvetica','bold');doc.text('PROBLEMA',M+8,54);
-    sc(226,232,240);doc.setFont('helvetica','normal');doc.setFontSize(12);
-    const pt=wt(S.text,CW-16,12);let py=62;
-    pt.slice(0,6).forEach(l=>{doc.text(l,M+8,py);py+=6.5;});
+    sf(243,249,243);doc.roundedRect(M,40,CW,72,4,4,'F');
+    sf(22,163,74);doc.rect(M,40,4,72,'F');
+    sc(22,163,74);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text('PROBLEMA',M+8,51);
+    sc(30,41,59);doc.setFont('helvetica','normal');doc.setFontSize(12);
+    const probLines=wt(S.text,CW-16,12);let py=59;
+    probLines.slice(0,7).forEach(l=>{doc.text(l,M+8,py);py+=6.5;});
     // Type + date
-    sc(100,116,139);doc.setFontSize(11);
-    doc.text('Tipo: '+(S.data.tipo_label||S.data.tipo),M,124);
-    doc.text(today,W-M,124,{align:'right'});
+    sc(100,116,139);doc.setFontSize(10);
+    doc.text('Tipo: '+px(S.data.tipo_label||S.data.tipo),M,122);
+    doc.text(px(today),W-M,122,{align:'right'});
     // Summary of results
     if(S.memory.length>0){
-        sf(30,41,59);doc.roundedRect(M,130,CW,10+S.memory.length*10,4,4,'F');
-        sc(250,204,21);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('RISULTATI TROVATI',M+6,140);
-        sc(226,232,240);doc.setFont('helvetica','normal');
-        S.memory.forEach((m,i)=>doc.text(`${m.label}: ${m.value}`,M+8,150+i*10));
+        const rh=14+S.memory.length*10;
+        sf(254,252,232);doc.roundedRect(M,128,CW,rh,4,4,'F');
+        sf(202,138,4);doc.rect(M,128,4,rh,'F');
+        sc(120,80,4);doc.setFont('helvetica','bold');doc.setFontSize(10);doc.text('RISULTATI TROVATI',M+8,138);
+        sc(30,41,59);doc.setFont('helvetica','normal');
+        S.memory.forEach((m,i)=>doc.text(px(m.label+': '+m.value),M+8,147+i*10));
     }
 
-    // ---- PAGE 2: STEPS ----
-    doc.addPage();
-    sf(15,23,42);doc.rect(0,0,W,297,'F');
+    // ---- PAGE 2: STEPS (white, stampabile) ----
+    newPage();
     let y=16;
 
     // Step 3
     sf(37,99,235);doc.roundedRect(M,y,CW,12,4,4,'F');
-    sc(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(13);
-    doc.text('STEP 3 — Situazione Iniziale',W/2,y+9,{align:'center'});
+    sc(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(12);
+    doc.text('STEP 3 - Situazione Iniziale',W/2,y+9,{align:'center'});
     y+=18;
     getS3qs().forEach((q,i)=>{
         const dl=wt(q.domanda,CW-14,11);
         const bh=Math.max(24,dl.length*6+14);
-        if(y+bh>278){doc.addPage();sf(15,23,42);doc.rect(0,0,W,297,'F');y=16;}
-        sf(30,41,59);doc.roundedRect(M,y,CW,bh,4,4,'F');
-        sc(148,163,184);doc.setFont('helvetica','normal');doc.setFontSize(11);
+        if(y+bh>278){newPage();y=16;}
+        sf(245,247,250);doc.roundedRect(M,y,CW,bh,4,4,'F');
+        sd(203,213,225);doc.setDrawColor(203,213,225);doc.roundedRect(M,y,CW,bh,4,4,'S');
+        sc(71,85,105);doc.setFont('helvetica','normal');doc.setFontSize(11);
         let ty=y+7;dl.forEach(l=>{doc.text(l,M+6,ty);ty+=5.5;});
-        sc(250,204,21);doc.setFont('helvetica','bold');doc.setFontSize(13);
-        doc.text('Risposta: '+String(q.risposta),M+6,y+bh-5);
+        sc(22,101,52);doc.setFont('helvetica','bold');doc.setFontSize(12);
+        doc.text('Risposta: '+px(String(q.risposta)),M+6,y+bh-5);
         y+=bh+6;
     });
 
     // Step 4
     y+=4;
-    if(y+14>278){doc.addPage();sf(15,23,42);doc.rect(0,0,W,297,'F');y=16;}
+    if(y+14>278){newPage();y=16;}
     sf(4,120,87);doc.roundedRect(M,y,CW,12,4,4,'F');
-    sc(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(13);
-    doc.text('STEP 4 — Calcoli Passo per Passo',W/2,y+9,{align:'center'});
+    sc(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(12);
+    doc.text('STEP 4 - Calcoli Passo per Passo',W/2,y+9,{align:'center'});
     y+=18;
     const s4qs=getS4qs();
     s4qs.forEach((q,i)=>{
         const dl=wt(q.domanda,CW-14,11);
         const bh=Math.max(28,dl.length*5.5+(q.calcolo?16:0)+14);
-        if(y+bh>278){doc.addPage();sf(15,23,42);doc.rect(0,0,W,297,'F');y=16;}
-        sf(10,17,26);doc.roundedRect(M,y,CW,bh,4,4,'F');
+        if(y+bh>278){newPage();y=16;}
+        sf(240,253,244);doc.roundedRect(M,y,CW,bh,4,4,'F');
         sf(22,163,74);doc.rect(M,y,3,bh,'F');
-        sc(203,213,225);doc.setFont('helvetica','normal');doc.setFontSize(11);
+        sc(71,85,105);doc.setFont('helvetica','normal');doc.setFontSize(11);
         let ty=y+7;dl.forEach(l=>{doc.text(l,M+7,ty);ty+=5.5;});
         if(q.calcolo){
-            sc(74,222,128);doc.setFont('helvetica','bold');doc.setFontSize(13);
-            doc.text(q.calcolo+' = '+q.risposta,M+7,y+bh-6);
-            if(q.etichetta){sc(100,116,139);doc.setFontSize(10);doc.text(q.etichetta,W-M-2,y+bh-6,{align:'right'});}
+            sc(4,120,87);doc.setFont('helvetica','bold');doc.setFontSize(12);
+            doc.text(px(q.calcolo)+' = '+px(q.risposta),M+7,y+bh-6);
+            if(q.etichetta){sc(100,116,139);doc.setFontSize(10);doc.text(px(q.etichetta),W-M-2,y+bh-6,{align:'right'});}
         }
         y+=bh+6;
     });
 
     // Final solution
     y+=4;
-    if(y+36>278){doc.addPage();sf(15,23,42);doc.rect(0,0,W,297,'F');y=16;}
-    sf(5,46,22);doc.roundedRect(M,y,CW,12,4,4,'F');
-    sc(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(13);
+    if(y+36>278){newPage();y=16;}
+    sf(34,197,94);doc.roundedRect(M,y,CW,12,4,4,'F');
+    sc(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(12);
     doc.text('SOLUZIONE FINALE',W/2,y+9,{align:'center'});
     y+=16;
     const sl=wt(S.data.soluzione_finale.testo,CW-12,13);
     const sh=sl.length*7+16;
-    sf(10,17,26);doc.roundedRect(M,y,CW,sh,4,4,'F');
-    sc(74,222,128);doc.setFont('helvetica','bold');doc.setFontSize(13);
+    sf(240,253,244);doc.roundedRect(M,y,CW,sh,4,4,'F');
+    sd(34,197,94);doc.roundedRect(M,y,CW,sh,4,4,'S');
+    sc(4,120,87);doc.setFont('helvetica','bold');doc.setFontSize(13);
     sl.forEach((l,i)=>doc.text(l,M+8,y+10+i*7));
 
     // Footer
-    sc(100,116,139);doc.setFont('helvetica','normal');doc.setFontSize(10);
+    sc(148,163,184);doc.setFont('helvetica','normal');doc.setFontSize(9);
     doc.text('Creato con EduGamer',W/2,290,{align:'center'});
 
     doc.save('EduGamer_Problema_'+new Date().toLocaleDateString('it-IT').replace(/\//g,'-')+'.pdf');
