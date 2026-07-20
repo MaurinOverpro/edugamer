@@ -1,0 +1,2067 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Isola Misteriosa - EduGamer</title>
+    <!-- FONT OPENDYSLEXIC (accessibilità DSA) -->
+    <link href="fonts/opendyslexic.css" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<style>
+        * { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; padding: 0; }
+        body { background: #071020; color: white; font-family: 'OpenDyslexic', Verdana, sans-serif; letter-spacing: 0.02em; line-height: 1.6; overflow: hidden; }
+        /* Titoli decorativi brevi — tocco "pirata" su manoscritto */
+        .title-pirate { font-family: Georgia, 'Times New Roman', serif; letter-spacing: normal; }
+
+        @keyframes wave-scroll { to   { transform: translateX(-50%); } }
+        @keyframes float       { 0%,100% { transform: translateY(0);   } 50% { transform: translateY(-5px); } }
+        @keyframes slide-up    { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0);   opacity: 1; } }
+        @keyframes fade-scale  { from { opacity: 0; transform: scale(0.85); }      to { opacity: 1; transform: scale(1);    } }
+        @keyframes xp-glow     { 0%,100% { box-shadow: 0 0 8px rgba(251,191,36,0.4); } 50% { box-shadow: 0 0 22px rgba(251,191,36,0.9); } }
+        @keyframes foam-pulse  { 0%,100% { opacity: 0.25; } 50% { opacity: 0.55; } }
+
+        .wave-layer {
+            position: absolute; width: 200%; height: 100%;
+            background: repeating-linear-gradient(88deg,
+                transparent 0px, rgba(80,150,255,0.05) 55px, transparent 110px);
+            animation: wave-scroll 12s linear infinite;
+        }
+        .wave-layer-2 {
+            position: absolute; width: 200%; height: 100%;
+            background: repeating-linear-gradient(92deg,
+                transparent 0px, rgba(40,120,220,0.04) 70px, transparent 140px);
+            animation: wave-scroll 18s linear infinite reverse;
+        }
+
+        .zone-float  { animation: float 3.2s ease-in-out infinite; }
+        .modal-enter { animation: slide-up 0.3s ease-out; }
+        .overlay-enter { animation: fade-scale 0.25s ease-out; }
+        .xp-bar-anim { animation: xp-glow 2.5s ease-in-out infinite; }
+        .foam-anim   { animation: foam-pulse 3s ease-in-out infinite; }
+
+        .zone-btn { cursor: pointer; transition: transform 0.15s; }
+        .zone-btn:active { transform: scale(0.88); }
+        .zone-locked { filter: grayscale(1) brightness(0.38); cursor: default; pointer-events: none; }
+
+        input { font-family: 'OpenDyslexic', Verdana, sans-serif; }
+        input:focus { outline: none; }
+        ::-webkit-scrollbar { width: 0; }
+    </style>
+    <link rel="stylesheet" href="assets/tailwind.css">
+</head>
+<body>
+<div id="root"></div>
+<script>
+(function(){function __run(){
+const {
+  useState,
+  useEffect,
+  useRef
+} = React;
+const MODEL_TEXT = "gemini-3-flash-preview";
+const MODEL_IMAGE = "gemini-3.1-flash-image-preview";
+const LEVEL_XP = [0, 100, 300, 600, 1000, 1500, 2500, 4000, 6000, 10000];
+const calcLevel = xp => {
+  let l = 1;
+  LEVEL_XP.forEach((t, i) => {
+    if (xp >= t) l = i + 1;
+  });
+  return Math.min(l, 10);
+};
+const xpProgress = xp => {
+  const l = calcLevel(xp);
+  if (l >= 10) return {
+    cur: xp,
+    needed: LEVEL_XP[9],
+    pct: 100
+  };
+  const base = LEVEL_XP[l - 1],
+    next = LEVEL_XP[l];
+  return {
+    cur: xp - base,
+    needed: next - base,
+    pct: Math.round((xp - base) / (next - base) * 100)
+  };
+};
+const splitLabel = name => {
+  const w = name.split(' ');
+  const m = Math.ceil(w.length / 2);
+  return [w.slice(0, m).join(' '), w.slice(m).join(' ')];
+};
+const ZONES = [{
+  id: 'porto',
+  name: 'Porto dei Pirati',
+  emoji: '⚓',
+  unlockLevel: 1,
+  x: 200,
+  y: 420,
+  color: '#38bdf8',
+  link: 'index.html',
+  pathKey: null,
+  charId: 'squall'
+}, {
+  id: 'caverna',
+  name: 'Caverna dei Numeri',
+  emoji: '🔢',
+  unlockLevel: 2,
+  x: 82,
+  y: 318,
+  color: '#fbbf24',
+  link: null,
+  pathKey: 'matematico',
+  charId: 'numerus'
+}, {
+  id: 'giungla',
+  name: 'Giungla dei Segreti',
+  emoji: '🌴',
+  unlockLevel: 2,
+  x: 318,
+  y: 285,
+  color: '#4ade80',
+  link: null,
+  pathKey: 'cartografo',
+  charId: 'zara'
+}, {
+  id: 'biblioteca',
+  name: 'Biblioteca Sommersa',
+  emoji: '📜',
+  unlockLevel: 3,
+  x: 100,
+  y: 195,
+  color: '#c084fc',
+  link: null,
+  pathKey: 'scrittore',
+  charId: 'isabella'
+}, {
+  id: 'torre',
+  name: "Torre dell'Oracolo",
+  emoji: '🔮',
+  unlockLevel: 4,
+  x: 305,
+  y: 158,
+  color: '#f0abfc',
+  link: null,
+  pathKey: 'fedele',
+  charId: 'mordecai'
+}, {
+  id: 'grotta',
+  name: 'Grotta degli Enigmi',
+  emoji: '🗺️',
+  unlockLevel: 5,
+  x: 200,
+  y: 235,
+  color: '#fb923c',
+  link: null,
+  pathKey: null,
+  charId: 'rex'
+}, {
+  id: 'cripta',
+  name: 'Cripta del Tesoro',
+  emoji: '💎',
+  unlockLevel: 6,
+  x: 300,
+  y: 378,
+  color: '#fde68a',
+  link: 'profilo.html',
+  pathKey: null,
+  charId: 'barbanera'
+}, {
+  id: 'fortezza',
+  name: 'Fortezza del Corsaro',
+  emoji: '🏰',
+  unlockLevel: 10,
+  x: 200,
+  y: 72,
+  color: '#f87171',
+  link: null,
+  pathKey: null,
+  charId: 'corsaro'
+}];
+const PATHS = [['porto', 'caverna'], ['porto', 'giungla'], ['porto', 'cripta'], ['caverna', 'biblioteca'], ['caverna', 'grotta'], ['giungla', 'torre'], ['giungla', 'grotta'], ['biblioteca', 'fortezza'], ['torre', 'fortezza'], ['grotta', 'fortezza']];
+const CHARACTERS = {
+  squall: {
+    name: 'Capitano Squall',
+    emoji: '🦜',
+    color: '#38bdf8',
+    greeting: "Benvenuto sull'Isola Misteriosa, Pirata! Sono Capitano Squall, il guardiano di questo luogo. Più impari, più terre si svelano davanti a te. L'avventura inizia da qui!"
+  },
+  numerus: {
+    name: 'Numerus il Kraken',
+    emoji: '🐙',
+    color: '#fbbf24',
+    greeting: "Argh! Hai osato entrare nella mia Caverna dei Numeri? Ottima mossa! I numeri sono il vero tesoro dell'isola. Padroneggiandoli, diventerai invincibile!"
+  },
+  zara: {
+    name: 'Zara la Veggente',
+    emoji: '🔭',
+    color: '#4ade80',
+    greeting: "La giungla ti accoglie. Io, Zara, vedo connessioni dove altri vedono caos. Con le mappe mentali puoi tenere tutto nella testa, senza fatica. Vieni, ti insegno."
+  },
+  isabella: {
+    name: 'Isabella delle Acque',
+    emoji: '🌊',
+    color: '#c084fc',
+    greeting: "Silenzio! Sei nella Biblioteca Sommersa. Le parole sono più potenti di qualsiasi spada. Impara a usarle bene e nessuno potrà fermarti."
+  },
+  mordecai: {
+    name: "L'Oracolo Mordecai",
+    emoji: '🔮',
+    color: '#f0abfc',
+    greeting: "Viaggiatore... ti aspettavo. Posso rispondere a qualsiasi domanda sul tuo percorso. La vera conoscenza è il tesoro più grande di tutta l'isola."
+  },
+  rex: {
+    name: "Rex l'Enigmista",
+    emoji: '🗝️',
+    color: '#fb923c',
+    greeting: "Ah ah ah! Hai trovato la mia Grotta? Ma sai risolvere i miei enigmi? Solo i pirati più acuti riescono a superarmi. Sei pronto?"
+  },
+  barbanera: {
+    name: 'Barbanera',
+    emoji: '💀',
+    color: '#fde68a',
+    greeting: "Finalmente un pirata degno di ammirare i miei tesori! Ogni medaglia che vedi è una vittoria conquistata con il tuo ingegno. Vieni ad ammirare le tue gemme!"
+  },
+  corsaro: {
+    name: 'Il Gran Corsaro',
+    emoji: '👑',
+    color: '#f87171',
+    greeting: "Sei giunto fino alla vetta... Pochissimi ci riescono. Hai dimostrato forza, intelligenza e perseveranza. Questa fortezza è ora anche tua, Leggenda!"
+  }
+};
+const PRESET_AVATARS = ['🏴‍☠️', '🦜', '⚓', '💀', '🗡️', '🔮', '🐙', '🌊', '🗺️', '💎', '🦊', '🐉'];
+const getLevelName = level => {
+  const L = window.EduGamer?.LEVELS?.[level - 1];
+  return L?.name || '';
+};
+const ISLAND_PATH_D = "M 200 22 " + "L 208 16 L 214 26 L 222 20 L 232 28 L 240 22 L 246 34 L 258 28 " + "C 272 28, 286 44, 298 62 " + "L 306 54 L 310 66 L 322 60 L 328 74 L 338 68 L 346 82 " + "C 358 104, 368 130, 368 158 " + "L 378 164 L 368 180 " + "C 372 204, 368 228, 358 252 " + "L 368 262 L 354 276 L 364 286 L 350 300 " + "C 346 324, 336 348, 324 370 " + "L 336 380 L 320 394 L 330 404 L 316 414 " + "C 300 432, 278 446, 248 452 " + "L 240 446 L 244 460 L 228 452 L 220 462 L 208 454 " + "C 186 456, 164 450, 144 440 " + "L 136 452 L 124 440 L 112 450 L 100 434 " + "C 80 418, 62 396, 50 370 " + "L 38 378 L 42 358 L 28 364 L 34 344 " + "C 24 320, 22 294, 26 268 " + "L 14 260 L 26 240 L 18 224 L 30 218 " + "C 26 196, 32 172, 44 150 " + "L 34 140 L 46 128 L 38 114 L 50 108 " + "C 62 86, 80 66, 102 52 " + "L 92 42 L 104 38 L 100 26 L 114 32 " + "C 132 22, 156 18, 180 20 " + "L 186 14 L 194 22 L 200 22 Z";
+const DB = {
+  getKey: () => localStorage.getItem('gemini_api_key'),
+  getProfile: () => {
+    try {
+      return JSON.parse(localStorage.getItem('isola_profile') || 'null');
+    } catch {
+      return null;
+    }
+  },
+  saveProfile: p => localStorage.setItem('isola_profile', JSON.stringify(p)),
+  getStats: () => {
+    try {
+      const s = JSON.parse(localStorage.getItem('edugamer_stats') || '{}');
+      const xp = s.xp || parseInt(localStorage.getItem('edu_xp') || '0');
+      return {
+        xp,
+        level: calcLevel(xp)
+      };
+    } catch {
+      return {
+        xp: 0,
+        level: 1
+      };
+    }
+  },
+  getWantedPoster: () => {
+    try {
+      return JSON.parse(localStorage.getItem('edugamer_wanted_poster') || 'null');
+    } catch {
+      return null;
+    }
+  },
+  getPaths: () => {
+    if (window.EduGamer?.getPaths) return window.EduGamer.getPaths();
+    return [];
+  },
+  getAvatarHistory: () => {
+    try {
+      return JSON.parse(localStorage.getItem('isola_avatars_history') || '[]');
+    } catch {
+      return [];
+    }
+  },
+  saveAvatarToHistory: (avatarUrl, name, level) => {
+    if (!avatarUrl?.startsWith('data:')) return;
+    const history = DB.getAvatarHistory();
+    const entry = {
+      avatarUrl,
+      name,
+      level,
+      date: new Date().toISOString()
+    };
+    const deduped = history.filter(h => h.avatarUrl !== avatarUrl);
+    localStorage.setItem('isola_avatars_history', JSON.stringify([entry, ...deduped].slice(0, 8)));
+  }
+};
+const AI = {
+  generateAvatar: async (b64, mime, name) => {
+    const key = DB.getKey();
+    if (!key) throw new Error("Chiave API mancante");
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE}:generateContent?key=${key}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: `Crea un avatar pirata cartoon colorato e divertente ispirato a questa foto. Stile fumetto vivace con colori saturi. Il pirata si chiama "${name}". Sfondo semplice. Solo il personaggio, ritratto dall'ombelico in su.`
+          }, {
+            inlineData: {
+              mimeType: mime,
+              data: b64
+            }
+          }]
+        }],
+        generationConfig: {
+          responseModalities: ['IMAGE']
+        }
+      })
+    });
+    if (!res.ok) {
+      const e = await res.json();
+      throw new Error(e.error?.message || `Errore API ${res.status}`);
+    }
+    const data = await res.json();
+    const img = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+    if (!img) throw new Error("Nessuna immagine nella risposta AI");
+    return `data:${img.inlineData.mimeType};base64,${img.inlineData.data}`;
+  }
+};
+const Onboarding = ({
+  existing,
+  onComplete
+}) => {
+  const [name, setName] = useState(existing?.name || '');
+  const [photoB64, setPhotoB64] = useState(null);
+  const [photoMime, setPhotoMime] = useState('image/jpeg');
+  const [avatarUrl, setAvatarUrl] = useState(existing?.avatarUrl || null);
+  const [preset, setPreset] = useState(null);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState('');
+  const handlePhoto = e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    setPhotoMime(f.type || 'image/jpeg');
+    const r = new FileReader();
+    r.onload = ev => {
+      setPhotoB64(ev.target.result.split(',')[1]);
+      setAvatarUrl(ev.target.result);
+      setPreset(null);
+    };
+    r.readAsDataURL(f);
+  };
+  const generateAvatar = async () => {
+    if (!photoB64) return;
+    if (!DB.getKey()) {
+      setError("⚠️ Chiave API mancante — vai alla Home per inserirla");
+      return;
+    }
+    setGenerating(true);
+    setError('');
+    try {
+      const url = await AI.generateAvatar(photoB64, photoMime, name || 'Pirata');
+      setAvatarUrl(url);
+      setPhotoB64(null);
+      DB.saveAvatarToHistory(url, name.trim() || 'Pirata', DB.getStats().level);
+    } catch (e) {
+      setError("Errore: " + e.message);
+    } finally {
+      setGenerating(false);
+    }
+  };
+  const handleComplete = () => {
+    if (!name.trim()) {
+      setError("Scegli il tuo nome da pirata!");
+      return;
+    }
+    const avatar = avatarUrl || preset || '🏴‍☠️';
+    const profile = {
+      name: name.trim(),
+      avatarUrl: avatar
+    };
+    DB.saveProfile(profile);
+    onComplete(profile);
+  };
+  const preview = avatarUrl?.startsWith('data:') ? React.createElement("img", {
+    src: avatarUrl,
+    className: "w-full h-full object-cover rounded-full"
+  }) : React.createElement("span", {
+    className: "text-5xl"
+  }, preset || '🏴‍☠️');
+  return React.createElement("div", {
+    className: "min-h-screen flex flex-col items-center justify-start overflow-y-auto py-8 px-4",
+    style: {
+      background: 'linear-gradient(160deg,#071020 0%,#0d2040 60%,#071020 100%)'
+    }
+  }, React.createElement("div", {
+    className: "w-full max-w-md"
+  }, React.createElement("div", {
+    className: "text-center mb-8"
+  }, React.createElement("div", {
+    className: "text-7xl mb-3",
+    style: {
+      filter: 'drop-shadow(0 0 20px rgba(251,191,36,0.6))'
+    }
+  }, "\uD83C\uDFF4\u200D\u2620\uFE0F"), React.createElement("h1", {
+    className: "title-pirate text-3xl font-black text-yellow-400 tracking-tight mb-1",
+    style: {
+      textShadow: '0 0 30px rgba(251,191,36,0.5)'
+    }
+  }, "ISOLA MISTERIOSA"), React.createElement("p", {
+    className: "text-slate-400 text-sm"
+  }, existing ? 'Modifica il tuo profilo pirata' : 'Crea il tuo profilo per salpare')), React.createElement("div", {
+    className: "bg-slate-800/80 rounded-2xl p-5 mb-4 border border-slate-700"
+  }, React.createElement("label", {
+    className: "text-yellow-400 font-bold text-xs uppercase tracking-widest mb-2 block"
+  }, "\u2693 Il tuo nome da Pirata"), React.createElement("input", {
+    value: name,
+    onChange: e => setName(e.target.value),
+    placeholder: "es. Tempesta dei Mari, Occhio di Fuoco...",
+    className: "w-full bg-slate-700/80 text-white rounded-xl px-4 py-3 text-base border border-slate-600 focus:border-yellow-400 transition-colors"
+  })), React.createElement("div", {
+    className: "bg-slate-800/80 rounded-2xl p-5 mb-4 border border-slate-700"
+  }, React.createElement("label", {
+    className: "text-yellow-400 font-bold text-xs uppercase tracking-widest mb-4 block"
+  }, "\uD83C\uDFA8 Il tuo Avatar"), React.createElement("div", {
+    className: "flex justify-center mb-4"
+  }, React.createElement("div", {
+    className: "w-28 h-28 rounded-full border-4 border-yellow-400 flex items-center justify-center overflow-hidden bg-slate-700",
+    style: {
+      boxShadow: '0 0 25px rgba(251,191,36,0.4)'
+    }
+  }, preview)), React.createElement("label", {
+    className: "w-full bg-blue-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer mb-3 active:scale-95 transition-all border border-blue-400"
+  }, React.createElement("input", {
+    type: "file",
+    accept: "image/*",
+    className: "hidden",
+    onChange: handlePhoto
+  }), "\uD83D\uDCF7 Carica una foto"), photoB64 && React.createElement("button", {
+    onClick: generateAvatar,
+    disabled: generating,
+    className: "w-full bg-purple-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 mb-3 active:scale-95 transition-all border border-purple-400 disabled:opacity-50"
+  }, generating ? React.createElement(React.Fragment, null, React.createElement("div", {
+    className: "w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"
+  }), React.createElement("span", null, "Creando avatar AI...")) : React.createElement(React.Fragment, null, React.createElement("span", null, "\u2728"), React.createElement("span", null, "Crea Avatar Pirata con AI"))), React.createElement("p", {
+    className: "text-slate-500 text-xs text-center mb-2"
+  }, "Oppure scegli un avatar predefinito"), React.createElement("div", {
+    className: "grid grid-cols-6 gap-2"
+  }, PRESET_AVATARS.map(em => React.createElement("button", {
+    key: em,
+    onClick: () => {
+      setPreset(em);
+      setAvatarUrl(null);
+      setPhotoB64(null);
+    },
+    className: `h-11 rounded-xl text-2xl flex items-center justify-center transition-all border-2 ${preset === em && !avatarUrl ? 'border-yellow-400 bg-slate-600 scale-110' : 'border-slate-600 bg-slate-700/60'}`
+  }, em)))), error && React.createElement("div", {
+    className: "bg-red-900/50 border border-red-500 rounded-xl p-3 mb-4 text-red-300 text-sm text-center"
+  }, error), React.createElement("button", {
+    onClick: handleComplete,
+    className: "w-full font-black py-4 rounded-2xl text-xl text-black active:scale-95 transition-all",
+    style: {
+      background: 'linear-gradient(135deg,#fbbf24,#f59e0b)',
+      boxShadow: '0 0 30px rgba(251,191,36,0.5)'
+    }
+  }, existing ? '💾 Salva Modifiche' : "⚓ SALPA VERSO L'ISOLA!"), existing && React.createElement("button", {
+    onClick: () => onComplete(existing),
+    className: "w-full mt-3 py-3 rounded-2xl text-slate-400 bg-slate-800 border border-slate-700 font-bold"
+  }, "\u2190 Torna all'isola")));
+};
+const ParchmentModal = ({
+  onClose
+}) => React.createElement("div", {
+  className: "fixed inset-0 z-50 flex items-center justify-center p-4 overlay-enter",
+  style: {
+    background: 'rgba(0,0,0,0.82)'
+  },
+  onClick: onClose
+}, React.createElement("div", {
+  className: "w-full max-w-sm rounded-2xl p-6 relative",
+  style: {
+    background: 'linear-gradient(150deg,#f5e8c0,#ead9a0,#f0e0b0)',
+    border: '4px solid #8b6410',
+    boxShadow: '0 0 50px rgba(139,100,16,0.6), inset 0 0 30px rgba(180,140,60,0.2)',
+    maxHeight: '82vh',
+    overflowY: 'auto'
+  },
+  onClick: e => e.stopPropagation()
+}, ['top-2 left-2', 'top-2 right-2', 'bottom-2 left-2', 'bottom-2 right-2'].map((pos, i) => React.createElement("div", {
+  key: i,
+  className: `absolute ${pos} text-amber-700 text-lg opacity-50`
+}, "\u2726")), React.createElement("div", {
+  className: "text-center mb-4"
+}, React.createElement("div", {
+  className: "text-5xl mb-2"
+}, "\uD83D\uDCDC"), React.createElement("h2", {
+  className: "title-pirate text-2xl font-black text-amber-900",
+  style: {
+    textShadow: '1px 1px 2px rgba(100,60,0,0.3)'
+  }
+}, "L'Isola Misteriosa"), React.createElement("div", {
+  className: "h-0.5 bg-amber-700/40 my-3 mx-4 rounded"
+})), React.createElement("div", {
+  className: "text-amber-900 text-sm leading-relaxed space-y-3"
+}, React.createElement("p", null, "\uD83C\uDFF4\u200D\u2620\uFE0F ", React.createElement("strong", null, "Benvenuto, coraggioso esploratore!")), React.createElement("p", null, "L'Isola Misteriosa \xE8 il tuo mondo di avventura e conoscenza. Ogni angolo nasconde un tesoro \u2014 non d'oro, ma di sapere."), React.createElement("p", null, "Qui ", React.createElement("strong", null, "studiare \xE8 un'avventura"), ". Ogni attivit\xE0 che completi nei moduli di EduGamer ti porta nuovi punti esperienza (", React.createElement("strong", null, "XP"), "). Pi\xF9 XP accumuli, pi\xF9 livelli sali \u2014 e pi\xF9 zone si svelano dalla nebbia."), React.createElement("div", {
+  className: "bg-amber-800/10 border border-amber-700/30 rounded-xl p-3 space-y-1"
+}, React.createElement("p", null, "\uD83C\uDF34 ", React.createElement("strong", null, "Giungla dei Segreti"), " \u2014 crea mappe mentali"), React.createElement("p", null, "\uD83D\uDD22 ", React.createElement("strong", null, "Caverna dei Numeri"), " \u2014 padroneggia la matematica"), React.createElement("p", null, "\uD83D\uDCDC ", React.createElement("strong", null, "Biblioteca Sommersa"), " \u2014 affina il tuo italiano"), React.createElement("p", null, "\uD83D\uDD2E ", React.createElement("strong", null, "Torre dell'Oracolo"), " \u2014 il tuo tutor AI personale"), React.createElement("p", null, "\uD83D\uDDFA\uFE0F ", React.createElement("strong", null, "Grotta degli Enigmi"), " \u2014 risolvi problemi complessi"), React.createElement("p", null, "\uD83D\uDC8E ", React.createElement("strong", null, "Cripta del Tesoro"), " \u2014 ammira le tue conquiste")), React.createElement("p", null, "E se raggiungerai il ", React.createElement("strong", null, "Livello 10"), "... la ", React.createElement("strong", null, "Fortezza del Gran Corsaro"), " aprir\xE0 le sue porte per accoglierti tra le leggende! \uD83C\uDFF0"), React.createElement("p", {
+  className: "text-center font-bold text-amber-800 pt-1"
+}, "\u2693 Buona fortuna, Pirata! \u2693")), React.createElement("div", {
+  className: "h-0.5 bg-amber-700/40 my-4 mx-4 rounded"
+}), React.createElement("button", {
+  onClick: onClose,
+  className: "title-pirate w-full py-3 rounded-xl font-bold text-amber-900 border-2 border-amber-700 bg-amber-200/60 active:scale-95 transition-transform"
+}, "Chiudi la pergamena")));
+const IslandSVG = ({
+  level,
+  onZoneClick,
+  avatarHistory = []
+}) => {
+  const avatarBubbles = avatarHistory.filter(h => h.avatarUrl?.startsWith('data:')).slice(0, 3);
+  return React.createElement("svg", {
+    viewBox: "0 0 400 520",
+    style: {
+      width: '100%',
+      height: '100%',
+      display: 'block'
+    },
+    preserveAspectRatio: "xMidYMid meet"
+  }, React.createElement("defs", null, React.createElement("radialGradient", {
+    id: "ocean-deep",
+    cx: "50%",
+    cy: "50%"
+  }, React.createElement("stop", {
+    offset: "0%",
+    stopColor: "#1a4a8a"
+  }), React.createElement("stop", {
+    offset: "70%",
+    stopColor: "#0d2a55"
+  }), React.createElement("stop", {
+    offset: "100%",
+    stopColor: "#060e1e"
+  })), React.createElement("radialGradient", {
+    id: "island-fill",
+    cx: "48%",
+    cy: "35%"
+  }, React.createElement("stop", {
+    offset: "0%",
+    stopColor: "#2e7c3e"
+  }), React.createElement("stop", {
+    offset: "45%",
+    stopColor: "#1c5c28"
+  }), React.createElement("stop", {
+    offset: "80%",
+    stopColor: "#1a4a20"
+  }), React.createElement("stop", {
+    offset: "100%",
+    stopColor: "#6e4010"
+  })), React.createElement("radialGradient", {
+    id: "beach-fill",
+    cx: "50%",
+    cy: "50%"
+  }, React.createElement("stop", {
+    offset: "0%",
+    stopColor: "#c8954a"
+  }), React.createElement("stop", {
+    offset: "100%",
+    stopColor: "#8b5e20"
+  })), React.createElement("filter", {
+    id: "isle-shadow",
+    x: "-15%",
+    y: "-15%",
+    width: "130%",
+    height: "130%"
+  }, React.createElement("feDropShadow", {
+    dx: "0",
+    dy: "4",
+    stdDeviation: "8",
+    floodColor: "#000",
+    floodOpacity: "0.5"
+  })), React.createElement("filter", {
+    id: "soft-blur",
+    x: "-30%",
+    y: "-30%",
+    width: "160%",
+    height: "160%"
+  }, React.createElement("feGaussianBlur", {
+    stdDeviation: "5"
+  })), React.createElement("filter", {
+    id: "glow-filter",
+    x: "-40%",
+    y: "-40%",
+    width: "180%",
+    height: "180%"
+  }, React.createElement("feGaussianBlur", {
+    stdDeviation: "4",
+    result: "b"
+  }), React.createElement("feMerge", null, React.createElement("feMergeNode", {
+    in: "b"
+  }), React.createElement("feMergeNode", {
+    in: "SourceGraphic"
+  }))), avatarBubbles.map((_, i) => React.createElement("clipPath", {
+    key: 'avclip' + i,
+    id: 'av-clip-' + i
+  }, React.createElement("circle", {
+    cx: 32,
+    cy: 355 + i * 44,
+    r: "14"
+  })))), React.createElement("rect", {
+    width: "400",
+    height: "520",
+    fill: "url(#ocean-deep)"
+  }), [40, 90, 145, 200, 258, 315, 370, 430, 480].map(y => React.createElement("line", {
+    key: y,
+    x1: "0",
+    y1: y,
+    x2: "400",
+    y2: y,
+    stroke: "rgba(120,180,255,0.06)",
+    strokeWidth: "1.5"
+  })), [[-20, 80, 420, 500], [30, 20, 380, 420], [-30, 300, 420, 600]].map(([x1, y1, x2, y2], i) => React.createElement("line", {
+    key: 'd' + i,
+    x1: x1,
+    y1: y1,
+    x2: x2,
+    y2: y2,
+    stroke: "rgba(80,160,255,0.035)",
+    strokeWidth: "1"
+  })), [[45, 180, 14, 8], [350, 380, 12, 7], [30, 420, 10, 6], [368, 140, 11, 6], [355, 470, 9, 5], [22, 320, 8, 5]].map(([rx, ry, rw, rh], i) => React.createElement("g", {
+    key: 'r' + i
+  }, React.createElement("ellipse", {
+    cx: rx,
+    cy: ry,
+    rx: rw,
+    ry: rh,
+    fill: "#2a1a0a",
+    opacity: "0.8"
+  }), React.createElement("ellipse", {
+    cx: rx,
+    cy: ry - 2,
+    rx: rw * 0.7,
+    ry: rh * 0.5,
+    fill: "#3a2a10",
+    opacity: "0.6"
+  }), React.createElement("ellipse", {
+    cx: rx,
+    cy: ry,
+    rx: rw + 4,
+    ry: rh + 3,
+    fill: "none",
+    stroke: "rgba(255,255,255,0.2)",
+    strokeWidth: "1.5",
+    strokeDasharray: "3,4",
+    className: "foam-anim",
+    style: {
+      animationDelay: `${i * 0.6}s`
+    }
+  }))), React.createElement("path", {
+    d: ISLAND_PATH_D,
+    fill: "#000",
+    opacity: "0.4",
+    style: {
+      filter: 'url(#soft-blur)'
+    }
+  }), React.createElement("path", {
+    d: ISLAND_PATH_D,
+    fill: "url(#beach-fill)",
+    stroke: "#5a3205",
+    strokeWidth: "2.5",
+    style: {
+      filter: 'url(#isle-shadow)'
+    }
+  }), React.createElement("path", {
+    d: "M 200 56 L 214 50 L 224 56 L 238 44 L 250 52 C 270 46, 290 60, 310 82 L 318 76 L 326 90 C 340 108, 350 132, 348 158 L 355 168 L 346 184 C 348 204, 346 226, 340 248 L 348 260 L 338 276 C 333 296, 326 320, 318 342 L 328 353 L 316 370 C 305 386, 286 400, 262 412 C 244 420, 224 422, 204 420 C 184 422, 163 417, 145 408 L 136 415 L 125 400 C 109 386, 94 368, 87 348 L 76 358 L 70 340 C 61 320, 56 296, 57 272 L 50 260 L 61 246 C 58 226, 62 204, 70 184 L 63 172 L 74 158 C 80 138, 92 116, 108 98 L 100 86 L 114 76 C 132 62, 156 52, 178 46 L 188 41 L 200 56 Z",
+    fill: "url(#island-fill)"
+  }), React.createElement("path", {
+    d: ISLAND_PATH_D,
+    fill: "none",
+    stroke: "rgba(200,235,255,0.28)",
+    strokeWidth: "6",
+    strokeDasharray: "8,12",
+    className: "foam-anim"
+  }), React.createElement("polygon", {
+    points: "200,52 240,118 160,118",
+    fill: "#3e2005",
+    opacity: "0.8"
+  }), React.createElement("polygon", {
+    points: "200,44 228,100 172,100",
+    fill: "#5a3010",
+    opacity: "0.85"
+  }), React.createElement("polygon", {
+    points: "200,38 220,80 180,80",
+    fill: "#7a4818",
+    opacity: "0.9"
+  }), React.createElement("polygon", {
+    points: "200,38 212,62 188,62",
+    fill: "#e8dcc8",
+    opacity: "0.55"
+  }), React.createElement("ellipse", {
+    cx: "205",
+    cy: "258",
+    rx: "28",
+    ry: "17",
+    fill: "#0d3060",
+    opacity: "0.92"
+  }), React.createElement("ellipse", {
+    cx: "205",
+    cy: "258",
+    rx: "23",
+    ry: "13",
+    fill: "#1a5294",
+    opacity: "0.78"
+  }), React.createElement("ellipse", {
+    cx: "205",
+    cy: "255",
+    rx: "15",
+    ry: "8",
+    fill: "#2272c8",
+    opacity: "0.55"
+  }), React.createElement("line", {
+    x1: "197",
+    y1: "254",
+    x2: "213",
+    y2: "254",
+    stroke: "rgba(120,200,255,0.45)",
+    strokeWidth: "1.5",
+    strokeLinecap: "round"
+  }), React.createElement("line", {
+    x1: "200",
+    y1: "261",
+    x2: "210",
+    y2: "261",
+    stroke: "rgba(120,200,255,0.28)",
+    strokeWidth: "1",
+    strokeLinecap: "round"
+  }), React.createElement("ellipse", {
+    cx: "205",
+    cy: "258",
+    rx: "29",
+    ry: "18",
+    fill: "none",
+    stroke: "rgba(56,189,248,0.32)",
+    strokeWidth: "1"
+  }), [[135, 210, 11, 9], [145, 222, 9, 8], [125, 225, 10, 8], [268, 228, 11, 9], [278, 218, 9, 8], [258, 240, 10, 8], [155, 315, 10, 8], [165, 328, 9, 7], [145, 330, 9, 8], [248, 330, 10, 8], [260, 320, 9, 7], [240, 342, 9, 7], [188, 178, 9, 7], [198, 168, 8, 7], [178, 185, 9, 7], [210, 380, 9, 7], [222, 390, 8, 6], [198, 392, 8, 6]].map(([tx, ty, rw, rh], i) => React.createElement("g", {
+    key: 't' + i
+  }, React.createElement("rect", {
+    x: tx - 2,
+    y: ty + 2,
+    width: "4",
+    height: rh + 6,
+    fill: "#2a1500",
+    opacity: "0.7"
+  }), React.createElement("ellipse", {
+    cx: tx,
+    cy: ty,
+    rx: rw,
+    ry: rh,
+    fill: "#1a6030",
+    opacity: "0.85"
+  }), React.createElement("ellipse", {
+    cx: tx,
+    cy: ty - 4,
+    rx: rw * 0.75,
+    ry: rh * 0.8,
+    fill: "#228038",
+    opacity: "0.8"
+  }), React.createElement("ellipse", {
+    cx: tx,
+    cy: ty - 8,
+    rx: rw * 0.5,
+    ry: rh * 0.6,
+    fill: "#2a9040",
+    opacity: "0.75"
+  }))), [[200, 415, 8, 5], [168, 408, 7, 4], [232, 412, 7, 4]].map(([tx, ty, rw, rh], i) => React.createElement("g", {
+    key: 'p' + i
+  }, React.createElement("rect", {
+    x: tx - 1.5,
+    y: ty - 16,
+    width: "3",
+    height: "18",
+    fill: "#5a3a10",
+    opacity: "0.8",
+    style: {
+      transform: `rotate(${i === 1 ? -8 : i === 2 ? 8 : 0}deg)`,
+      transformOrigin: `${tx}px ${ty}px`
+    }
+  }), React.createElement("ellipse", {
+    cx: tx,
+    cy: ty - 18,
+    rx: rw,
+    ry: rh,
+    fill: "#1a7030",
+    opacity: "0.8",
+    style: {
+      transform: `rotate(${i === 1 ? -8 : i === 2 ? 8 : 0}deg)`,
+      transformOrigin: `${tx}px ${ty}px`
+    }
+  }))), [[90, 350, 7, 4], [310, 350, 6, 4], [95, 250, 6, 4], [305, 250, 6, 4]].map(([bx, by, rw, rh], i) => React.createElement("ellipse", {
+    key: 'b' + i,
+    cx: bx,
+    cy: by,
+    rx: rw,
+    ry: rh,
+    fill: "#1a6028",
+    opacity: "0.7"
+  })), PATHS.map(([a, b], i) => {
+    const za = ZONES.find(z => z.id === a),
+      zb = ZONES.find(z => z.id === b);
+    if (!za || !zb) return null;
+    const vis = level >= za.unlockLevel && level >= zb.unlockLevel;
+    return React.createElement("line", {
+      key: 'path' + i,
+      x1: za.x,
+      y1: za.y,
+      x2: zb.x,
+      y2: zb.y,
+      stroke: vis ? "rgba(220,185,70,0.6)" : "rgba(90,80,60,0.2)",
+      strokeWidth: "1.8",
+      strokeDasharray: "5,9",
+      style: {
+        transition: 'stroke 0.6s'
+      }
+    });
+  }), ZONES.map((zone, idx) => {
+    const unlocked = level >= zone.unlockLevel;
+    const [l1, l2] = splitLabel(zone.name);
+    return React.createElement("g", {
+      key: zone.id,
+      className: `zone-btn ${unlocked ? 'zone-float' : 'zone-locked'}`,
+      onClick: () => unlocked && onZoneClick(zone),
+      style: {
+        animationDelay: `${idx * 0.45}s`
+      }
+    }, unlocked && React.createElement("circle", {
+      cx: zone.x,
+      cy: zone.y,
+      r: "32",
+      fill: "none",
+      stroke: zone.color,
+      strokeWidth: "1.2",
+      opacity: "0.35",
+      style: {
+        filter: `drop-shadow(0 0 5px ${zone.color})`
+      }
+    }), React.createElement("circle", {
+      cx: zone.x,
+      cy: zone.y,
+      r: "22",
+      fill: unlocked ? 'rgba(6,16,38,0.92)' : 'rgba(10,10,14,0.75)',
+      stroke: unlocked ? zone.color : '#2a2a36',
+      strokeWidth: unlocked ? 2.5 : 1.5,
+      style: unlocked ? {
+        filter: `drop-shadow(0 2px 10px ${zone.color}55)`
+      } : {}
+    }), React.createElement("text", {
+      x: zone.x,
+      y: zone.y + 8,
+      textAnchor: "middle",
+      fontSize: "19"
+    }, unlocked ? zone.emoji : '🔒'), React.createElement("rect", {
+      x: zone.x - 48,
+      y: zone.y + 28,
+      width: "96",
+      height: l2 ? 26 : 14,
+      rx: "5",
+      fill: "rgba(0,0,0,0.55)",
+      opacity: unlocked ? 0.8 : 0.4
+    }), React.createElement("text", {
+      textAnchor: "middle",
+      fontSize: "8.5",
+      fontWeight: "bold",
+      fontFamily: "OpenDyslexic, Verdana, sans-serif",
+      fill: unlocked ? '#e2e8f0' : '#555'
+    }, React.createElement("tspan", {
+      x: zone.x,
+      y: zone.y + 39
+    }, l1), l2 && React.createElement("tspan", {
+      x: zone.x,
+      dy: "11"
+    }, l2)), !unlocked && React.createElement("circle", {
+      cx: zone.x,
+      cy: zone.y,
+      r: "28",
+      fill: "rgba(70,70,100,0.35)",
+      style: {
+        filter: 'url(#soft-blur)'
+      }
+    }));
+  }), avatarBubbles.map((av, i) => {
+    const bx = 32,
+      by = 355 + i * 44;
+    return React.createElement("g", {
+      key: 'av' + i,
+      opacity: "0.92"
+    }, React.createElement("circle", {
+      cx: bx,
+      cy: by,
+      r: "17",
+      fill: "rgba(10,18,38,0.95)",
+      stroke: "#fbbf24",
+      strokeWidth: "2"
+    }), React.createElement("image", {
+      href: av.avatarUrl,
+      x: bx - 14,
+      y: by - 14,
+      width: "28",
+      height: "28",
+      clipPath: 'url(#av-clip-' + i + ')',
+      preserveAspectRatio: "xMidYMid slice"
+    }), React.createElement("circle", {
+      cx: bx,
+      cy: by,
+      r: "17",
+      fill: "none",
+      stroke: "#fbbf24",
+      strokeWidth: "2"
+    }), React.createElement("text", {
+      x: bx,
+      y: by + 28,
+      textAnchor: "middle",
+      fontSize: "7.5",
+      fill: "#fbbf24",
+      fontWeight: "bold",
+      fontFamily: "OpenDyslexic, Verdana, sans-serif"
+    }, "Lv.", av.level));
+  }), React.createElement("g", {
+    transform: "translate(352, 468)"
+  }, React.createElement("circle", {
+    cx: "0",
+    cy: "0",
+    r: "28",
+    fill: "rgba(6,16,38,0.75)",
+    stroke: "rgba(200,170,80,0.5)",
+    strokeWidth: "1.5"
+  }), React.createElement("circle", {
+    cx: "0",
+    cy: "0",
+    r: "22",
+    fill: "none",
+    stroke: "rgba(200,170,80,0.3)",
+    strokeWidth: "0.8"
+  }), React.createElement("line", {
+    x1: "0",
+    y1: "-20",
+    x2: "0",
+    y2: "20",
+    stroke: "#c8a850",
+    strokeWidth: "0.8",
+    opacity: "0.6"
+  }), React.createElement("line", {
+    x1: "-20",
+    y1: "0",
+    x2: "20",
+    y2: "0",
+    stroke: "#c8a850",
+    strokeWidth: "0.8",
+    opacity: "0.6"
+  }), React.createElement("line", {
+    x1: "-14",
+    y1: "-14",
+    x2: "14",
+    y2: "14",
+    stroke: "#c8a850",
+    strokeWidth: "0.5",
+    opacity: "0.3"
+  }), React.createElement("line", {
+    x1: "14",
+    y1: "-14",
+    x2: "-14",
+    y2: "14",
+    stroke: "#c8a850",
+    strokeWidth: "0.5",
+    opacity: "0.3"
+  }), React.createElement("polygon", {
+    points: "0,-20 -5,-6 0,-10 5,-6",
+    fill: "#fbbf24"
+  }), React.createElement("polygon", {
+    points: "0,20 -4,7 0,11 4,7",
+    fill: "#e2d8b8",
+    opacity: "0.8"
+  }), React.createElement("polygon", {
+    points: "20,0 7,-4 11,0 7,4",
+    fill: "#e2d8b8",
+    opacity: "0.7"
+  }), React.createElement("polygon", {
+    points: "-20,0 -7,-4 -11,0 -7,4",
+    fill: "#e2d8b8",
+    opacity: "0.7"
+  }), React.createElement("circle", {
+    cx: "0",
+    cy: "0",
+    r: "3",
+    fill: "#fbbf24"
+  }), React.createElement("text", {
+    x: "0",
+    y: "-24",
+    textAnchor: "middle",
+    fontSize: "7",
+    fill: "#fbbf24",
+    fontWeight: "bold"
+  }, "N"), React.createElement("text", {
+    x: "0",
+    y: "33",
+    textAnchor: "middle",
+    fontSize: "7",
+    fill: "#c8b890"
+  }, "S"), React.createElement("text", {
+    x: "27",
+    y: "3",
+    textAnchor: "middle",
+    fontSize: "7",
+    fill: "#c8b890"
+  }, "E"), React.createElement("text", {
+    x: "-27",
+    y: "3",
+    textAnchor: "middle",
+    fontSize: "7",
+    fill: "#c8b890"
+  }, "O")));
+};
+const ZoneModal = ({
+  zone,
+  onClose,
+  paths = []
+}) => {
+  const char = CHARACTERS[zone.charId];
+  const path = zone.pathKey ? paths.find(p => p.key === zone.pathKey) : null;
+  return React.createElement("div", {
+    className: "fixed inset-0 z-50 flex items-end justify-center p-3",
+    style: {
+      background: 'rgba(0,0,0,0.78)'
+    },
+    onClick: onClose
+  }, React.createElement("div", {
+    className: "w-full max-w-lg rounded-3xl overflow-hidden modal-enter",
+    style: {
+      background: 'linear-gradient(160deg,#1e293b,#0f172a)',
+      border: `2px solid ${zone.color}`,
+      boxShadow: `0 0 50px ${zone.color}40`
+    },
+    onClick: e => e.stopPropagation()
+  }, React.createElement("div", {
+    className: "flex items-center gap-4 p-5 pb-4",
+    style: {
+      borderBottom: `1px solid ${zone.color}25`
+    }
+  }, React.createElement("div", {
+    className: "w-16 h-16 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0",
+    style: {
+      background: `${zone.color}18`,
+      border: `2px solid ${zone.color}`,
+      boxShadow: `0 0 18px ${zone.color}40`
+    }
+  }, zone.emoji), React.createElement("div", {
+    className: "flex-1 min-w-0"
+  }, React.createElement("h2", {
+    className: "text-xl font-black text-white leading-tight"
+  }, zone.name), React.createElement("p", {
+    className: "text-sm font-bold mt-0.5",
+    style: {
+      color: zone.color
+    }
+  }, char.emoji, " ", char.name)), React.createElement("button", {
+    onClick: onClose,
+    className: "w-10 h-10 rounded-full bg-slate-700 text-slate-300 text-lg flex items-center justify-center flex-shrink-0"
+  }, "\u2715")), React.createElement("div", {
+    className: "p-5 pt-4"
+  }, React.createElement("div", {
+    className: "rounded-2xl p-4 mb-4 italic text-sm text-slate-200 leading-relaxed",
+    style: {
+      background: `${zone.color}10`,
+      border: `1px solid ${zone.color}25`
+    }
+  }, "\"", char.greeting, "\""), path ? React.createElement("div", null, React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      marginBottom: '12px'
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: '30px'
+    }
+  }, path.emoji), React.createElement("div", null, React.createElement("div", {
+    style: {
+      color: '#e2e8f0',
+      fontWeight: 900,
+      fontSize: '17px'
+    }
+  }, path.tierName), React.createElement("div", {
+    style: {
+      color: zone.color,
+      fontSize: '12px',
+      marginTop: '2px'
+    }
+  }, path.desc)), React.createElement("div", {
+    style: {
+      marginLeft: 'auto',
+      textAlign: 'right'
+    }
+  }, React.createElement("span", {
+    style: {
+      color: zone.color,
+      fontWeight: 900,
+      fontSize: '26px'
+    }
+  }, path.value))), React.createElement("div", {
+    style: {
+      marginBottom: '10px'
+    }
+  }, React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      fontSize: '11px',
+      marginBottom: '5px',
+      color: '#64748b'
+    }
+  }, React.createElement("span", {
+    style: {
+      color: '#94a3b8',
+      fontWeight: 'bold'
+    }
+  }, path.tierName), React.createElement("span", null, path.isMax ? '🏆 MASSIMO!' : `→ ${path.nextTierName} (${path.nextTierMin})`)), React.createElement("div", {
+    style: {
+      height: '10px',
+      background: 'rgba(15,23,42,0.8)',
+      borderRadius: '9999px',
+      overflow: 'hidden',
+      border: `1px solid ${zone.color}20`
+    }
+  }, React.createElement("div", {
+    style: {
+      height: '100%',
+      width: `${path.progress}%`,
+      background: `linear-gradient(90deg,${zone.color}88,${zone.color})`,
+      borderRadius: '9999px',
+      transition: 'width 0.6s ease-out'
+    }
+  })), React.createElement("div", {
+    style: {
+      textAlign: 'right',
+      fontSize: '10px',
+      color: '#475569',
+      marginTop: '3px'
+    }
+  }, path.progress, "%")), path.isMax ? React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      padding: '10px',
+      background: `${zone.color}18`,
+      borderRadius: '12px',
+      border: `1px solid ${zone.color}40`,
+      fontSize: '13px',
+      color: zone.color,
+      fontWeight: 'bold'
+    }
+  }, "\uD83C\uDFC6 Hai raggiunto il rango massimo!") : React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      padding: '10px',
+      background: `${zone.color}08`,
+      borderRadius: '12px',
+      border: `1px solid ${zone.color}20`,
+      fontSize: '12px',
+      color: '#94a3b8'
+    }
+  }, "Continua a studiare per diventare ", React.createElement("strong", {
+    style: {
+      color: zone.color
+    }
+  }, path.nextTierName), "!")) : zone.link ? React.createElement("a", {
+    href: zone.link,
+    className: "flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-black text-lg text-black active:scale-95 transition-transform",
+    style: {
+      background: `linear-gradient(135deg,${zone.color},${zone.color}bb)`,
+      boxShadow: `0 4px 24px ${zone.color}50`
+    }
+  }, zone.emoji, " ENTRA NELLA ZONA!") : zone.id === 'fortezza' ? React.createElement("div", {
+    className: "text-center py-4 rounded-2xl bg-slate-800/80 border border-slate-700"
+  }, React.createElement("p", {
+    className: "text-2xl mb-2"
+  }, "\uD83C\uDFC6"), React.createElement("p", {
+    className: "text-slate-300 font-bold text-sm"
+  }, "Raggiungi il Livello 10"), React.createElement("p", {
+    className: "text-slate-500 text-xs mt-1"
+  }, "per sbloccare la Fortezza del Gran Corsaro")) : React.createElement("div", {
+    className: "text-center py-4 rounded-2xl bg-slate-800/80 border border-slate-700"
+  }, React.createElement("p", {
+    className: "text-2xl mb-2"
+  }, "\uD83D\uDDDD\uFE0F"), React.createElement("p", {
+    className: "text-slate-300 font-bold text-sm"
+  }, "Zona in esplorazione"), React.createElement("p", {
+    className: "text-slate-500 text-xs mt-1"
+  }, "I segreti si riveleranno con il tempo")))));
+};
+const LevelUpOverlay = ({
+  zone,
+  onClose
+}) => React.createElement("div", {
+  className: "fixed inset-0 z-50 flex items-center justify-center p-6 overlay-enter",
+  style: {
+    background: 'rgba(0,0,0,0.88)'
+  },
+  onClick: onClose
+}, React.createElement("div", {
+  className: "text-center"
+}, React.createElement("div", {
+  className: "text-8xl mb-4 inline-block",
+  style: {
+    animation: 'float 1.2s ease-in-out infinite',
+    filter: `drop-shadow(0 0 22px ${CHARACTERS[zone.charId]?.color || '#fbbf24'})`
+  }
+}, zone.emoji), React.createElement("div", {
+  className: "text-4xl mb-3"
+}, "\u2728"), React.createElement("div", {
+  className: "text-yellow-400 font-black text-2xl mb-2",
+  style: {
+    textShadow: '0 0 20px rgba(251,191,36,0.8)'
+  }
+}, "NUOVA ZONA SBLOCCATA!"), React.createElement("div", {
+  className: "text-white text-xl font-bold mb-2"
+}, zone.name), React.createElement("div", {
+  className: "text-slate-300 text-sm mb-6"
+}, CHARACTERS[zone.charId]?.emoji, " ", CHARACTERS[zone.charId]?.name, " ti aspetta!"), React.createElement("button", {
+  onClick: onClose,
+  className: "bg-yellow-500 text-black font-black px-10 py-3 rounded-2xl text-lg active:scale-95 transition-transform",
+  style: {
+    boxShadow: '0 0 25px rgba(251,191,36,0.6)'
+  }
+}, "\u2693 Fantastico!")));
+const AvatarHistoryModal = ({
+  history,
+  onClose
+}) => React.createElement("div", {
+  className: "fixed inset-0 z-50 flex items-center justify-center p-4 overlay-enter",
+  style: {
+    background: 'rgba(0,0,0,0.88)'
+  },
+  onClick: onClose
+}, React.createElement("div", {
+  style: {
+    background: 'linear-gradient(160deg,#1e293b,#0f172a)',
+    border: '2px solid rgba(251,191,36,0.3)',
+    borderRadius: '20px',
+    width: '100%',
+    maxWidth: '380px',
+    maxHeight: '82vh',
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  onClick: e => e.stopPropagation()
+}, React.createElement("div", {
+  style: {
+    padding: '16px 20px 12px',
+    borderBottom: '1px solid rgba(251,191,36,0.12)',
+    flexShrink: 0,
+    textAlign: 'center'
+  }
+}, React.createElement("div", {
+  style: {
+    fontSize: '32px',
+    marginBottom: '4px'
+  }
+}, "\uD83D\uDD70\uFE0F"), React.createElement("h2", {
+  style: {
+    color: '#fbbf24',
+    fontWeight: 900,
+    fontSize: '18px',
+    margin: 0
+  }
+}, "Storico Avatar"), React.createElement("p", {
+  style: {
+    color: '#64748b',
+    fontSize: '12px',
+    margin: '4px 0 0'
+  }
+}, "I tuoi avatar pirata nel tempo")), React.createElement("div", {
+  style: {
+    overflowY: 'auto',
+    padding: '16px',
+    flex: 1
+  }
+}, React.createElement("div", {
+  style: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3,1fr)',
+    gap: '12px'
+  }
+}, history.map((item, i) => React.createElement("div", {
+  key: i,
+  style: {
+    textAlign: 'center'
+  }
+}, React.createElement("div", {
+  style: {
+    width: '80px',
+    height: '80px',
+    borderRadius: '50%',
+    overflow: 'hidden',
+    margin: '0 auto 6px',
+    border: i === 0 ? '3px solid #fbbf24' : '2px solid rgba(71,85,105,0.5)',
+    boxShadow: i === 0 ? '0 0 18px rgba(251,191,36,0.5)' : 'none',
+    background: '#0f172a',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  }
+}, item.avatarUrl?.startsWith('data:') ? React.createElement("img", {
+  src: item.avatarUrl,
+  style: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover'
+  }
+}) : React.createElement("span", {
+  style: {
+    fontSize: '36px'
+  }
+}, item.avatarUrl || '🏴‍☠️')), i === 0 && React.createElement("div", {
+  style: {
+    fontSize: '9px',
+    color: '#fbbf24',
+    fontWeight: 'bold',
+    marginBottom: '2px'
+  }
+}, "ATTUALE"), React.createElement("div", {
+  style: {
+    fontSize: '11px',
+    color: '#94a3b8',
+    fontWeight: 'bold'
+  }
+}, "Lv.", item.level), React.createElement("div", {
+  style: {
+    fontSize: '10px',
+    color: '#475569'
+  }
+}, new Date(item.date).toLocaleDateString('it-IT', {
+  day: 'numeric',
+  month: 'short'
+})))))), React.createElement("div", {
+  style: {
+    padding: '12px 16px',
+    flexShrink: 0,
+    borderTop: '1px solid rgba(71,85,105,0.2)'
+  }
+}, React.createElement("button", {
+  onClick: onClose,
+  style: {
+    width: '100%',
+    padding: '12px',
+    borderRadius: '12px',
+    background: 'rgba(30,41,59,0.8)',
+    border: '1px solid rgba(71,85,105,0.4)',
+    color: 'white',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    fontSize: '14px'
+  }
+}, "\u2715 Chiudi"))));
+const WantedPosterModal = ({
+  poster,
+  onClose
+}) => React.createElement("div", {
+  className: "fixed inset-0 z-50 flex items-center justify-center p-4 overlay-enter",
+  style: {
+    background: 'rgba(0,0,0,0.92)'
+  },
+  onClick: onClose
+}, React.createElement("div", {
+  className: "w-full max-w-xs relative",
+  onClick: e => e.stopPropagation()
+}, React.createElement("img", {
+  src: `data:${poster.mime};base64,${poster.data}`,
+  alt: "Wanted Poster",
+  style: {
+    width: '100%',
+    borderRadius: '16px',
+    border: '4px solid #ca8a04',
+    boxShadow: '0 0 50px rgba(202,138,4,0.7), 0 0 100px rgba(202,138,4,0.3)'
+  }
+}), React.createElement("div", {
+  className: "text-center mt-3"
+}, React.createElement("p", {
+  className: "text-yellow-400 font-black text-xl"
+}, "\uD83C\uDFF4\u200D\u2620\uFE0F ", poster.name || 'Pirata'), React.createElement("p", {
+  className: "text-amber-300 text-sm mt-0.5"
+}, "Taglia: ", ((poster.xp || 0) * 1000000).toLocaleString('it-IT'), " Berry \xB7 Lv.", poster.level)), React.createElement("div", {
+  className: "flex gap-3 mt-4"
+}, React.createElement("a", {
+  href: "profilo.html",
+  className: "flex-1 font-bold py-3 rounded-xl text-center active:scale-95 transition-transform border-2 border-orange-500",
+  style: {
+    background: 'linear-gradient(135deg,#ea580c,#fbbf24)',
+    color: '#0a0e17'
+  }
+}, "\uD83D\uDD04 Rigenera"), React.createElement("button", {
+  onClick: onClose,
+  className: "flex-1 bg-slate-700 text-white py-3 rounded-xl font-bold active:scale-95 transition-transform border border-slate-600"
+}, "\u2715 Chiudi"))));
+const WantedMiniCard = ({
+  wantedPoster,
+  onShow,
+  size = 60
+}) => {
+  const imgW = size - 8;
+  const imgH = Math.round(imgW * 1.3);
+  return wantedPoster ? React.createElement("button", {
+    onClick: onShow,
+    "aria-label": "Mostra il tuo Wanted Poster",
+    style: {
+      display: 'block',
+      background: 'none',
+      border: 'none',
+      padding: 0,
+      cursor: 'pointer'
+    }
+  }, React.createElement("div", {
+    style: {
+      background: 'linear-gradient(135deg,#1a0800,#3d1a00)',
+      border: '2px solid #ca8a04',
+      borderRadius: '10px',
+      padding: '4px',
+      boxShadow: '0 0 18px rgba(202,138,4,0.5)',
+      width: size + 'px'
+    }
+  }, React.createElement("img", {
+    src: `data:${wantedPoster.mime};base64,${wantedPoster.data}`,
+    alt: "Il tuo poster Wanted",
+    style: {
+      width: imgW + 'px',
+      height: imgH + 'px',
+      objectFit: 'cover',
+      borderRadius: '6px',
+      display: 'block'
+    }
+  }), React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      fontSize: '7px',
+      color: '#fbbf24',
+      fontWeight: 'bold',
+      marginTop: '3px',
+      letterSpacing: '0.08em'
+    }
+  }, "WANTED"))) : React.createElement("a", {
+    href: "profilo.html",
+    style: {
+      display: 'block'
+    },
+    "aria-label": "Crea il tuo poster Wanted"
+  }, React.createElement("div", {
+    style: {
+      background: 'rgba(10,20,40,0.85)',
+      border: '2px dashed rgba(202,138,4,0.35)',
+      borderRadius: '10px',
+      padding: '8px 4px',
+      textAlign: 'center',
+      width: size + 'px',
+      boxShadow: '0 0 8px rgba(0,0,0,0.4)'
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: '22px'
+    }
+  }, "\uD83C\uDFF4\u200D\u2620\uFE0F"), React.createElement("div", {
+    style: {
+      fontSize: '6.5px',
+      color: 'rgba(202,138,4,0.65)',
+      fontWeight: 'bold',
+      lineHeight: '1.3',
+      marginTop: '3px',
+      letterSpacing: '0.04em'
+    }
+  }, "CREA", React.createElement("br", null), "POSTER")));
+};
+const AvatarBtn = ({
+  profile,
+  onEdit,
+  size = 44,
+  fontSize = '20px'
+}) => React.createElement("button", {
+  onClick: onEdit,
+  "aria-label": "Modifica il tuo profilo pirata",
+  style: {
+    width: size + 'px',
+    height: size + 'px',
+    borderRadius: '50%',
+    border: '2px solid #fbbf24',
+    flexShrink: 0,
+    overflow: 'hidden',
+    background: '#1e293b',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 0 14px rgba(251,191,36,0.35)'
+  }
+}, profile?.avatarUrl?.startsWith('data:') ? React.createElement("img", {
+  src: profile.avatarUrl,
+  alt: "",
+  style: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover'
+  }
+}) : React.createElement("span", {
+  style: {
+    fontSize
+  }
+}, profile?.avatarUrl || '🏴‍☠️'));
+const App = () => {
+  const [stage, setStage] = useState('loading');
+  const [profile, setProfile] = useState(null);
+  const [stats, setStats] = useState({
+    xp: 0,
+    level: 1
+  });
+  const [selectedZone, setSelectedZone] = useState(null);
+  const [justUnlocked, setJustUnlocked] = useState(null);
+  const [showParchment, setShowParchment] = useState(false);
+  const [wantedPoster, setWantedPoster] = useState(null);
+  const [showWanted, setShowWanted] = useState(false);
+  const [avatarHistory, setAvatarHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(() => window.innerWidth > window.innerHeight + 50 && window.innerWidth >= 640);
+  const [paths, setPaths] = useState([]);
+  useEffect(() => {
+    const p = DB.getProfile(),
+      s = DB.getStats();
+    setStats(s);
+    setProfile(p);
+    setWantedPoster(DB.getWantedPoster());
+    setAvatarHistory(DB.getAvatarHistory());
+    setPaths(DB.getPaths());
+    const editMode = new URLSearchParams(window.location.search).get('edit') === '1';
+    setStage(p && !editMode ? 'island' : 'onboarding');
+    const onXP = () => {
+      const ns = DB.getStats();
+      setPaths(DB.getPaths());
+      setStats(prev => {
+        if (ns.level > prev.level) {
+          const z = ZONES.find(z => z.unlockLevel === ns.level);
+          if (z) setJustUnlocked(z);
+        }
+        return ns;
+      });
+    };
+    window.addEventListener('edugamer-xp-added', onXP);
+    window.addEventListener('xpChanged', onXP);
+    return () => {
+      window.removeEventListener('edugamer-xp-added', onXP);
+      window.removeEventListener('xpChanged', onXP);
+    };
+  }, []);
+  useEffect(() => {
+    const check = () => setIsLandscape(window.innerWidth > window.innerHeight + 50 && window.innerWidth >= 640);
+    window.addEventListener('resize', check);
+    const onOrient = () => setTimeout(check, 250);
+    window.addEventListener('orientationchange', onOrient);
+    return () => {
+      window.removeEventListener('resize', check);
+      window.removeEventListener('orientationchange', onOrient);
+    };
+  }, []);
+  useEffect(() => {
+    if (stage === 'island') setAvatarHistory(DB.getAvatarHistory());
+  }, [stage]);
+  const xp = xpProgress(stats.xp);
+  if (stage === 'loading') return React.createElement("div", {
+    className: "h-screen flex items-center justify-center",
+    style: {
+      background: '#071020'
+    }
+  }, React.createElement("div", {
+    className: "text-6xl inline-block",
+    style: {
+      animation: 'float 1s ease-in-out infinite'
+    }
+  }, "\uD83C\uDFF4\u200D\u2620\uFE0F"));
+  if (stage === 'onboarding') return React.createElement(Onboarding, {
+    existing: profile,
+    onComplete: p => {
+      setProfile(p);
+      setStage('island');
+    }
+  });
+  const renderModals = () => React.createElement(React.Fragment, null, selectedZone && React.createElement(ZoneModal, {
+    zone: selectedZone,
+    paths: paths,
+    onClose: () => setSelectedZone(null)
+  }), justUnlocked && React.createElement(LevelUpOverlay, {
+    zone: justUnlocked,
+    onClose: () => setJustUnlocked(null)
+  }), showParchment && React.createElement(ParchmentModal, {
+    onClose: () => setShowParchment(false)
+  }), showWanted && wantedPoster && React.createElement(WantedPosterModal, {
+    poster: wantedPoster,
+    onClose: () => setShowWanted(false)
+  }), showHistory && avatarHistory.length > 0 && React.createElement(AvatarHistoryModal, {
+    history: avatarHistory,
+    onClose: () => setShowHistory(false)
+  }));
+  if (isLandscape) return React.createElement("div", {
+    style: {
+      position: 'fixed',
+      inset: 0,
+      display: 'flex',
+      overflow: 'hidden',
+      background: '#071020'
+    }
+  }, React.createElement("div", {
+    style: {
+      flex: '0 0 58%',
+      position: 'relative',
+      overflow: 'hidden',
+      height: '100%'
+    }
+  }, React.createElement("div", {
+    className: "wave-layer   absolute inset-0 pointer-events-none"
+  }), React.createElement("div", {
+    className: "wave-layer-2 absolute inset-0 pointer-events-none opacity-60"
+  }), React.createElement("div", {
+    style: {
+      width: '100%',
+      height: '100%'
+    }
+  }, React.createElement(IslandSVG, {
+    level: stats.level,
+    onZoneClick: setSelectedZone,
+    avatarHistory: avatarHistory
+  })), React.createElement("div", {
+    style: {
+      position: 'absolute',
+      bottom: '16px',
+      left: '16px',
+      zIndex: 10
+    }
+  }, React.createElement(WantedMiniCard, {
+    wantedPoster: wantedPoster,
+    onShow: () => setShowWanted(true),
+    size: 68
+  })), React.createElement("div", {
+    style: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      textAlign: 'center',
+      padding: '5px',
+      background: 'rgba(5,12,26,0.65)',
+      color: '#475569',
+      fontSize: '11px',
+      zIndex: 5
+    }
+  }, "\uD83D\uDDFA\uFE0F Tocca una zona per esplorarla")), React.createElement("div", {
+    style: {
+      flex: '0 0 42%',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      background: 'rgba(5,12,26,0.97)',
+      borderLeft: '1px solid rgba(251,191,36,0.15)'
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: '18px 20px 14px',
+      flexShrink: 0,
+      borderBottom: '1px solid rgba(251,191,36,0.08)'
+    }
+  }, React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '14px',
+      marginBottom: '12px'
+    }
+  }, React.createElement(AvatarBtn, {
+    profile: profile,
+    onEdit: () => setStage('onboarding'),
+    size: 68,
+    fontSize: "28px"
+  }), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      color: '#fcd34d',
+      fontWeight: 900,
+      fontSize: '19px',
+      lineHeight: 1.2,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    }
+  }, profile?.name || 'Pirata'), React.createElement("div", {
+    style: {
+      color: '#64748b',
+      fontSize: '12px',
+      marginTop: '3px'
+    }
+  }, "Lv.", stats.level, " \xB7 ", getLevelName(stats.level))), avatarHistory.length > 0 && React.createElement("button", {
+    onClick: () => setShowHistory(true),
+    style: {
+      width: '36px',
+      height: '36px',
+      borderRadius: '10px',
+      flexShrink: 0,
+      background: 'rgba(30,41,59,0.8)',
+      border: '1px solid rgba(100,116,139,0.35)',
+      fontSize: '18px',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }
+  }, "\uD83D\uDD70\uFE0F")), React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      marginBottom: '5px',
+      fontSize: '11px'
+    }
+  }, React.createElement("span", {
+    style: {
+      color: '#fbbf24',
+      fontWeight: 'bold'
+    }
+  }, xp.cur, " / ", xp.needed, " XP"), React.createElement("span", {
+    style: {
+      color: '#475569'
+    }
+  }, xp.pct, "%")), React.createElement("div", {
+    className: "xp-bar-anim",
+    style: {
+      height: '9px',
+      background: '#1e293b',
+      borderRadius: '9999px',
+      overflow: 'hidden'
+    }
+  }, React.createElement("div", {
+    style: {
+      height: '100%',
+      width: `${xp.pct}%`,
+      background: 'linear-gradient(90deg,#fbbf24,#f97316)',
+      borderRadius: '9999px',
+      transition: 'width 0.7s ease-out'
+    }
+  }))), React.createElement("div", {
+    style: {
+      flex: 1,
+      overflowY: 'auto',
+      padding: '10px 14px'
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: '10px',
+      color: '#475569',
+      fontWeight: 'bold',
+      textTransform: 'uppercase',
+      letterSpacing: '0.1em',
+      marginBottom: '8px'
+    }
+  }, "I tuoi percorsi \xB7 ", stats.xp, " XP totali"), paths.length === 0 ? React.createElement("div", {
+    style: {
+      color: '#334155',
+      fontSize: '12px',
+      textAlign: 'center',
+      padding: '20px 0'
+    }
+  }, "Caricamento percorsi...") : React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '7px'
+    }
+  }, paths.map(path => React.createElement("div", {
+    key: path.key,
+    style: {
+      padding: '11px 13px',
+      borderRadius: '13px',
+      background: `${path.color}0d`,
+      border: `1px solid ${path.color}28`
+    }
+  }, React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      marginBottom: '7px'
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: '20px',
+      flexShrink: 0
+    }
+  }, path.emoji), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontWeight: 'bold',
+      fontSize: '12px',
+      color: '#e2e8f0',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    }
+  }, path.name, " \xB7 ", React.createElement("span", {
+    style: {
+      color: path.color
+    }
+  }, path.tierName)), React.createElement("div", {
+    style: {
+      fontSize: '10px',
+      color: '#64748b',
+      marginTop: '1px'
+    }
+  }, path.value, " ", path.desc.toLowerCase(), !path.isMax && ` · → ${path.nextTierName}`)), path.isMax ? React.createElement("span", {
+    style: {
+      fontSize: '16px',
+      flexShrink: 0
+    }
+  }, "\uD83C\uDFC6") : React.createElement("span", {
+    style: {
+      color: '#475569',
+      fontSize: '11px',
+      flexShrink: 0,
+      fontWeight: 'bold'
+    }
+  }, path.progress, "%")), React.createElement("div", {
+    style: {
+      height: '5px',
+      background: 'rgba(10,18,38,0.7)',
+      borderRadius: '9999px',
+      overflow: 'hidden'
+    }
+  }, React.createElement("div", {
+    style: {
+      height: '100%',
+      width: `${path.progress}%`,
+      background: `linear-gradient(90deg,${path.color}88,${path.color})`,
+      borderRadius: '9999px',
+      transition: 'width 0.7s ease-out'
+    }
+  })))))), React.createElement("div", {
+    style: {
+      padding: '10px 16px 14px',
+      flexShrink: 0,
+      borderTop: '1px solid rgba(251,191,36,0.08)',
+      display: 'flex',
+      gap: '8px'
+    }
+  }, React.createElement("button", {
+    onClick: () => setShowParchment(true),
+    style: {
+      flex: 1,
+      padding: '10px',
+      borderRadius: '12px',
+      fontSize: '20px',
+      cursor: 'pointer',
+      background: 'rgba(120,80,10,0.3)',
+      border: '1px solid rgba(139,100,16,0.35)'
+    }
+  }, "\uD83D\uDCDC"), React.createElement("a", {
+    href: "profilo.html",
+    style: {
+      flex: 1,
+      padding: '10px',
+      borderRadius: '12px',
+      fontSize: '20px',
+      background: 'rgba(99,40,160,0.3)',
+      border: '1px solid rgba(139,92,246,0.35)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      textDecoration: 'none'
+    }
+  }, "\uD83C\uDFC6"), React.createElement("a", {
+    href: "index.html",
+    style: {
+      flex: 1,
+      padding: '10px',
+      borderRadius: '12px',
+      fontSize: '20px',
+      background: 'rgba(30,41,59,0.8)',
+      border: '1px solid rgba(71,85,105,0.35)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      textDecoration: 'none'
+    }
+  }, "\uD83C\uDFE0"))), renderModals());
+  return React.createElement("div", {
+    style: {
+      position: 'fixed',
+      inset: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      background: '#071020'
+    }
+  }, React.createElement("div", {
+    style: {
+      flexShrink: 0,
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      padding: '8px 12px',
+      background: 'rgba(5,12,26,0.96)',
+      borderBottom: '1px solid rgba(251,191,36,0.15)',
+      backdropFilter: 'blur(12px)'
+    }
+  }, React.createElement(AvatarBtn, {
+    profile: profile,
+    onEdit: () => setStage('onboarding'),
+    size: 44,
+    fontSize: "20px"
+  }), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      marginBottom: '4px'
+    }
+  }, React.createElement("span", {
+    style: {
+      color: '#fcd34d',
+      fontWeight: 900,
+      fontSize: '14px',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    }
+  }, profile?.name || 'Pirata'), React.createElement("span", {
+    style: {
+      color: '#64748b',
+      fontSize: '11px',
+      flexShrink: 0,
+      marginLeft: '4px'
+    }
+  }, "Lv.", stats.level, " \xB7 ", getLevelName(stats.level))), React.createElement("div", {
+    className: "xp-bar-anim",
+    style: {
+      height: '8px',
+      background: '#1e293b',
+      borderRadius: '9999px',
+      overflow: 'hidden'
+    }
+  }, React.createElement("div", {
+    style: {
+      height: '100%',
+      width: `${xp.pct}%`,
+      background: 'linear-gradient(90deg,#fbbf24,#f97316)',
+      borderRadius: '9999px',
+      transition: 'width 0.7s ease-out',
+      boxShadow: '0 0 8px rgba(251,191,36,0.5)'
+    }
+  })), React.createElement("div", {
+    style: {
+      color: '#475569',
+      fontSize: '10px',
+      marginTop: '2px'
+    }
+  }, xp.cur, " / ", xp.needed, " XP")), avatarHistory.length > 0 && React.createElement("button", {
+    onClick: () => setShowHistory(true),
+    style: {
+      width: '38px',
+      height: '38px',
+      borderRadius: '10px',
+      flexShrink: 0,
+      background: 'rgba(30,41,59,0.8)',
+      border: '1px solid rgba(100,116,139,0.35)',
+      fontSize: '18px',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }
+  }, "\uD83D\uDD70\uFE0F"), React.createElement("button", {
+    onClick: () => setShowParchment(true),
+    style: {
+      width: '38px',
+      height: '38px',
+      borderRadius: '10px',
+      flexShrink: 0,
+      background: 'rgba(120,80,10,0.3)',
+      border: '1px solid rgba(139,100,16,0.4)',
+      fontSize: '18px',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }
+  }, "\uD83D\uDCDC"), React.createElement("a", {
+    href: "index.html",
+    style: {
+      width: '38px',
+      height: '38px',
+      borderRadius: '10px',
+      flexShrink: 0,
+      background: 'rgba(30,41,59,0.8)',
+      border: '1px solid rgba(71,85,105,0.4)',
+      fontSize: '18px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      textDecoration: 'none'
+    }
+  }, "\uD83C\uDFE0")), React.createElement("div", {
+    style: {
+      flex: 1,
+      position: 'relative',
+      overflow: 'hidden'
+    }
+  }, React.createElement("div", {
+    className: "wave-layer   absolute inset-0 pointer-events-none"
+  }), React.createElement("div", {
+    className: "wave-layer-2 absolute inset-0 pointer-events-none opacity-60"
+  }), React.createElement("div", {
+    style: {
+      width: '100%',
+      height: '100%'
+    }
+  }, React.createElement(IslandSVG, {
+    level: stats.level,
+    onZoneClick: setSelectedZone,
+    avatarHistory: avatarHistory
+  })), React.createElement("div", {
+    style: {
+      position: 'absolute',
+      bottom: '16px',
+      left: '16px',
+      zIndex: 10
+    }
+  }, React.createElement(WantedMiniCard, {
+    wantedPoster: wantedPoster,
+    onShow: () => setShowWanted(true),
+    size: 60
+  }))), React.createElement("div", {
+    style: {
+      flexShrink: 0,
+      textAlign: 'center',
+      padding: '5px',
+      color: '#475569',
+      fontSize: '11px',
+      background: 'rgba(5,12,26,0.92)'
+    }
+  }, "\uD83D\uDDFA\uFE0F Tocca una zona per esplorarla \xB7 ", stats.xp, " XP \xB7 Livello ", stats.level), renderModals());
+};
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App, null));
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",__run);else __run();})();
+</script>
+<script src="game-system.js"></script>
+</body>
+</html>

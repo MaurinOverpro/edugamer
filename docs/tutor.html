@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutor AI - EduGamer</title>
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<!-- FONT OPENDYSLEXIC -->
+    <link href="fonts/opendyslexic.css" rel="stylesheet">
+
+    <style>
+        * {
+            letter-spacing: 0.03em;
+            word-spacing: 0.08em;
+        }
+
+        html, body, #root {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        body { 
+            background-color: #0a0e17; 
+            color: white; 
+            font-family: 'OpenDyslexic', Verdana, sans-serif; 
+            line-height: 1.6;
+        }
+        
+        /* Chat Styles */
+        .msg-bubble { 
+            padding: 18px; 
+            border-radius: 20px; 
+            max-width: 85%; 
+            font-size: 1.1rem; 
+            line-height: 1.8; 
+            animation: popIn 0.3s ease-out; 
+        }
+        .msg-user { 
+            background: #166534; 
+            margin-left: auto; 
+            border-top-right-radius: 4px; 
+            border: 2px solid #4ade80; 
+        }
+        .msg-ai { 
+            background: #4c1d95; 
+            margin-right: auto; 
+            border-top-left-radius: 4px; 
+            border: 2px solid #a78bfa; 
+        }
+        @keyframes popIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .mic-active { background-color: #ef4444 !important; animation: pulse-red 1.5s infinite; }
+        @keyframes pulse-red { 
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 
+            70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } 
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } 
+        }
+
+        /* Pulsanti rapidi */
+        .quick-btn {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            border: 2px solid #475569;
+            padding: 10px 16px;
+            border-radius: 25px;
+            font-size: 0.95rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .quick-btn:active {
+            transform: scale(0.95);
+            background: #475569;
+        }
+
+        /* Controllo velocità */
+        .speed-slider {
+            -webkit-appearance: none;
+            width: 80px;
+            height: 8px;
+            border-radius: 5px;
+            background: #475569;
+            outline: none;
+        }
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #a78bfa;
+            cursor: pointer;
+        }
+
+        /* Topic badge */
+        .topic-badge {
+            background: linear-gradient(135deg, #7c3aed, #5b21b6);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            border: 2px solid #a78bfa;
+            animation: glow 2s infinite;
+        }
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 10px rgba(167, 139, 250, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(167, 139, 250, 0.6); }
+        }
+
+        /* Speaking indicator */
+        .speaking-indicator {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .speaking-dot {
+            width: 8px;
+            height: 8px;
+            background: #a78bfa;
+            border-radius: 50%;
+            animation: bounce 0.6s infinite;
+        }
+        .speaking-dot:nth-child(2) { animation-delay: 0.1s; }
+        .speaking-dot:nth-child(3) { animation-delay: 0.2s; }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        /* AREA CHAT SCROLLABILE - FIX */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            padding: 16px;
+        }
+    </style>
+    <link rel="stylesheet" href="assets/tailwind.css">
+</head>
+<body>
+    <div id="root"></div>
+    <script>
+(function(){function __run(){
+const {
+  useState,
+  useEffect,
+  useRef
+} = React;
+const MODEL = "gemini-3-flash-preview";
+const DB = {
+  getKey: () => localStorage.getItem('gemini_api_key'),
+  addXP: (amount, action) => {
+    if (window.EduGamer) window.EduGamer.addXP(amount, 'tutor', action);
+  }
+};
+const SYSTEM_PROMPT = `Sei un Tutor simpatico ed empatico per un ragazzo con DSA.
+
+LINEE GUIDA PER IL TUO STILE:
+1. **Tono Umano:** Sii gentile e incoraggiante. Usa frasi come "Ottima domanda!", "Ora ti spiego", "OK approfondiamo!".
+2. **Chiarezza:** Usa frasi brevi ma complete (Soggetto -> Verbo). Evita parole difficili.
+3. **Elenchi Puntati:** Usali SOLO se devi elencare 3 o più cose. Altrimenti usa frasi discorsive.
+4. **Lunghezza:** Risposte brevi (massimo 50-60 parole) per non stancare la lettura.
+5. **Esempi:** Fai esempi legati alla vita reale (basket, amici, natura).
+
+Esempio di stile giusto:
+"La fotosintesi è il modo in cui le piante mangiano. Immagina che cucinino usando il sole e l'acqua come ingredienti! 🌿 Così crescono forti e ci regalano l'ossigeno."
+
+Obiettivo: Spiegare concetti difficili in modo semplice e amichevole. Rispondi sempre in italiano.`;
+const chatWithAI = async (history, msg, isQuizRequest = false, materia = null) => {
+  const key = DB.getKey();
+  if (!key) throw new Error("Manca API Key!");
+  let finalMsg = msg;
+  if (isQuizRequest) {
+    finalMsg = `Basandoti su quello che abbiamo discusso, fammi UNA domanda per verificare se ho capito. 
+                La domanda deve essere chiara, con risposta breve.
+                Dopo che rispondo, dimmi se è giusto o sbagliato.`;
+  }
+  const systemContents = {
+    role: "user",
+    parts: [{
+      text: SYSTEM_PROMPT
+    }]
+  };
+  const modelAck = {
+    role: "model",
+    parts: [{
+      text: "Capito! Sarò un tutor chiaro e userò esempi adatti a un ragazzo. 👍"
+    }]
+  };
+  const historyToSend = history.length > 0 && history[0].role === 'model' ? history.slice(1) : history;
+  const userContents = historyToSend.map(m => ({
+    role: m.role === 'user' ? 'user' : 'model',
+    parts: [{
+      text: m.text
+    }]
+  }));
+  const materiaNote = materia ? `\n\nCONTESTO: Lo studente sta usando il modulo "${materia.label}" di EduGamer. Adatta le tue risposte a questa materia.` : '';
+  systemContents.parts[0].text = SYSTEM_PROMPT + materiaNote;
+  const contents = [systemContents, modelAck, ...userContents, {
+    role: 'user',
+    parts: [{
+      text: finalMsg
+    }]
+  }];
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      contents
+    })
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error?.message || `Errore API ${res.status}`);
+  }
+  const data = await res.json();
+  return data.candidates[0].content.parts[0].text;
+};
+const MATERIA_CONFIG = {
+  matematica: {
+    label: 'Matematica',
+    welcome: "Ciao! 👋\n\nSono Maurin, il tuo Tutor.\n\nVedo che stai usando il modulo Matematica!\n\nDimmi dove sei bloccato e ti aiuto. 💪",
+    color: '#3b82f6'
+  },
+  italiano: {
+    label: 'Italiano',
+    welcome: "Ciao! 👋\n\nSono Maurin, il tuo Tutor.\n\nVedo che stai lavorando su un testo!\n\nCosa vuoi migliorare o capire meglio? ✍️",
+    color: '#8b5cf6'
+  },
+  risolvitore: {
+    label: 'Matematica',
+    welcome: "Ciao! 👋\n\nSono Maurin, il tuo Tutor.\n\nStai risolvendo un problema?\n\nDimmi dove sei bloccato e ti spiego il ragionamento! 🔍",
+    color: '#10b981'
+  },
+  discover: {
+    label: 'Metodo DISCOVER',
+    welcome: "Ciao! 👋\n\nSono Maurin, il tuo Tutor.\n\nStai usando il metodo DISCOVER?\n\nDimmi quale passaggio non ti è chiaro! 🎯",
+    color: '#f59e0b'
+  },
+  scienze: {
+    label: 'Scienze',
+    welcome: "Ciao! 👋\n\nSono Maurin, il tuo Tutor.\n\nVedo che stai studiando Scienze!\n\nCosa vuoi capire? 🔬",
+    color: '#22d3ee'
+  },
+  geografia: {
+    label: 'Geografia',
+    welcome: "Ciao! 👋\n\nSono Maurin, il tuo Tutor.\n\nVedo che stai studiando Geografia!\n\nCosa vuoi approfondire? 🌍",
+    color: '#4ade80'
+  },
+  storia: {
+    label: 'Storia',
+    welcome: "Ciao! 👋\n\nSono Maurin, il tuo Tutor.\n\nVedo che stai studiando Storia!\n\nQuale periodo o evento vuoi capire? 📜",
+    color: '#f97316'
+  },
+  arte: {
+    label: 'Arte',
+    welcome: "Ciao! 👋\n\nSono Maurin, il tuo Tutor.\n\nVedo che stai studiando Arte!\n\nCosa vuoi esplorare? 🎨",
+    color: '#ec4899'
+  }
+};
+const App = () => {
+  const params = new URLSearchParams(window.location.search);
+  const materiaKey = params.get('materia') || '';
+  const materia = MATERIA_CONFIG[materiaKey] || null;
+  const welcomeText = materia ? materia.welcome : "Ciao! 👋\n\nSono Maurin, il tuo Tutor.\n\nCosa devi studiare oggi?\n\nScrivi o usa i pulsanti qui sotto! 💪";
+  const [messages, setMessages] = useState([{
+    role: 'model',
+    text: welcomeText
+  }]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speechRate, setSpeechRate] = useState(0.85);
+  const [currentTopic, setCurrentTopic] = useState(materia ? materia.label : null);
+  const chatRef = useRef(null);
+  const endRef = useRef(null);
+  const recognitionRef = useRef(null);
+  useEffect(() => {
+    if (endRef.current) {
+      endRef.current.scrollIntoView({
+        behavior: 'smooth'
+      });
+    }
+  }, [messages]);
+  const cleanTextForSpeech = text => {
+    return text.replace(/[*#_`~]/g, '').replace(/[\u{1F300}-\u{1F9FF}]/gu, '').replace(/[\u{2600}-\u{26FF}]/gu, '').replace(/[\u{2700}-\u{27BF}]/gu, '').replace(/[\u{1F600}-\u{1F64F}]/gu, '').replace(/[\u{1F680}-\u{1F6FF}]/gu, '').replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '').replace(/\n+/g, '. ').replace(/\.+/g, '.').trim();
+  };
+  const speak = text => {
+    window.speechSynthesis.cancel();
+    const cleanText = cleanTextForSpeech(text);
+    const u = new SpeechSynthesisUtterance(cleanText);
+    u.lang = 'it-IT';
+    u.rate = speechRate;
+    u.pitch = 1.0;
+    u.onstart = () => setIsSpeaking(true);
+    u.onend = () => setIsSpeaking(false);
+    u.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(u);
+  };
+  const stopSpeaking = () => {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+  };
+  const toggleMic = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return alert("Usa Google Chrome per il microfono!");
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.lang = 'it-IT';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+    recognition.onresult = e => {
+      const transcript = e.results[0][0].transcript;
+      setInput(prev => (prev + " " + transcript).trim());
+    };
+    recognition.start();
+  };
+  const send = async (customMsg = null, isQuiz = false) => {
+    const msgToSend = customMsg || input.trim();
+    if (!msgToSend || loading) return;
+    const newHist = [...messages, {
+      role: 'user',
+      text: msgToSend
+    }];
+    setMessages(newHist);
+    setInput('');
+    setLoading(true);
+    stopSpeaking();
+    if (!currentTopic && messages.length <= 2 && msgToSend.length > 10) {
+      const words = msgToSend.split(' ').slice(0, 4).join(' ');
+      setCurrentTopic(words.charAt(0).toUpperCase() + words.slice(1));
+    }
+    try {
+      const reply = await chatWithAI(messages, msgToSend, isQuiz, materia);
+      setMessages([...newHist, {
+        role: 'model',
+        text: reply
+      }]);
+      speak(reply);
+      DB.addXP(isQuiz ? 20 : 10, isQuiz ? 'quiz' : 'chat');
+    } catch (e) {
+      console.error('[Tutor] Errore API:', e.message);
+      setMessages([...newHist, {
+        role: 'model',
+        text: `❌ Ops! Qualcosa non ha funzionato. Riprova!\n\n_(${e.message})_`
+      }]);
+    }
+    setLoading(false);
+  };
+  const quickActions = [{
+    label: "🤔 Spiegami meglio",
+    msg: "Non ho capito bene, puoi spiegarmelo in modo più semplice con un esempio?"
+  }, {
+    label: "📝 Esempio",
+    msg: "Puoi farmi un esempio pratico dalla vita reale?"
+  }, {
+    label: "✅ È giusto?",
+    msg: "Ho capito bene? Dimmi se è corretto."
+  }, {
+    label: "🎯 Quiz!",
+    msg: null,
+    isQuiz: true
+  }];
+  const handleQuickAction = action => {
+    if (action.isQuiz) {
+      send("Fammi una domanda per vedere se ho capito!", true);
+    } else {
+      send(action.msg);
+    }
+  };
+  const resetChat = () => {
+    if (confirm("Vuoi iniziare una nuova lezione?")) {
+      stopSpeaking();
+      setMessages([{
+        role: 'model',
+        text: "Ok, ricominciamo! 🔄\n\nCosa vuoi studiare adesso?"
+      }]);
+      setCurrentTopic(null);
+    }
+  };
+  const scrollToTop = () => {
+    if (chatRef.current) {
+      chatRef.current.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+  };
+  return React.createElement("div", {
+    className: "chat-container bg-slate-900"
+  }, React.createElement("div", {
+    className: "flex-shrink-0 p-3 bg-slate-800 border-b border-slate-700 flex items-center gap-3 shadow-lg z-10"
+  }, React.createElement("button", {
+    onClick: () => history.length > 1 ? history.back() : window.location.href = 'index.html',
+    className: "bg-slate-700 hover:bg-slate-600 px-4 py-3 rounded-xl text-white font-bold text-lg active:scale-95 transition-transform"
+  }, "\u2190 ", materia ? materia.label : 'Indietro'), React.createElement("div", {
+    className: "flex items-center gap-3"
+  }, React.createElement("img", {
+    src: "maurin-avatar.jpg",
+    alt: "Maurin",
+    className: "w-16 h-16 rounded-full border-2 border-purple-400 object-contain bg-purple-900/20"
+  }), React.createElement("div", {
+    className: "flex-1 min-w-0"
+  }, React.createElement("div", {
+    className: "font-bold text-purple-400 text-lg"
+  }, "MAURIN \uD83C\uDF93"), currentTopic && React.createElement("div", {
+    className: "topic-badge inline-block mt-1 truncate max-w-[150px]"
+  }, "\uD83D\uDCDA ", currentTopic))), React.createElement("div", {
+    className: "hidden sm:flex items-center gap-2 bg-slate-700 px-3 py-2 rounded-xl"
+  }, React.createElement("span", {
+    className: "text-xs text-slate-400"
+  }, "\uD83D\uDC22"), React.createElement("input", {
+    type: "range",
+    min: "0.6",
+    max: "1.1",
+    step: "0.05",
+    value: speechRate,
+    onChange: e => setSpeechRate(parseFloat(e.target.value)),
+    className: "speed-slider"
+  }), React.createElement("span", {
+    className: "text-xs text-slate-400"
+  }, "\uD83D\uDC07")), React.createElement("button", {
+    onClick: resetChat,
+    className: "bg-red-600 hover:bg-red-500 px-3 py-3 rounded-xl text-white font-bold active:scale-95 transition-transform"
+  }, "\uD83D\uDD04")), React.createElement("div", {
+    className: "chat-messages space-y-4",
+    ref: chatRef
+  }, messages.map((m, i) => React.createElement("div", {
+    key: i,
+    className: `flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`
+  }, React.createElement("div", {
+    className: `msg-bubble ${m.role === 'user' ? 'msg-user' : 'msg-ai'}`
+  }, m.text.split('\n').map((line, j) => React.createElement("p", {
+    key: j,
+    className: line ? '' : 'h-2'
+  }, line))), m.role === 'model' && React.createElement("button", {
+    onClick: () => speak(m.text),
+    className: "text-xs text-slate-500 mt-1 ml-2 hover:text-purple-400 active:scale-95"
+  }, "\uD83D\uDD0A Rileggi"))), loading && React.createElement("div", {
+    className: "flex items-center gap-3 text-purple-400 p-4"
+  }, React.createElement("div", {
+    className: "speaking-indicator"
+  }, React.createElement("div", {
+    className: "speaking-dot"
+  }), React.createElement("div", {
+    className: "speaking-dot"
+  }), React.createElement("div", {
+    className: "speaking-dot"
+  })), React.createElement("span", null, "Sto pensando...")), React.createElement("div", {
+    ref: endRef
+  })), messages.length > 3 && React.createElement("button", {
+    onClick: scrollToTop,
+    className: "absolute right-4 bottom-48 bg-slate-700 hover:bg-slate-600 p-3 rounded-full shadow-lg z-20 active:scale-95"
+  }, "\u2B06\uFE0F"), React.createElement("div", {
+    className: "flex-shrink-0 px-4 py-2 bg-slate-800/80 border-t border-slate-700 flex gap-2 overflow-x-auto"
+  }, quickActions.map((action, i) => React.createElement("button", {
+    key: i,
+    onClick: () => handleQuickAction(action),
+    disabled: loading,
+    className: "quick-btn"
+  }, action.label))), React.createElement("div", {
+    className: "flex-shrink-0 p-3 bg-slate-800 border-t border-slate-700 flex gap-2 items-center"
+  }, React.createElement("button", {
+    onClick: toggleMic,
+    className: `p-4 rounded-xl text-xl ${isListening ? 'mic-active text-white' : 'bg-slate-700 text-slate-300'} active:scale-95 transition-transform`
+  }, "\uD83C\uDFA4"), isSpeaking && React.createElement("button", {
+    onClick: stopSpeaking,
+    className: "p-4 rounded-xl bg-red-600 text-white text-xl animate-pulse active:scale-95"
+  }, "\u23F9\uFE0F"), React.createElement("input", {
+    value: input,
+    onChange: e => setInput(e.target.value),
+    onKeyDown: e => e.key === 'Enter' && send(),
+    className: "flex-1 bg-slate-900 border-2 border-slate-600 rounded-xl p-4 text-white outline-none text-lg focus:border-purple-500 min-w-0",
+    placeholder: "Scrivi o parla..."
+  }), React.createElement("button", {
+    onClick: () => send(),
+    disabled: loading || !input.trim(),
+    className: "bg-purple-600 hover:bg-purple-500 disabled:bg-slate-600 text-white p-4 rounded-xl font-bold text-xl active:scale-95 transition-transform"
+  }, "\u27A4")));
+};
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App, null));
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",__run);else __run();})();
+</script>
+	<script src="game-system.js"></script>
+</body>
+
+</html>
+
+
+

@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>EduGamer OS - Home</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <link href="https://fonts.cdnfonts.com/css/opendyslexic" rel="stylesheet">
+    <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@8.0.4/babel.min.js"></script>
+    <link href="fonts/opendyslexic.css" rel="stylesheet">
     <style>
         /* Reset e base */
         body {
@@ -126,10 +126,19 @@
             const [key, setKey] = useState(DB.getKey());
             const [showTutorMenu, setShowTutorMenu] = useState(false);
 
-            // Aggiorna XP in tempo reale
+            // Aggiorna XP in tempo reale — reattivo agli eventi invece del polling
             useEffect(() => {
-                const interval = setInterval(() => setXp(DB.getXP()), 1000); 
-                return () => clearInterval(interval);
+                const refresh = () => setXp(DB.getXP());
+                window.addEventListener('edugamer-xp-added', refresh); // XP guadagnato in questa pagina
+                window.addEventListener('xpChanged', refresh);
+                window.addEventListener('storage', refresh);           // cambi da un'altra scheda
+                window.addEventListener('focus', refresh);             // al ritorno sulla home
+                return () => {
+                    window.removeEventListener('edugamer-xp-added', refresh);
+                    window.removeEventListener('xpChanged', refresh);
+                    window.removeEventListener('storage', refresh);
+                    window.removeEventListener('focus', refresh);
+                };
             }, []);
 
             const saveKey = () => { 

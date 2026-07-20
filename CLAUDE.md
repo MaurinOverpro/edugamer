@@ -8,9 +8,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development
 
-**No build system.** Edit HTML/JS files directly and open in a browser. All dependencies are loaded from CDNs at runtime.
+**I file della radice (`index.html`, `matematica.html`, …) restano la sorgente che modifichi.** Puoi editarli e aprirli direttamente nel browser: caricano React/Babel/Tailwind dai CDN, così vedi subito le modifiche senza build (comodo per lo sviluppo).
 
-To test: open `index.html` in a browser. A Google Gemini API key must be entered in the settings modal for AI features to work. The key is stored in `localStorage` under `gemini_api_key`.
+**Per la PRODUZIONE c'è un passo di build:** `npm run build` legge i file della radice e ne genera una versione ottimizzata in `docs/`:
+- il JSX inline viene **precompilato** (niente più Babel nel browser);
+- Tailwind viene **generato staticamente** in `docs/assets/tailwind.css` (niente più CDN JIT a runtime);
+- font e asset vengono copiati in `docs/`.
+
+GitHub Pages serve la cartella **`docs/`**. Quindi il flusso è: *modifica i file della radice → `npm run build` → commit → push*. Se dimentichi il build, il sito pubblicato non riflette le tue modifiche.
+
+Prima volta / dopo un clone: `npm install` (installa `@babel/core`, `@babel/preset-react`, `tailwindcss` come devDependencies; `node_modules/` è in `.gitignore`).
+
+Quando aggiungi una classe Tailwind **nuova**, rilancia `npm run build`, altrimenti quella classe non avrà stile (il CSS statico contiene solo le classi effettivamente usate). Se crei un file HTML/JS nuovo con classi Tailwind, aggiungilo a `content` in `tailwind.config.js`.
+
+To test: apri `index.html` (radice, modalità sviluppo) oppure `docs/index.html` (build di produzione) in un browser. A Google Gemini API key must be entered in the settings modal for AI features to work. The key is stored in `localStorage` under `gemini_api_key`.
 
 ## Architecture
 
@@ -67,15 +78,16 @@ All modules call the Google Gemini API directly from the browser:
 ### Git & Deploy Workflow
 
 After completing any code change, always:
-1. `git add <modified files>` (by name, never `git add .`)
-2. `git commit -m "..."` with a descriptive message
-3. `git push` to origin/main
+1. `npm run build` (rigenera `docs/` — il sito pubblicato)
+2. `git add <modified files>` (by name, never `git add .`) — includi sia i file di radice modificati sia `docs/`
+3. `git commit -m "..."` with a descriptive message
+4. `git push` to origin/main
 
-GitHub Pages is configured on this repo (`maurinoverpro.github.io/edugamer`). Every push to main deploys automatically — no extra steps needed.
+GitHub Pages is configured on this repo (`maurinoverpro.github.io/edugamer`) e serve la cartella **`/docs`** del branch `main`. Every push to main deploys automatically. **Ricorda `npm run build` prima del commit**, altrimenti `docs/` (ciò che viene pubblicato) resta indietro rispetto ai file di radice.
 
 ### Pitfalls to avoid
 
-- **`game-system.js` must be loaded at the bottom of `<body>`**, after the `<script type="text/babel">` block. Loading it in `<head>` causes it to run before React initializes.
+- **`game-system.js` must be loaded at the bottom of `<body>`**, after the `<script type="text/babel">` block. Loading it in `<head>` causes it to run before React initializes. In sviluppo Babel esegue il blocco JSX su `DOMContentLoaded` (cioè dopo `game-system.js`); il build (`build.mjs`) replica questo timing avvolgendo il codice compilato in un handler `DOMContentLoaded`, così `window.EduGamer` esiste già quando i moduli montano (senza, `profilo.html` resta bloccato su "Caricamento…").
 - **Never use direct localStorage XP writes** (e.g. `localStorage.setItem('edu_xp', ...)`). Always call `window.EduGamer.addXP(amount, source, action)` so achievements and streaks are triggered correctly.
 
 ### Accessibility Conventions

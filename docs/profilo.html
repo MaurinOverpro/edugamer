@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profilo - EduGamer</title>
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<link href="fonts/opendyslexic.css" rel="stylesheet">
+    
+    <style>
+        * { letter-spacing: 0.02em; }
+        html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+        body { 
+            background: linear-gradient(135deg, #0a0e17 0%, #1a1a2e 100%);
+            color: white; 
+            font-family: 'OpenDyslexic', Verdana, sans-serif;
+        }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        
+        .scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* XP BAR */
+        .xp-bar-bg {
+            background: #1e293b;
+            border-radius: 9999px;
+            height: 24px;
+            overflow: hidden;
+            position: relative;
+        }
+        .xp-bar-fill {
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.5s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+        .xp-bar-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer {
+            to { left: 100%; }
+        }
+
+        /* ACHIEVEMENT CARD */
+        .achievement-card {
+            transition: all 0.2s;
+        }
+        .achievement-card:hover {
+            transform: translateY(-2px);
+        }
+        .achievement-locked {
+            filter: grayscale(100%);
+            opacity: 0.5;
+        }
+
+        /* RARITY COLORS */
+        .rarity-comune { border-color: #94a3b8; }
+        .rarity-raro { border-color: #3b82f6; }
+        .rarity-epico { border-color: #a855f7; }
+        .rarity-leggendario { border-color: #fbbf24; }
+
+        /* STAT CARD */
+        .stat-card {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        /* STREAK FIRE */
+        .streak-fire {
+            animation: flicker 0.5s infinite alternate;
+        }
+        @keyframes flicker {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+
+        /* TAB BUTTONS */
+        .tab-btn {
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            transform: scale(1.05);
+        }
+    </style>
+    <link rel="stylesheet" href="assets/tailwind.css">
+</head>
+<body>
+    <div id="root"></div>
+    <script>
+(function(){function __run(){
+const {
+  useState,
+  useEffect
+} = React;
+const IMAGE_MODEL = "gemini-3-pro-image-preview";
+const PIRATE_LEVELS = {
+  1: "a young cheerful pirate apprentice with a tiny bandana and big curious eyes, just starting their adventure on the seas",
+  2: "a young pirate wearing a straw hat, carrying a small sword, with a determined and hopeful expression",
+  3: "a brave pirate with a cutlass, a few battle scars, a confident grin, and a colorful bandana",
+  4: "a seasoned pirate explorer with a worn long coat, a compass, and battle-hardened eyes full of experience",
+  5: "a powerful pirate warrior dual-wielding swords, muscular build, fierce eyes, impressive stance",
+  6: "a pirate champion with a magnificent flowing coat, a unique legendary weapon, and a commanding powerful presence",
+  7: "a legendary pirate with glowing supernatural powers, an elaborate ornate outfit, radiating immense strength",
+  8: "a grandmaster pirate warlord in an epic black coat with golden details, surrounded by an aura of dark power",
+  9: "an emperor-level pirate with divine aura, golden accessories, terrifying power, commander of thousands",
+  10: "the Pirate King at the absolute peak of power, wearing a legendary crown, radiating ultimate freedom and unstoppable strength"
+};
+const App = () => {
+  const [stats, setStats] = useState(null);
+  const [level, setLevel] = useState(null);
+  const [progress, setProgress] = useState(null);
+  const [achievements, setAchievements] = useState([]);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [tapCount, setTapCount] = useState(0);
+  const [playerName, setPlayerName] = useState('');
+  const [uploadedPhoto, setUploadedPhoto] = useState(null);
+  const [generatedPoster, setGeneratedPoster] = useState(() => {
+    try {
+      const saved = localStorage.getItem('edugamer_wanted_poster');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [posterError, setPosterError] = useState(null);
+  const [posterHistory, setPosterHistory] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('edugamer_wanted_posters_history') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [selectedHistoryPoster, setSelectedHistoryPoster] = useState(null);
+  const handlePhotoUpload = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const dataUrl = ev.target.result;
+      const base64 = dataUrl.split(',')[1];
+      setUploadedPhoto({
+        base64,
+        mime: file.type,
+        preview: dataUrl
+      });
+      setGeneratedPoster(null);
+      setPosterError(null);
+    };
+    reader.readAsDataURL(file);
+  };
+  const loadData = () => {
+    if (window.EduGamer) {
+      setStats(window.EduGamer.getStats());
+      setLevel(window.EduGamer.getLevel());
+      setProgress(window.EduGamer.getProgress());
+      setAchievements(window.EduGamer.getAchievements());
+    }
+  };
+  useEffect(() => {
+    loadData();
+    const handleUpdate = () => loadData();
+    window.addEventListener('edugamer-stats-updated', handleUpdate);
+    window.addEventListener('edugamer-xp-added', handleUpdate);
+    return () => {
+      window.removeEventListener('edugamer-stats-updated', handleUpdate);
+      window.removeEventListener('edugamer-xp-added', handleUpdate);
+    };
+  }, []);
+  const handleTitleTap = () => {
+    const newCount = tapCount + 1;
+    setTapCount(newCount);
+    if (newCount >= 5) {
+      setShowResetModal(true);
+      setTapCount(0);
+    }
+    setTimeout(() => setTapCount(0), 2000);
+  };
+  const performReset = () => {
+    ['edugamer_stats', 'edugamer_achievements', 'edu_xp', 'lavagna_interactive_v6', 'edugamer_wanted_poster', 'edugamer_wanted_posters_history', 'isola_profile', 'isola_avatars_history'].forEach(k => localStorage.removeItem(k));
+    setShowResetModal(false);
+    window.location.reload();
+  };
+  const [showReportMenu, setShowReportMenu] = React.useState(false);
+  const generateReport = () => {
+    const oggi = new Date();
+    const dataReport = oggi.toLocaleDateString('it-IT', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+    let valutazione = '';
+    if (stats.currentStreak >= 5) {
+      valutazione = 'Ottimo! Sta usando l\'app con costanza!';
+    } else if (stats.currentStreak >= 3) {
+      valutazione = 'Buon utilizzo, continua cosi!';
+    } else if (stats.totalActivities > 0) {
+      valutazione = 'Ha iniziato a usare l\'app. Incoraggialo a continuare!';
+    } else {
+      valutazione = 'Non ha ancora usato l\'app questa settimana.';
+    }
+    const report = `REPORT EDUGAMER
+${dataReport}
+
+LIVELLO E PROGRESSI
+Livello: ${level.level} - ${level.name}
+XP Totali: ${stats.totalXP}
+Trofei sbloccati: ${achievements.filter(a => a.unlocked).length}/${achievements.length}
+
+COSTANZA
+Streak attuale: ${stats.currentStreak} giorni consecutivi
+Record streak: ${stats.maxStreak} giorni
+
+ATTIVITA COMPLETATE
+Problemi matematica risolti: ${stats.problemsSolved}
+Testi controllati: ${stats.textsChecked}
+Testi perfetti (zero errori): ${stats.perfectTexts}
+Mappe mentali create: ${stats.mapsCreated}
+Domande al tutor: ${stats.tutorQuestions}
+Quiz completati: ${stats.quizCompleted}
+
+VALUTAZIONE
+${valutazione}
+
+---
+Report generato da EduGamer`;
+    return report;
+  };
+  const shareReportWhatsApp = () => {
+    const report = generateReport();
+    const msg = encodeURIComponent(report);
+    window.open(`https://wa.me/?text=${msg}`, '_blank');
+    setShowReportMenu(false);
+  };
+  const shareReportEmail = () => {
+    const report = generateReport();
+    const subject = encodeURIComponent(`Report EduGamer - ${new Date().toLocaleDateString('it-IT')}`);
+    const body = encodeURIComponent(report);
+    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+    setShowReportMenu(false);
+  };
+  const saveReportFile = () => {
+    const report = generateReport();
+    const blob = new Blob([report], {
+      type: 'text/plain;charset=utf-8'
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `report_edugamer_${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setShowReportMenu(false);
+  };
+  const generateWantedPoster = async () => {
+    const key = localStorage.getItem('gemini_api_key');
+    if (!key || !uploadedPhoto) return;
+    setIsGenerating(true);
+    setPosterError(null);
+    setGeneratedPoster(null);
+    const lvl = Math.min(Math.max(level.level, 1), 10);
+    const bounty = `$${(stats.totalXP * 1000000).toLocaleString('en-US')}`;
+    const pirateRank = PIRATE_LEVELS[lvl];
+    let refBase64 = null;
+    try {
+      const refRes = await fetch('onepiecewanted2.jpg');
+      const refBlob = await refRes.blob();
+      refBase64 = await new Promise(resolve => {
+        const r = new FileReader();
+        r.onload = e => resolve(e.target.result.split(',')[1]);
+        r.readAsDataURL(refBlob);
+      });
+    } catch (e) {}
+    const prompt = `You have two images:
+1. STYLE REFERENCE: the first image shows authentic One Piece wanted posters — study their exact layout, typography, manga art style, colors, and texture carefully.
+2. SUBJECT PHOTO: the second image is a photo of a real person.
+
+Your task: generate a NEW One Piece wanted poster in the EXACT style of image 1, featuring the person from image 2 redrawn as a manga character.
+
+Strict requirements:
+- Redraw the person's face and likeness in Eiichiro Oda's manga art style: thick black ink outlines, expressive manga eyes, bold exaggerated features, recognizable but stylized. Upper body portrait.
+- Render them as: ${pirateRank}
+- EXACT poster layout: large bold "WANTED" at top, "DEAD OR ALIVE" below it, portrait in the center box, character name at bottom of portrait, bounty amount, "MARINE" stamp at very bottom
+- Character name: "${playerName.toUpperCase()}"
+- Bounty amount: "${bounty}"
+- Aged warm kraft paper / sepia texture background, warm brown tones
+- Thick black border frame around the whole poster
+- Typography matching the One Piece poster fonts exactly`;
+    const parts = [...(refBase64 ? [{
+      inlineData: {
+        mimeType: 'image/jpeg',
+        data: refBase64
+      }
+    }] : []), {
+      inlineData: {
+        mimeType: uploadedPhoto.mime,
+        data: uploadedPhoto.base64
+      }
+    }, {
+      text: prompt
+    }];
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${IMAGE_MODEL}:generateContent?key=${key}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts
+          }],
+          generationConfig: {
+            responseModalities: ["IMAGE", "TEXT"]
+          }
+        })
+      });
+      const data = await res.json();
+      const resParts = data?.candidates?.[0]?.content?.parts || [];
+      const imgPart = resParts.find(p => p.inlineData);
+      if (imgPart) {
+        const posterData = {
+          data: imgPart.inlineData.data,
+          mime: imgPart.inlineData.mimeType,
+          name: playerName,
+          level: level.level,
+          xp: stats.totalXP,
+          date: new Date().toISOString()
+        };
+        setGeneratedPoster(posterData);
+        localStorage.setItem('edugamer_wanted_poster', JSON.stringify(posterData));
+        const prevHistory = JSON.parse(localStorage.getItem('edugamer_wanted_posters_history') || '[]');
+        const deduped = prevHistory.filter(h => h.data !== posterData.data);
+        const updatedHistory = [posterData, ...deduped].slice(0, 8);
+        localStorage.setItem('edugamer_wanted_posters_history', JSON.stringify(updatedHistory));
+        setPosterHistory(updatedHistory);
+      } else {
+        setPosterError("Nessuna immagine ricevuta. Riprova!");
+      }
+    } catch (e) {
+      setPosterError("Errore di rete. Controlla la connessione.");
+    }
+    setIsGenerating(false);
+  };
+  const downloadPoster = () => {
+    if (!generatedPoster) return;
+    const a = document.createElement('a');
+    a.href = `data:${generatedPoster.mime};base64,${generatedPoster.data}`;
+    a.download = `wanted_${playerName}_lv${level.level}_edugamer.png`;
+    a.click();
+  };
+  if (!stats || !level) {
+    return React.createElement("div", {
+      className: "h-full flex items-center justify-center"
+    }, React.createElement("div", {
+      className: "text-2xl"
+    }, "\u23F3 Caricamento..."));
+  }
+  const unlockedCount = achievements.filter(a => a.unlocked).length;
+  return React.createElement("div", {
+    className: "h-full flex flex-col p-3 gap-3"
+  }, React.createElement("div", {
+    className: "flex gap-2 shrink-0"
+  }, React.createElement("a", {
+    href: "index.html",
+    className: "bg-slate-700 text-white px-4 rounded-xl font-bold flex items-center justify-center text-lg active:scale-95"
+  }, "\uD83C\uDFE0"), React.createElement("div", {
+    className: "flex-1 bg-slate-800 rounded-xl p-3 flex items-center gap-3"
+  }, React.createElement("div", {
+    className: "flex-shrink-0 active:scale-90 transition-transform",
+    onClick: () => generatedPoster && setActiveTab('wanted'),
+    style: {
+      cursor: generatedPoster ? 'pointer' : 'default'
+    }
+  }, generatedPoster ? React.createElement("img", {
+    src: `data:${generatedPoster.mime};base64,${generatedPoster.data}`,
+    className: "object-cover rounded-lg",
+    style: {
+      width: '48px',
+      height: '60px',
+      border: '2px solid #ca8a04',
+      boxShadow: '0 0 12px rgba(202,138,4,0.5)'
+    },
+    title: "Vedi il tuo Wanted Poster"
+  }) : React.createElement("div", {
+    className: "text-4xl"
+  }, level.icon)), React.createElement("div", {
+    className: "flex-1"
+  }, React.createElement("div", {
+    className: "flex justify-between items-center mb-1"
+  }, React.createElement("span", {
+    className: "font-bold text-lg select-none",
+    style: {
+      color: level.color
+    },
+    onClick: handleTitleTap
+  }, "Lv.", level.level, " ", level.name), React.createElement("span", {
+    className: "text-yellow-400 font-bold"
+  }, stats.totalXP, " XP")), React.createElement("div", {
+    className: "xp-bar-bg"
+  }, React.createElement("div", {
+    className: "xp-bar-fill",
+    style: {
+      width: `${progress.progress}%`,
+      background: `linear-gradient(90deg, ${level.color}, ${level.color}dd)`
+    }
+  })), React.createElement("div", {
+    className: "text-xs text-slate-400 mt-1 text-right"
+  }, progress.isMax ? '🌟 LIVELLO MASSIMO!' : `${progress.current}/${progress.required} al prossimo livello`)))), stats.currentStreak > 0 && React.createElement("div", {
+    className: "bg-gradient-to-r from-orange-600 to-red-600 rounded-xl p-3 flex items-center justify-center gap-3"
+  }, React.createElement("span", {
+    className: "text-3xl streak-fire"
+  }, "\uD83D\uDD25"), React.createElement("div", {
+    className: "text-center"
+  }, React.createElement("div", {
+    className: "text-2xl font-bold"
+  }, stats.currentStreak, " GIORNI"), React.createElement("div", {
+    className: "text-sm opacity-80"
+  }, "Serie consecutiva!")), React.createElement("span", {
+    className: "text-3xl streak-fire"
+  }, "\uD83D\uDD25")), React.createElement("div", {
+    className: "flex gap-2 shrink-0 flex-wrap"
+  }, React.createElement("button", {
+    onClick: () => setActiveTab('overview'),
+    className: `tab-btn flex-1 py-2 rounded-xl font-bold text-sm ${activeTab === 'overview' ? 'bg-blue-600 text-white active' : 'bg-slate-800 text-slate-400'}`
+  }, "\uD83D\uDCCA Panoramica"), React.createElement("button", {
+    onClick: () => setActiveTab('achievements'),
+    className: `tab-btn flex-1 py-2 rounded-xl font-bold text-sm ${activeTab === 'achievements' ? 'bg-yellow-600 text-white active' : 'bg-slate-800 text-slate-400'}`
+  }, "\uD83C\uDFC6 Trofei (", unlockedCount, "/", achievements.length, ")"), React.createElement("button", {
+    onClick: () => setActiveTab('stats'),
+    className: `tab-btn flex-1 py-2 rounded-xl font-bold text-sm ${activeTab === 'stats' ? 'bg-green-600 text-white active' : 'bg-slate-800 text-slate-400'}`
+  }, "\uD83D\uDCC8 Statistiche"), React.createElement("button", {
+    onClick: () => setActiveTab('wanted'),
+    className: `tab-btn flex-1 py-2 rounded-xl font-bold text-sm ${activeTab === 'wanted' ? 'bg-orange-600 text-white active' : 'bg-slate-800 text-slate-400'}`,
+    style: activeTab === 'wanted' ? {
+      boxShadow: '0 0 15px rgba(234,88,12,0.5)'
+    } : {}
+  }, "\uD83C\uDFF4\u200D\u2620\uFE0F Wanted")), React.createElement("button", {
+    onClick: () => setShowReportMenu(true),
+    className: "w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-bold active:scale-95 flex items-center justify-center gap-2 shrink-0"
+  }, "\uD83D\uDCE7 Invia Report ai Genitori"), React.createElement("div", {
+    className: "scroll-area bg-slate-900 rounded-2xl p-4"
+  }, activeTab === 'overview' && React.createElement("div", {
+    className: "space-y-4"
+  }, React.createElement("div", {
+    className: "grid grid-cols-2 gap-3"
+  }, React.createElement("div", {
+    className: "stat-card border-2 border-blue-500"
+  }, React.createElement("div", {
+    className: "text-3xl mb-1"
+  }, "\uD83E\uDDEE"), React.createElement("div", {
+    className: "text-2xl font-bold text-blue-400"
+  }, stats.problemsSolved), React.createElement("div", {
+    className: "text-xs text-slate-400"
+  }, "Problemi risolti")), React.createElement("div", {
+    className: "stat-card border-2 border-green-500"
+  }, React.createElement("div", {
+    className: "text-3xl mb-1"
+  }, "\u270D\uFE0F"), React.createElement("div", {
+    className: "text-2xl font-bold text-green-400"
+  }, stats.textsChecked), React.createElement("div", {
+    className: "text-xs text-slate-400"
+  }, "Testi controllati")), React.createElement("div", {
+    className: "stat-card border-2 border-purple-500"
+  }, React.createElement("div", {
+    className: "text-3xl mb-1"
+  }, "\uD83D\uDDFA\uFE0F"), React.createElement("div", {
+    className: "text-2xl font-bold text-purple-400"
+  }, stats.mapsCreated), React.createElement("div", {
+    className: "text-xs text-slate-400"
+  }, "Mappe create")), React.createElement("div", {
+    className: "stat-card border-2 border-yellow-500"
+  }, React.createElement("div", {
+    className: "text-3xl mb-1"
+  }, "\uD83D\uDCAC"), React.createElement("div", {
+    className: "text-2xl font-bold text-yellow-400"
+  }, stats.tutorQuestions), React.createElement("div", {
+    className: "text-xs text-slate-400"
+  }, "Domande al tutor"))), React.createElement("div", null, React.createElement("h3", {
+    className: "text-lg font-bold text-yellow-400 mb-3"
+  }, "\uD83C\uDFC6 Ultimi Trofei Sbloccati"), React.createElement("div", {
+    className: "space-y-2"
+  }, achievements.filter(a => a.unlocked).slice(-3).reverse().map(a => React.createElement("div", {
+    key: a.id,
+    className: `flex items-center gap-3 p-3 rounded-xl bg-slate-800 border-2 rarity-${a.rarity}`
+  }, React.createElement("span", {
+    className: "text-3xl"
+  }, a.icon), React.createElement("div", {
+    className: "flex-1"
+  }, React.createElement("div", {
+    className: "font-bold"
+  }, a.name), React.createElement("div", {
+    className: "text-xs text-slate-400"
+  }, a.desc)), React.createElement("div", {
+    className: "text-green-400 font-bold"
+  }, "+", a.xpReward, " XP"))), achievements.filter(a => a.unlocked).length === 0 && React.createElement("div", {
+    className: "text-center text-slate-500 py-6"
+  }, React.createElement("div", {
+    className: "text-4xl mb-2"
+  }, "\uD83C\uDFAF"), React.createElement("p", null, "Completa attivit\xE0 per sbloccare trofei!")))), !progress.isMax && React.createElement("div", {
+    className: "bg-slate-800 rounded-xl p-4 border-2 border-slate-600"
+  }, React.createElement("h3", {
+    className: "text-lg font-bold mb-2"
+  }, "\uD83C\uDFAF Prossimo Obiettivo"), React.createElement("div", {
+    className: "flex items-center gap-3"
+  }, React.createElement("div", {
+    className: "text-4xl"
+  }, window.EduGamer?.LEVELS[level.level]?.icon || '⬆️'), React.createElement("div", null, React.createElement("div", {
+    className: "font-bold"
+  }, "Livello ", level.level + 1, ": ", window.EduGamer?.LEVELS[level.level]?.name || 'Prossimo'), React.createElement("div", {
+    className: "text-sm text-slate-400"
+  }, "Mancano ", progress.required - progress.current, " XP"))))), activeTab === 'achievements' && React.createElement("div", {
+    className: "space-y-3"
+  }, ['leggendario', 'epico', 'raro', 'comune'].map(rarity => {
+    const rarityAchievements = achievements.filter(a => a.rarity === rarity);
+    if (rarityAchievements.length === 0) return null;
+    const rarityNames = {
+      comune: '⚪ Comuni',
+      raro: '🔵 Rari',
+      epico: '🟣 Epici',
+      leggendario: '🟡 Leggendari'
+    };
+    return React.createElement("div", {
+      key: rarity
+    }, React.createElement("h3", {
+      className: "text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider"
+    }, rarityNames[rarity]), React.createElement("div", {
+      className: "grid grid-cols-1 gap-2"
+    }, rarityAchievements.map(a => React.createElement("div", {
+      key: a.id,
+      className: `achievement-card flex items-center gap-3 p-3 rounded-xl bg-slate-800 border-2 rarity-${a.rarity} ${!a.unlocked ? 'achievement-locked' : ''}`
+    }, React.createElement("span", {
+      className: "text-3xl"
+    }, a.unlocked ? a.icon : '🔒'), React.createElement("div", {
+      className: "flex-1"
+    }, React.createElement("div", {
+      className: "font-bold"
+    }, a.name), React.createElement("div", {
+      className: "text-xs text-slate-400"
+    }, a.desc)), React.createElement("div", {
+      className: `font-bold ${a.unlocked ? 'text-green-400' : 'text-slate-500'}`
+    }, a.unlocked ? '✓' : `+${a.xpReward}`)))));
+  })), activeTab === 'stats' && React.createElement("div", {
+    className: "space-y-4"
+  }, React.createElement("div", null, React.createElement("h3", {
+    className: "text-lg font-bold text-blue-400 mb-3"
+  }, "\uD83D\uDCCA Generali"), React.createElement("div", {
+    className: "bg-slate-800 rounded-xl divide-y divide-slate-700"
+  }, React.createElement("div", {
+    className: "flex justify-between p-3"
+  }, React.createElement("span", {
+    className: "text-slate-400"
+  }, "XP Totali"), React.createElement("span", {
+    className: "font-bold text-yellow-400"
+  }, stats.totalXP)), React.createElement("div", {
+    className: "flex justify-between p-3"
+  }, React.createElement("span", {
+    className: "text-slate-400"
+  }, "Livello"), React.createElement("span", {
+    className: "font-bold"
+  }, level.level, " - ", level.name)), React.createElement("div", {
+    className: "flex justify-between p-3"
+  }, React.createElement("span", {
+    className: "text-slate-400"
+  }, "Attivit\xE0 completate"), React.createElement("span", {
+    className: "font-bold"
+  }, stats.totalActivities)), React.createElement("div", {
+    className: "flex justify-between p-3"
+  }, React.createElement("span", {
+    className: "text-slate-400"
+  }, "Trofei sbloccati"), React.createElement("span", {
+    className: "font-bold"
+  }, unlockedCount, "/", achievements.length)))), React.createElement("div", null, React.createElement("h3", {
+    className: "text-lg font-bold text-orange-400 mb-3"
+  }, "\uD83D\uDD25 Streak"), React.createElement("div", {
+    className: "bg-slate-800 rounded-xl divide-y divide-slate-700"
+  }, React.createElement("div", {
+    className: "flex justify-between p-3"
+  }, React.createElement("span", {
+    className: "text-slate-400"
+  }, "Serie attuale"), React.createElement("span", {
+    className: "font-bold text-orange-400"
+  }, stats.currentStreak, " giorni")), React.createElement("div", {
+    className: "flex justify-between p-3"
+  }, React.createElement("span", {
+    className: "text-slate-400"
+  }, "Record massimo"), React.createElement("span", {
+    className: "font-bold text-yellow-400"
+  }, stats.maxStreak, " giorni")))), React.createElement("div", null, React.createElement("h3", {
+    className: "text-lg font-bold text-green-400 mb-3"
+  }, "\uD83D\uDCDA Per Modulo"), React.createElement("div", {
+    className: "bg-slate-800 rounded-xl divide-y divide-slate-700"
+  }, React.createElement("div", {
+    className: "flex justify-between p-3"
+  }, React.createElement("span", {
+    className: "text-slate-400"
+  }, "\uD83E\uDDEE Operazioni matematiche"), React.createElement("span", {
+    className: "font-bold"
+  }, stats.mathOperations)), React.createElement("div", {
+    className: "flex justify-between p-3"
+  }, React.createElement("span", {
+    className: "text-slate-400"
+  }, "\uD83D\uDCD0 Problemi risolti"), React.createElement("span", {
+    className: "font-bold"
+  }, stats.problemsSolved)), React.createElement("div", {
+    className: "flex justify-between p-3"
+  }, React.createElement("span", {
+    className: "text-slate-400"
+  }, "\u270D\uFE0F Testi controllati"), React.createElement("span", {
+    className: "font-bold"
+  }, stats.textsChecked)), React.createElement("div", {
+    className: "flex justify-between p-3"
+  }, React.createElement("span", {
+    className: "text-slate-400"
+  }, "\u2705 Testi perfetti"), React.createElement("span", {
+    className: "font-bold text-green-400"
+  }, stats.perfectTexts)), React.createElement("div", {
+    className: "flex justify-between p-3"
+  }, React.createElement("span", {
+    className: "text-slate-400"
+  }, "\uD83D\uDDFA\uFE0F Mappe create"), React.createElement("span", {
+    className: "font-bold"
+  }, stats.mapsCreated)), React.createElement("div", {
+    className: "flex justify-between p-3"
+  }, React.createElement("span", {
+    className: "text-slate-400"
+  }, "\uD83D\uDCAC Domande al tutor"), React.createElement("span", {
+    className: "font-bold"
+  }, stats.tutorQuestions)), React.createElement("div", {
+    className: "flex justify-between p-3"
+  }, React.createElement("span", {
+    className: "text-slate-400"
+  }, "\uD83C\uDFAF Quiz completati"), React.createElement("span", {
+    className: "font-bold"
+  }, stats.quizCompleted)))), React.createElement("div", null, React.createElement("h3", {
+    className: "text-lg font-bold text-purple-400 mb-3"
+  }, "\u2728 Badge Speciali"), React.createElement("div", {
+    className: "flex gap-3 flex-wrap"
+  }, stats.nightOwl && React.createElement("div", {
+    className: "bg-slate-800 rounded-xl p-3 flex items-center gap-2 border-2 border-purple-500"
+  }, React.createElement("span", {
+    className: "text-2xl"
+  }, "\uD83E\uDD89"), React.createElement("span", {
+    className: "font-bold"
+  }, "Gufo Notturno")), stats.earlyBird && React.createElement("div", {
+    className: "bg-slate-800 rounded-xl p-3 flex items-center gap-2 border-2 border-yellow-500"
+  }, React.createElement("span", {
+    className: "text-2xl"
+  }, "\uD83D\uDC26"), React.createElement("span", {
+    className: "font-bold"
+  }, "Mattiniero")), !stats.nightOwl && !stats.earlyBird && React.createElement("div", {
+    className: "text-slate-500 text-sm"
+  }, "Studia in orari speciali per sbloccare badge!"))), stats.firstPlayDate && React.createElement("div", {
+    className: "text-center text-slate-500 text-sm pt-4 border-t border-slate-700"
+  }, "\uD83C\uDFAE Giocatore dal ", new Date(stats.firstPlayDate).toLocaleDateString('it-IT'))), activeTab === 'wanted' && React.createElement("div", {
+    className: "space-y-4"
+  }, generatedPoster && level.level > generatedPoster.level && React.createElement("div", {
+    className: "bg-gradient-to-r from-yellow-700 to-orange-700 rounded-xl p-3 flex items-center gap-3 border-2 border-yellow-400",
+    style: {
+      boxShadow: '0 0 16px rgba(202,138,4,0.4)'
+    }
+  }, React.createElement("span", {
+    className: "text-3xl"
+  }, "\uD83C\uDD99"), React.createElement("div", {
+    className: "flex-1"
+  }, React.createElement("div", {
+    className: "font-bold text-sm text-yellow-100"
+  }, "Sei salito di livello!"), React.createElement("div", {
+    className: "text-xs text-yellow-200 opacity-90 mt-0.5"
+  }, "Rigenera il tuo Wanted Poster per riflettere il nuovo rango")), React.createElement("span", {
+    className: "text-2xl"
+  }, "\uD83C\uDFF4\u200D\u2620\uFE0F")), React.createElement("div", {
+    className: "text-center"
+  }, React.createElement("div", {
+    className: "text-5xl mb-2"
+  }, "\uD83C\uDFF4\u200D\u2620\uFE0F"), React.createElement("h3", {
+    className: "text-xl font-bold text-orange-400"
+  }, "Il tuo Wanted Poster"), React.createElement("p", {
+    className: "text-slate-400 text-sm mt-1"
+  }, "Lv.", level.level, " ", level.name, " \xB7 Taglia: ", (stats.totalXP * 1000000).toLocaleString('it-IT'), " Berry")), React.createElement("div", {
+    className: "bg-slate-800 rounded-xl p-4 space-y-3 border-2 border-orange-700"
+  }, React.createElement("div", {
+    className: "text-sm font-bold text-orange-300 mb-1"
+  }, "\u2460 Carica la tua foto"), React.createElement("label", {
+    className: "block cursor-pointer"
+  }, React.createElement("input", {
+    type: "file",
+    accept: "image/*",
+    capture: "user",
+    onChange: handlePhotoUpload,
+    className: "hidden"
+  }), uploadedPhoto ? React.createElement("div", {
+    className: "relative"
+  }, React.createElement("img", {
+    src: uploadedPhoto.preview,
+    alt: "La tua foto",
+    className: "w-full max-h-48 object-cover rounded-xl border-2 border-orange-500"
+  }), React.createElement("div", {
+    className: "absolute bottom-2 right-2 bg-orange-600 text-white text-xs font-bold px-2 py-1 rounded-lg"
+  }, "\uD83D\uDCF7 Cambia foto")) : React.createElement("div", {
+    className: "w-full py-8 rounded-xl border-2 border-dashed border-orange-600 flex flex-col items-center gap-2 bg-slate-900/50 active:scale-95"
+  }, React.createElement("span", {
+    className: "text-5xl"
+  }, "\uD83D\uDCF7"), React.createElement("span", {
+    className: "text-orange-300 font-bold"
+  }, "Tocca per caricare o scattare una foto"), React.createElement("span", {
+    className: "text-slate-500 text-xs"
+  }, "Il tuo viso verr\xE0 ridisegnato in stile One Piece"))), React.createElement("div", {
+    className: "text-sm font-bold text-orange-300 mt-2"
+  }, "\u2461 Il tuo nome da pirata"), React.createElement("input", {
+    type: "text",
+    value: playerName,
+    onChange: e => setPlayerName(e.target.value),
+    placeholder: "Es: Marco, Sofia, Luca...",
+    maxLength: 20,
+    className: "w-full bg-slate-900 border-2 border-slate-600 rounded-xl p-3 text-white text-lg outline-none focus:border-orange-500 font-bold"
+  }), React.createElement("button", {
+    onClick: generateWantedPoster,
+    disabled: !uploadedPhoto || !playerName.trim() || isGenerating || !localStorage.getItem('gemini_api_key'),
+    className: "w-full py-4 rounded-xl font-bold text-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed mt-1",
+    style: {
+      background: 'linear-gradient(135deg,#ea580c,#fbbf24)',
+      color: '#0a0e17'
+    }
+  }, isGenerating ? '🎨 Generando...' : '🏴‍☠️ CREA IL MIO WANTED POSTER!'), !uploadedPhoto && React.createElement("p", {
+    className: "text-slate-500 text-xs text-center"
+  }, "Carica prima la tua foto"), !localStorage.getItem('gemini_api_key') && React.createElement("p", {
+    className: "text-red-400 text-xs text-center"
+  }, "\u26A0\uFE0F Configura la chiave API nella Home")), isGenerating && React.createElement("div", {
+    className: "flex flex-col items-center gap-3 py-8"
+  }, React.createElement("div", {
+    className: "text-6xl animate-bounce"
+  }, "\u2693"), React.createElement("p", {
+    className: "text-orange-400 font-bold animate-pulse text-center"
+  }, "L'AI sta ridisegnando il tuo viso in stile One Piece..."), React.createElement("p", {
+    className: "text-slate-500 text-sm"
+  }, "Pu\xF2 richiedere qualche secondo")), posterError && React.createElement("div", {
+    className: "bg-red-900/50 border border-red-500 rounded-xl p-3 text-center text-red-300"
+  }, "\u274C ", posterError), generatedPoster && !isGenerating && React.createElement("div", {
+    className: "space-y-3"
+  }, React.createElement("img", {
+    src: `data:${generatedPoster.mime};base64,${generatedPoster.data}`,
+    alt: `Wanted Poster di ${playerName}`,
+    className: "w-full rounded-2xl border-4 border-yellow-600",
+    style: {
+      boxShadow: '0 0 30px rgba(234,179,8,0.5)'
+    }
+  }), React.createElement("div", {
+    className: "flex gap-3"
+  }, React.createElement("button", {
+    onClick: downloadPoster,
+    className: "flex-1 bg-green-600 text-white py-3 rounded-xl font-bold active:scale-95 flex items-center justify-center gap-2 border-2 border-green-400"
+  }, "\uD83D\uDCBE Salva"), React.createElement("button", {
+    onClick: generateWantedPoster,
+    className: "flex-1 bg-slate-700 text-white py-3 rounded-xl font-bold active:scale-95 border-2 border-slate-500"
+  }, "\uD83D\uDD04 Rigenera"))), posterHistory.length > 0 && React.createElement("div", {
+    className: "space-y-3 pt-2 border-t border-slate-700"
+  }, React.createElement("div", {
+    className: "text-xs font-bold text-slate-400 uppercase tracking-wider"
+  }, "\uD83D\uDCDC Storico Poster (", posterHistory.length, "/8)"), React.createElement("div", {
+    className: "grid grid-cols-3 gap-2"
+  }, posterHistory.map((poster, i) => React.createElement("button", {
+    key: i,
+    onClick: () => setSelectedHistoryPoster(poster),
+    className: "relative active:scale-95 transition-transform rounded-xl overflow-hidden",
+    style: {
+      border: i === 0 ? '2px solid #ca8a04' : '2px solid rgba(71,85,105,0.4)'
+    }
+  }, React.createElement("img", {
+    src: `data:${poster.mime};base64,${poster.data}`,
+    className: "w-full",
+    style: {
+      aspectRatio: '3/4',
+      objectFit: 'cover',
+      display: 'block'
+    }
+  }), i === 0 && React.createElement("div", {
+    className: "absolute top-1 inset-x-0 flex justify-center"
+  }, React.createElement("span", {
+    className: "text-black text-xs font-bold px-1.5 py-0.5 rounded",
+    style: {
+      background: '#fbbf24'
+    }
+  }, "ATTUALE")), React.createElement("div", {
+    className: "absolute bottom-0 inset-x-0 py-1 text-center",
+    style: {
+      background: 'rgba(0,0,0,0.6)'
+    }
+  }, React.createElement("span", {
+    className: "text-yellow-400 text-xs font-bold"
+  }, "Lv.", poster.level))))))), selectedHistoryPoster && React.createElement("div", {
+    className: "fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4",
+    onClick: () => setSelectedHistoryPoster(null)
+  }, React.createElement("div", {
+    className: "w-full max-w-xs",
+    onClick: e => e.stopPropagation()
+  }, React.createElement("img", {
+    src: `data:${selectedHistoryPoster.mime};base64,${selectedHistoryPoster.data}`,
+    className: "w-full rounded-2xl",
+    style: {
+      border: '4px solid #ca8a04',
+      boxShadow: '0 0 40px rgba(202,138,4,0.6)'
+    }
+  }), React.createElement("div", {
+    className: "text-center mt-3"
+  }, React.createElement("p", {
+    className: "text-yellow-400 font-black text-lg"
+  }, "\uD83C\uDFF4\u200D\u2620\uFE0F ", selectedHistoryPoster.name), React.createElement("p", {
+    className: "text-amber-300 text-sm mt-0.5"
+  }, "Lv.", selectedHistoryPoster.level, " \xB7 ", ((selectedHistoryPoster.xp || 0) * 1000000).toLocaleString('it-IT'), " Berry"), React.createElement("p", {
+    className: "text-slate-500 text-xs mt-1"
+  }, new Date(selectedHistoryPoster.date).toLocaleDateString('it-IT', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  }))), React.createElement("div", {
+    className: "flex gap-3 mt-4"
+  }, React.createElement("button", {
+    onClick: () => {
+      const a = document.createElement('a');
+      a.href = `data:${selectedHistoryPoster.mime};base64,${selectedHistoryPoster.data}`;
+      a.download = `wanted_${selectedHistoryPoster.name}_lv${selectedHistoryPoster.level}.png`;
+      a.click();
+    },
+    className: "flex-1 bg-green-600 text-white py-3 rounded-xl font-bold active:scale-95 border-2 border-green-400"
+  }, "\uD83D\uDCBE Salva"), React.createElement("button", {
+    onClick: () => setSelectedHistoryPoster(null),
+    className: "flex-1 bg-slate-700 text-white py-3 rounded-xl font-bold active:scale-95 border border-slate-600"
+  }, "\u2715 Chiudi"))))), showResetModal && React.createElement("div", {
+    className: "fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+  }, React.createElement("div", {
+    className: "bg-slate-800 rounded-2xl p-6 w-full max-w-sm border-2 border-red-500"
+  }, React.createElement("div", {
+    className: "text-center mb-4"
+  }, React.createElement("div", {
+    className: "text-5xl mb-3"
+  }, "\u26A0\uFE0F"), React.createElement("h3", {
+    className: "text-xl font-bold text-red-400"
+  }, "Reset Progressi")), React.createElement("p", {
+    className: "text-center text-slate-300 mb-6"
+  }, "Vuoi azzerare tutti i progressi?"), React.createElement("div", {
+    className: "flex gap-3"
+  }, React.createElement("button", {
+    onClick: () => setShowResetModal(false),
+    className: "flex-1 bg-slate-600 text-white py-3 rounded-xl font-bold active:scale-95"
+  }, "Annulla"), React.createElement("button", {
+    onClick: performReset,
+    className: "flex-1 bg-red-600 text-white py-3 rounded-xl font-bold active:scale-95"
+  }, "Azzera")))), showReportMenu && React.createElement("div", {
+    className: "fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4",
+    onClick: () => setShowReportMenu(false)
+  }, React.createElement("div", {
+    className: "bg-slate-800 rounded-2xl p-6 w-full max-w-sm border-2 border-purple-500",
+    onClick: e => e.stopPropagation()
+  }, React.createElement("div", {
+    className: "text-center mb-4"
+  }, React.createElement("div", {
+    className: "text-5xl mb-3"
+  }, "\uD83D\uDCCA"), React.createElement("h3", {
+    className: "text-xl font-bold text-purple-400"
+  }, "Invia Report")), React.createElement("p", {
+    className: "text-center text-slate-300 mb-6 text-sm"
+  }, "Scegli come inviare il report ai genitori"), React.createElement("div", {
+    className: "flex flex-col gap-3"
+  }, React.createElement("button", {
+    onClick: shareReportWhatsApp,
+    className: "w-full bg-green-600 text-white py-3 rounded-xl font-bold active:scale-95 flex items-center justify-center gap-2"
+  }, "\uD83D\uDCAC WhatsApp"), React.createElement("button", {
+    onClick: shareReportEmail,
+    className: "w-full bg-blue-600 text-white py-3 rounded-xl font-bold active:scale-95 flex items-center justify-center gap-2"
+  }, "\uD83D\uDCE7 Email"), React.createElement("button", {
+    onClick: saveReportFile,
+    className: "w-full bg-purple-600 text-white py-3 rounded-xl font-bold active:scale-95 flex items-center justify-center gap-2"
+  }, "\uD83D\uDCBE Salva File"), React.createElement("button", {
+    onClick: () => setShowReportMenu(false),
+    className: "w-full bg-slate-600 text-white py-3 rounded-xl font-bold active:scale-95 mt-2"
+  }, "\u2715 Chiudi")))));
+};
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App, null));
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",__run);else __run();})();
+</script>
+    <script src="game-system.js"></script>
+</body>
+</html>
+

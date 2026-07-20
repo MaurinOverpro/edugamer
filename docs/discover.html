@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DISCOVER v4.0 - Metodo Guidato DSA</title>
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="fonts/opendyslexic.css" rel="stylesheet">
+
+    <style>
+        * { letter-spacing: 0.02em; }
+        
+        html, body, #root {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body { 
+            background: linear-gradient(135deg, #0a0e17 0%, #1a1f2e 100%);
+            color: white; 
+            font-family: 'OpenDyslexic', Verdana, sans-serif;
+        }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        /* PROGRESS BAR ANIMATA */
+        @keyframes progress-fill {
+            from { width: 0%; }
+        }
+        .progress-fill {
+            animation: progress-fill 0.8s ease-out;
+            transition: width 0.5s ease;
+        }
+
+        /* FADE IN ANIMATION */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade { animation: fadeIn 0.4s ease-out; }
+
+        /* SCALE PULSE — usa .animate-scale, non sovrascrive Tailwind animate-pulse */
+        @keyframes scale-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .animate-scale { animation: scale-pulse 2s infinite; }
+
+        /* GLOW EFFECT */
+        .glow-green {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5),
+                        0 0 40px rgba(16, 185, 129, 0.3);
+        }
+        .glow-blue {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5),
+                        0 0 40px rgba(59, 130, 246, 0.3);
+        }
+        .glow-yellow {
+            box-shadow: 0 0 20px rgba(250, 204, 21, 0.5),
+                        0 0 40px rgba(250, 204, 21, 0.3);
+        }
+
+        /* CALCULATOR BUTTONS */
+        .calc-btn {
+            width: 100%;
+            height: 48px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            transition: all 0.1s;
+            box-shadow: 0 2px 0 #1e293b;
+        }
+        .calc-btn:active {
+            transform: translateY(2px);
+            box-shadow: none;
+        }
+
+        /* INPUT FIELDS */
+        .answer-input {
+            background: rgba(30, 41, 59, 0.8);
+            border: 3px solid #475569;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-align: center;
+            color: white;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        .answer-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+        }
+        .answer-input.correct {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        .answer-input.incorrect {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        /* HINT BOX */
+        .hint-box {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2));
+            border: 2px solid #fbbf24;
+            border-radius: 12px;
+            padding: 16px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* STEP CARD */
+        .step-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(10px);
+            border: 2px solid #334155;
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s;
+        }
+        .step-card.active {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        /* PROBLEM BOX */
+        .problem-box {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+            border: 2px solid rgba(99, 102, 241, 0.5);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.2);
+        }
+
+        /* BADGES */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        .badge-success { background: #10b981; color: white; }
+        .badge-warning { background: #f59e0b; color: white; }
+        .badge-info { background: #3b82f6; color: white; }
+
+        /* SCROLL AREA */
+        .scroll-area {
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .calc-btn { height: 42px; font-size: 1rem; }
+            .answer-input { font-size: 1.1rem; padding: 12px; }
+        }
+    </style>
+    <link rel="stylesheet" href="assets/tailwind.css">
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script>
+(function(){function __run(){
+const MODEL = "gemini-3-flash-preview";
+const DB = {
+  getKey: () => localStorage.getItem('gemini_api_key'),
+  getXP: () => {
+    const stats = JSON.parse(localStorage.getItem('edugamer_stats') || '{}');
+    return stats.xp !== undefined ? stats.xp : parseInt(localStorage.getItem('edu_xp') || '0');
+  },
+  addXP: (amount, source = 'discover', action = 'activity') => {
+    if (window.EduGamer) return window.EduGamer.addXP(amount, source, action);
+    const next = parseInt(localStorage.getItem('edu_xp') || '0') + amount;
+    localStorage.setItem('edu_xp', next.toString());
+    window.dispatchEvent(new Event('xpChanged'));
+    return next;
+  }
+};
+const MASTER_PROMPT = `Sei un tutor esperto per studenti con DSA (discalculia, dislessia) di scuola media (11-14 anni).
+
+TIPI DI PROBLEMI CHE POTRESTI INCONTRARE:
+1. SEMPLICI: 1 operazione diretta (es: "5 mele + 3 mele")
+2. COMPRAVENDITA: quantità × prezzo (es: "5 penne a 2€")
+3. PROPORZIONI: doppio/triplo/metà/quadruplo (es: "Davide ha il quadruplo")
+4. FRAZIONI: parte di quantità (es: "3/4 del percorso")
+5. MULTI-STEP: operazioni in sequenza (es: "compra X, poi vende Y")
+6. DOMANDE NASCOSTE: devi calcolare prima un dato intermedio non chiesto esplicitamente
+7. INVERSI: dato il risultato, trova l'inizio (es: "restano 7, ne ha mangiati 3, quante ne aveva?")
+8. PESO LORDO/NETTO/TARA: contenitore + contenuto
+9. DISTANZE/PERCORSI: totale - fatto = mancano
+10. CONFRONTO: "più di", "meno di", "differenza"
+
+GENERA UN JSON COSÌ (SOLO JSON, NESSUN TESTO EXTRA):
+
+{
+  "testo_problema": "testo completo trascritto dall'immagine",
+  "tipo_problema": "uno dei tipi sopra",
+  "complessita": 1-5,
+  "dati": {
+    "numeri": [lista numeri trovati],
+    "personaggi": [lista nomi],
+    "oggetti_misure": [lista oggetti o unità],
+    "domande": ["domanda principale del problema"]
+  },
+  "workflow": [
+    {
+      "step": 1,
+      "tipo": "estrazione_dati",
+      "titolo": "TROVA I DATI",
+      "domanda": "Quali sono i numeri importanti nel problema?",
+      "risposta_corretta": "16, 2, 3, 4",
+      "accetta_anche": ["16 2 3 4", "16km, 2ore, 3/4"],
+      "hint_1": "Guida ragionamento: 'Rileggi il problema con attenzione. Cerca tutti i numeri che vedi scritti'",
+      "hint_2": "Guida ragionamento: 'Ci sono numeri che indicano distanze? E numeri che formano una frazione?'",
+      "hint_3": "Risposta diretta: 'I numeri sono: 16 (distanza totale in km), 2 (ore), 3 e 4 (formano la frazione 3/4)'"
+    },
+    {
+      "step": 2,
+      "tipo": "calcolo",
+      "titolo": "RAGIONA SUL CALCOLO",
+      "domanda": "Marco ha fatto 3/4 del percorso di 16 km. Quanti km ha camminato?",
+      "risposta_corretta": "12",
+      "accetta_anche": ["12 km", "12km", "dodici"],
+      "hint_1": "Guida ragionamento: 'Quando devi trovare una frazione di un numero, devi pensare a come dividere quel numero in parti'",
+      "hint_2": "Guida ragionamento: 'Se devi trovare 3/4 di 16, puoi prima pensare: quanto è 1/4 di 16? Poi moltiplichi per 3'",
+      "hint_3": "Risposta diretta con operazione: 'Devi fare: 16 × 3 ÷ 4. Cioè: 16 × 3 = 48, poi 48 ÷ 4 = 12 km'"
+    }
+  ],
+  "risposta_finale": "Mancano 4 km per arrivare da Matteo",
+  "xp_guadagnati": 60
+}
+
+REGOLE IMPORTANTISSIME:
+
+**HINTS PROGRESSIVI (FONDAMENTALE - LEGGI CON ATTENZIONE!):**
+
+**hint_1** - Aiuto al RAGIONAMENTO (NO formule, NO operazioni):
+  - Fai domande che stimolano il pensiero
+  - Guida a capire COSA fare, non COME fare matematicamente
+  - Usa metafore, esempi concreti, visualizzazioni
+  
+  ✅ ESEMPI CORRETTI:
+  "Pensa: se dividi 16 km in 4 parti uguali, quanto è grande ogni parte?"
+  "Ragiona: cosa significa 'il quadruplo'? Se Paolo ha 7, quante volte 7 deve avere Davide?"
+  "Immagina di dividere una torta in 4 pezzi uguali. Se ne prendi 3, quanta torta hai?"
+  
+  ❌ ESEMPI SBAGLIATI:
+  "Devi moltiplicare 16 per 3 e dividere per 4"
+  "L'operazione è: 16 × 3 ÷ 4"
+  "Fai 16 per 3 diviso 4"
+
+**hint_2** - Guida al PROCESSO LOGICO (ancora NO operazioni esatte):
+  - Spiega i PASSI da seguire senza dare la formula
+  - Aiuta a scomporre il problema in sotto-problemi
+  - Suggerisci la sequenza di ragionamento
+  
+  ✅ ESEMPI CORRETTI:
+  "Prima trova quanto vale una sola parte (1/4). Poi moltiplica per 3 quella parte"
+  "Step 1: Scopri quanto è un quarto. Step 2: Prendi quel valore e moltiplicalo per tre"
+  "Dividi il totale per 4 per trovare una parte. Poi prendi 3 di quelle parti"
+  
+  ❌ ESEMPI SBAGLIATI:
+  "Fai 16 ÷ 4 = 4, poi 4 × 3 = 12"
+  "16 × 3 ÷ 4"
+  "Calcola: 16 per 3 diviso 4"
+
+**hint_3** - RISPOSTA COMPLETA (QUI sì che dai tutto):
+  - Fornisci l'operazione matematica esatta
+  - Mostra i calcoli passo per passo
+  - Spiega il PERCHÉ di ogni passaggio
+  
+  ✅ ESEMPIO CORRETTO:
+  "Ecco come si risolve: Devi calcolare 3/4 di 16 km. L'operazione è: 16 × 3 ÷ 4. Facciamo i calcoli: 16 × 3 = 48 km (questo è 3 volte il percorso intero). Poi 48 ÷ 4 = 12 km (dividiamo in 4 parti). Quindi Marco ha camminato 12 km."
+
+**CRUCIALE:** NON includere MAI il campo "operazione" come proprietà separata nello step JSON! 
+L'operazione matematica deve apparire SOLO nell'hint_3, mai come campo "operazione": "16 × 3 ÷ 4"
+
+Altre regole: Domande SEMPRE concrete e chiare (MAI vaghe come "cosa cerchi?")
+- Ogni step = 1 domanda + 1 risposta inequivocabile
+- Minimo 2 step, massimo 6 step
+- SEMPRE includere unità di misura nelle risposte
+- Per problemi complessi: spezzali in micro-step semplici
+- Se c'è domanda nascosta: crea step apposito prima della domanda finale
+- "accetta_anche" deve includere varianti ragionevoli (con/senza spazi, con/senza unità)
+- XP: 30-50 per semplici, 60-80 per medi, 90-120 per complessi
+
+ESEMPI DOMANDE CONCRETE (BUONE):
+✅ "Qual è la distanza totale in km?"
+✅ "Quanti km ha già camminato Marco?"
+✅ "Quanto costa 1 penna?"
+✅ "Quante mele aveva Marco all'inizio?"
+
+ESEMPI DOMANDE VAGHE (CATTIVE - NON USARE):
+❌ "Cosa devi trovare?"
+❌ "Quale strategia usi?"
+❌ "Come lo risolvi?"
+❌ "Ragiona sul problema"
+
+Rispondi SOLO con il JSON, senza markdown, senza prefissi.`;
+async function analyzeImage(imageData) {
+  const key = DB.getKey();
+  if (!key) throw new Error("Manca API Key Gemini!");
+  const body = {
+    contents: [{
+      parts: [{
+        text: MASTER_PROMPT
+      }, {
+        inlineData: {
+          mimeType: "image/jpeg",
+          data: imageData.split(',')[1]
+        }
+      }]
+    }]
+  };
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 30000);
+  let res;
+  try {
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body),
+      signal: ctrl.signal
+    });
+  } catch (e) {
+    clearTimeout(timer);
+    if (e.name === 'AbortError') throw new Error('Tempo scaduto (30s). Controlla la connessione e riprova.');
+    throw e;
+  }
+  clearTimeout(timer);
+  if (!res.ok) {
+    if (res.status === 429) throw new Error('Limite giornaliero raggiunto. Riprova tra qualche ora.');
+    throw new Error(`Errore AI (${res.status})`);
+  }
+  const data = await res.json();
+  let text = data.candidates[0].content.parts[0].text;
+  text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("L'AI ha risposto in modo non valido. Riprova con un'immagine più nitida.");
+  }
+}
+async function generateDynamicHint(problemText, stepData, userAnswer, attemptCount) {
+  const key = DB.getKey();
+  if (!key) return null;
+  const prompt = `Problema: ${problemText}
+Domanda: ${stepData.domanda}
+Risposta corretta: ${stepData.risposta_corretta}
+Risposta studente: ${userAnswer}
+Tentativo numero: ${attemptCount}
+
+Genera un hint di livello ${attemptCount}:
+- Livello 1: suggerimento generico per orientarlo
+- Livello 2: suggerimento specifico con procedura
+- Livello 3: risposta diretta + spiegazione completa
+
+Rispondi SOLO con il testo dell'hint, senza prefissi.`;
+  try {
+    const body = {
+      contents: [{
+        parts: [{
+          text: prompt
+        }]
+      }]
+    };
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    return data.candidates[0].content.parts[0].text.trim();
+  } catch {
+    return null;
+  }
+}
+function validateAnswer(userAnswer, correctAnswer, acceptVariants = []) {
+  const clean = s => String(s).toLowerCase().trim().replace(/\s+/g, ' ').replace(/[.,!?;:]/g, '');
+  const userClean = clean(userAnswer);
+  const correctClean = clean(correctAnswer);
+  if (userClean === correctClean) return true;
+  for (const variant of acceptVariants) {
+    if (userClean === clean(variant)) return true;
+    if (userClean.includes(clean(variant)) || clean(variant).includes(userClean)) {
+      return true;
+    }
+  }
+  const userNum = userClean.match(/\d+([.,]\d+)?/);
+  const correctNum = correctClean.match(/\d+([.,]\d+)?/);
+  if (userNum && correctNum) {
+    const uNum = parseFloat(userNum[0].replace(',', '.'));
+    const cNum = parseFloat(correctNum[0].replace(',', '.'));
+    if (Math.abs(uNum - cNum) < 0.01) return true;
+  }
+  return false;
+}
+function extractOperationFromHint(hint3) {
+  if (!hint3) return null;
+  const patterns = [/(\d+\s*[×\*]\s*\d+\s*[÷\/]\s*\d+)/, /(\d+\s*[+\-×\*÷\/]\s*\d+)/, /(\d+\s*[+\-×\*÷\/]\s*\d+\s*[+\-×\*÷\/]\s*\d+)/];
+  for (const pattern of patterns) {
+    const match = hint3.match(pattern);
+    if (match) {
+      return match[1].trim();
+    }
+  }
+  return null;
+}
+async function generatePDFReport(problemData, stepAnswers, stepAttempts, stepHints) {
+  const {
+    jsPDF
+  } = window.jspdf;
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  const lineHeight = 7;
+  let yPos = 20;
+  doc.setFontSize(18);
+  doc.setFont(undefined, 'bold');
+  doc.text('DISCOVER - RISOLUZIONE PROBLEMA', pageWidth / 2, yPos, {
+    align: 'center'
+  });
+  yPos += 10;
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'normal');
+  doc.text(`Data: ${new Date().toLocaleDateString('it-IT')}`, pageWidth / 2, yPos, {
+    align: 'center'
+  });
+  yPos += 5;
+  doc.setDrawColor(100, 100, 100);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 10;
+  doc.setFontSize(12);
+  doc.setFont(undefined, 'bold');
+  doc.text('TESTO DEL PROBLEMA:', margin, yPos);
+  yPos += lineHeight;
+  doc.setFontSize(11);
+  doc.setFont(undefined, 'normal');
+  const problemLines = doc.splitTextToSize(problemData.testo_problema, pageWidth - 2 * margin);
+  problemLines.forEach(line => {
+    if (yPos > pageHeight - 30) {
+      doc.addPage();
+      yPos = 20;
+    }
+    doc.text(line, margin, yPos);
+    yPos += lineHeight;
+  });
+  yPos += 5;
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'bold');
+  doc.text(`Tipo di problema: ${problemData.tipo_problema}`, margin, yPos);
+  yPos += lineHeight;
+  doc.text(`Livello di complessita: ${problemData.complessita} su 5`, margin, yPos);
+  yPos += 10;
+  doc.setDrawColor(100, 100, 100);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 10;
+  doc.setFontSize(14);
+  doc.setFont(undefined, 'bold');
+  doc.text('RISOLUZIONE PASSO DOPO PASSO', margin, yPos);
+  yPos += 10;
+  problemData.workflow.forEach((step, idx) => {
+    if (yPos > pageHeight - 70) {
+      doc.addPage();
+      yPos = 20;
+    }
+    doc.setDrawColor(59, 130, 246);
+    doc.setLineWidth(0.5);
+    doc.rect(margin, yPos - 5, pageWidth - 2 * margin, 10);
+    doc.setFillColor(59, 130, 246);
+    doc.rect(margin, yPos - 5, pageWidth - 2 * margin, 10, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text(`STEP ${idx + 1}: ${step.titolo}`, margin + 2, yPos);
+    doc.setTextColor(0, 0, 0);
+    yPos += 12;
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.text('DOMANDA:', margin, yPos);
+    yPos += lineHeight;
+    doc.setFont(undefined, 'normal');
+    const domandaLines = doc.splitTextToSize(step.domanda, pageWidth - 2 * margin - 5);
+    domandaLines.forEach(line => {
+      doc.text(line, margin + 5, yPos);
+      yPos += lineHeight;
+    });
+    const userAnswer = stepAnswers[idx];
+    if (userAnswer) {
+      yPos += 2;
+      doc.setFont(undefined, 'bold');
+      doc.text('La tua risposta:', margin, yPos);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(100, 100, 100);
+      doc.text(userAnswer, margin + 35, yPos);
+      doc.setTextColor(0, 0, 0);
+      yPos += lineHeight;
+    }
+    yPos += 3;
+    doc.setDrawColor(16, 185, 129);
+    doc.setFillColor(220, 252, 231);
+    doc.rect(margin, yPos - 4, pageWidth - 2 * margin, 8, 'FD');
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(16, 185, 129);
+    doc.text('RISPOSTA CORRETTA:', margin + 2, yPos);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text(step.risposta_corretta, margin + 52, yPos);
+    doc.setTextColor(0, 0, 0);
+    yPos += 10;
+    const attempts = stepAttempts[idx] || 0;
+    if (attempts > 0) {
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(9);
+      doc.text(`(Hai fatto ${attempts} tentativo/i)`, margin, yPos);
+      doc.setFontSize(10);
+      yPos += lineHeight;
+    }
+    if (step.hint_3) {
+      yPos += 2;
+      doc.setFont(undefined, 'bold');
+      doc.text('SPIEGAZIONE:', margin, yPos);
+      yPos += lineHeight;
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(10);
+      const cleanHint = step.hint_3.replace(/[\u{1F300}-\u{1F9FF}]/gu, '');
+      const spiegazioneLines = doc.splitTextToSize(cleanHint, pageWidth - 2 * margin - 5);
+      spiegazioneLines.forEach(line => {
+        if (yPos > pageHeight - 25) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.text(line, margin + 5, yPos);
+        yPos += 6.5;
+      });
+    }
+    const operation = extractOperationFromHint(step.hint_3);
+    if (operation) {
+      yPos += 3;
+      doc.setFillColor(255, 250, 205);
+      doc.rect(margin, yPos - 4, pageWidth - 2 * margin, 10, 'F');
+      doc.setFont(undefined, 'bold');
+      doc.setFontSize(10);
+      doc.text('OPERAZIONE:', margin + 2, yPos);
+      doc.setFont('courier', 'bold');
+      doc.setFontSize(13);
+      doc.text(operation, margin + 35, yPos);
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(10);
+      yPos += 12;
+    }
+    yPos += 5;
+  });
+  if (yPos > pageHeight - 90) {
+    doc.addPage();
+    yPos = 20;
+  }
+  yPos += 5;
+  doc.setDrawColor(100, 100, 100);
+  doc.setLineWidth(1);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 12;
+  doc.setFillColor(220, 252, 231);
+  doc.rect(margin, yPos - 5, pageWidth - 2 * margin, 8, 'F');
+  doc.setFontSize(14);
+  doc.setFont(undefined, 'bold');
+  doc.setTextColor(16, 185, 129);
+  doc.text('RISPOSTA FINALE AL PROBLEMA', margin + 2, yPos);
+  doc.setTextColor(0, 0, 0);
+  yPos += 10;
+  doc.setFontSize(11);
+  doc.setFont(undefined, 'bold');
+  const rispostaLines = doc.splitTextToSize(problemData.risposta_finale, pageWidth - 2 * margin);
+  rispostaLines.forEach(line => {
+    doc.text(line, margin, yPos);
+    yPos += lineHeight;
+  });
+  yPos += 12;
+  doc.setFillColor(240, 240, 240);
+  doc.rect(margin, yPos - 3, pageWidth - 2 * margin, 40, 'F');
+  doc.setFontSize(12);
+  doc.setFont(undefined, 'bold');
+  doc.text('STATISTICHE DELLA RISOLUZIONE', margin + 2, yPos);
+  yPos += 8;
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'normal');
+  const totalHints = Object.keys(stepHints).length;
+  const totalAttempts = Object.values(stepAttempts).reduce((a, b) => a + b, 0);
+  doc.text(`Punti esperienza guadagnati: ${problemData.xp_guadagnati || 0} XP`, margin + 5, yPos);
+  yPos += lineHeight;
+  doc.text(`Numero di passaggi completati: ${problemData.workflow.length}`, margin + 5, yPos);
+  yPos += lineHeight;
+  doc.text(`Suggerimenti utilizzati: ${totalHints}`, margin + 5, yPos);
+  yPos += lineHeight;
+  doc.text(`Tentativi totali effettuati: ${totalAttempts}`, margin + 5, yPos);
+  const totalPages = doc.internal.pages.length - 1;
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(120, 120, 120);
+    doc.text('Generato da DISCOVER v4.0 - Metodo Guidato DSA - EduGamer', pageWidth / 2, pageHeight - 10, {
+      align: 'center'
+    });
+    doc.text(`Pagina ${i} di ${totalPages}`, pageWidth - margin, pageHeight - 10, {
+      align: 'right'
+    });
+  }
+  const fileName = `DISCOVER_${new Date().toISOString().slice(0, 10)}_${Date.now()}.pdf`;
+  doc.save(fileName);
+}
+const {
+  useState,
+  useEffect,
+  useRef
+} = React;
+const APIKeyModal = ({
+  onSave
+}) => {
+  const [apiKey, setApiKey] = useState('');
+  const [error, setError] = useState('');
+  const handleSave = () => {
+    if (!apiKey.trim()) {
+      setError('Inserisci una chiave API!');
+      return;
+    }
+    if (!apiKey.startsWith('AIza')) {
+      setError('La chiave API deve iniziare con "AIza"');
+      return;
+    }
+    if (apiKey.length < 30) {
+      setError('La chiave sembra troppo corta');
+      return;
+    }
+    localStorage.setItem('gemini_api_key', apiKey.trim());
+    onSave();
+  };
+  return React.createElement("div", {
+    className: "fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4"
+  }, React.createElement("div", {
+    className: "bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-8 max-w-lg w-full border-2 border-blue-500 shadow-2xl animate-fade"
+  }, React.createElement("div", {
+    className: "text-center mb-6"
+  }, React.createElement("div", {
+    className: "text-6xl mb-4"
+  }, "\uD83D\uDD11"), React.createElement("h2", {
+    className: "text-3xl font-bold text-blue-400 mb-2"
+  }, "API Key Richiesta"), React.createElement("p", {
+    className: "text-slate-400"
+  }, "Inserisci la tua chiave API Gemini per continuare")), React.createElement("div", {
+    className: "bg-yellow-900/30 border-2 border-yellow-600 rounded-xl p-4 mb-6"
+  }, React.createElement("div", {
+    className: "flex items-start gap-3"
+  }, React.createElement("span", {
+    className: "text-2xl"
+  }, "\uD83D\uDCA1"), React.createElement("div", {
+    className: "text-sm"
+  }, React.createElement("div", {
+    className: "font-bold text-yellow-400 mb-1"
+  }, "Come ottenere la chiave:"), React.createElement("ol", {
+    className: "list-decimal list-inside space-y-1 text-yellow-200"
+  }, React.createElement("li", null, "Vai su: ", React.createElement("a", {
+    href: "https://aistudio.google.com/apikey",
+    target: "_blank",
+    className: "underline text-blue-400"
+  }, "aistudio.google.com/apikey")), React.createElement("li", null, "Fai login con Google"), React.createElement("li", null, "Clicca \"Create API Key\""), React.createElement("li", null, "Copia la chiave e incollala qui sotto"))))), React.createElement("div", {
+    className: "mb-4"
+  }, React.createElement("label", {
+    className: "block text-sm font-bold text-slate-300 mb-2"
+  }, "\uD83D\uDD11 Chiave API Gemini:"), React.createElement("input", {
+    type: "text",
+    value: apiKey,
+    onChange: e => {
+      setApiKey(e.target.value);
+      setError('');
+    },
+    placeholder: "AIzaSy...",
+    className: "w-full bg-slate-950 border-2 border-slate-600 rounded-xl p-4 text-white font-mono text-sm focus:border-blue-500 focus:outline-none",
+    autoFocus: true
+  }), error && React.createElement("div", {
+    className: "mt-2 text-red-400 text-sm flex items-center gap-2"
+  }, React.createElement("span", null, "\u26A0\uFE0F"), React.createElement("span", null, error))), React.createElement("button", {
+    onClick: handleSave,
+    className: "w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 rounded-xl text-lg active:scale-95 glow-blue transition-all"
+  }, "\uD83D\uDCBE SALVA E CONTINUA"), React.createElement("div", {
+    className: "mt-4 text-xs text-slate-500 text-center"
+  }, "La chiave verr\xE0 salvata solo nel tuo browser locale")));
+};
+const App = () => {
+  const [showAPIKeyModal, setShowAPIKeyModal] = useState(false);
+  const [screen, setScreen] = useState('upload');
+  const [imageData, setImageData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [problemData, setProblemData] = useState(null);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [stepAnswers, setStepAnswers] = useState({});
+  const [stepAttempts, setStepAttempts] = useState({});
+  const [stepHints, setStepHints] = useState({});
+  const [userXP, setUserXP] = useState(DB.getXP());
+  const [calcDisplay, setCalcDisplay] = useState('');
+  const [showCalc, setShowCalc] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(null);
+  useEffect(() => {
+    const key = DB.getKey();
+    if (!key) {
+      setShowAPIKeyModal(true);
+    }
+  }, []);
+  useEffect(() => {
+    const handler = () => setUserXP(DB.getXP());
+    window.addEventListener('xpChanged', handler);
+    return () => window.removeEventListener('xpChanged', handler);
+  }, []);
+  const handleUpload = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+      setImageData(evt.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+  const analyzeProblem = async () => {
+    if (!imageData) return;
+    setLoading(true);
+    try {
+      const data = await analyzeImage(imageData);
+      setProblemData(data);
+      setScreen('workflow');
+      setCurrentStep(0);
+      setStepAnswers({});
+      setStepAttempts({});
+      setStepHints({});
+    } catch (err) {
+      alert("Errore: " + err.message);
+    }
+    setLoading(false);
+  };
+  const handleContinueAfterExplanation = () => {
+    setShowSuccessMessage(null);
+    if (currentStep < problemData.workflow.length - 1) {
+      setCurrentStep(currentStep + 1);
+      setStepHints({});
+    } else {
+      const totalXP = Math.max(10, (problemData.xp_guadagnati || 50) - 20);
+      DB.addXP(totalXP);
+      setScreen('victory');
+    }
+  };
+  const validateStep = async () => {
+    const step = problemData.workflow[currentStep];
+    const userAnswer = stepAnswers[currentStep] || '';
+    if (!userAnswer.trim()) {
+      alert("Scrivi una risposta prima di continuare!");
+      return;
+    }
+    const isCorrect = validateAnswer(userAnswer, step.risposta_corretta, step.accetta_anche || []);
+    if (isCorrect) {
+      const attempts = stepAttempts[currentStep] || 0;
+      const bonusXP = attempts === 0 ? 10 : attempts === 1 ? 5 : 0;
+      DB.addXP(bonusXP);
+      const messages = ['🎉 Esatto! Ben fatto!', '✅ Corretto! Ottimo lavoro!', '🌟 Perfetto! Continua così!', '💪 Giusto! Sei bravissimo!', '🎯 Risposta corretta!'];
+      const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+      setShowSuccessMessage({
+        type: 'success',
+        message: randomMsg,
+        xp: bonusXP
+      });
+      setTimeout(() => {
+        setShowSuccessMessage(null);
+        if (currentStep < problemData.workflow.length - 1) {
+          setCurrentStep(currentStep + 1);
+          setStepHints({});
+        } else {
+          const totalXP = problemData.xp_guadagnati || 50;
+          DB.addXP(totalXP);
+          setScreen('victory');
+        }
+      }, 2000);
+    } else {
+      const attempts = (stepAttempts[currentStep] || 0) + 1;
+      setStepAttempts({
+        ...stepAttempts,
+        [currentStep]: attempts
+      });
+      let hint = '';
+      if (attempts === 1) hint = step.hint_1;else if (attempts === 2) hint = step.hint_2;else if (attempts >= 3) hint = step.hint_3;
+      if (!hint && attempts <= 3) {
+        const dynamicHint = await generateDynamicHint(problemData.testo_problema, step, userAnswer, attempts);
+        if (dynamicHint) hint = dynamicHint;
+      }
+      setStepHints({
+        ...stepHints,
+        [currentStep]: hint
+      });
+      if (attempts >= 3) {
+        DB.addXP(-5);
+        const operation = extractOperationFromHint(step.hint_3);
+        setShowSuccessMessage({
+          type: 'continue',
+          message: '⏭️ Vediamo la soluzione',
+          correctAnswer: step.risposta_corretta,
+          operation: operation,
+          explanation: step.hint_3,
+          xp: -5
+        });
+      }
+    }
+  };
+  const handleCalc = val => {
+    if (val === 'C') setCalcDisplay('');else if (val === '⌫') setCalcDisplay(p => p.slice(0, -1));else if (val === '=') {
+      try {
+        const result = eval(calcDisplay.replace(/×/g, '*').replace(/÷/g, '/'));
+        setCalcDisplay(String(Math.round(result * 100) / 100));
+      } catch {
+        setCalcDisplay('Err');
+      }
+    } else {
+      setCalcDisplay(p => p + val);
+    }
+  };
+  if (showAPIKeyModal) {
+    return React.createElement(APIKeyModal, {
+      onSave: () => setShowAPIKeyModal(false)
+    });
+  }
+  if (screen === 'upload') {
+    return React.createElement("div", {
+      className: "min-h-screen flex flex-col p-3 md:p-4 gap-3 md:gap-4"
+    }, React.createElement("div", {
+      className: "flex items-center justify-between bg-slate-800/50 backdrop-blur rounded-xl md:rounded-2xl p-3 md:p-4 border-2 border-slate-700"
+    }, React.createElement("div", {
+      className: "flex items-center gap-2 md:gap-3"
+    }, React.createElement("button", {
+      onClick: () => {
+        window.location.href = 'index.html';
+      },
+      className: "text-2xl md:text-3xl active:scale-95 cursor-pointer",
+      title: "Torna alla Home di EduGamer"
+    }, "\uD83C\uDFE0"), React.createElement("div", null, React.createElement("h1", {
+      className: "text-lg md:text-2xl font-bold text-blue-400"
+    }, "\uD83C\uDFAF DISCOVER v4.0"), React.createElement("p", {
+      className: "text-xs md:text-sm text-slate-400"
+    }, "Metodo Guidato DSA"))), React.createElement("div", {
+      className: "flex items-center gap-2 md:gap-3"
+    }, React.createElement("a", {
+      href: "tutor.html?materia=discover",
+      className: "bg-purple-700 text-white px-3 py-1 rounded-lg font-bold text-sm active:scale-95 border-2 border-purple-400 no-underline"
+    }, "\uD83C\uDF93 Tutor"), React.createElement("button", {
+      onClick: () => setShowAPIKeyModal(true),
+      className: "bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded text-xs active:scale-95 transition-all",
+      title: "Modifica API Key"
+    }, "\uD83D\uDD11"), React.createElement("div", {
+      className: "text-right"
+    }, React.createElement("div", {
+      className: "text-xs text-slate-400"
+    }, "XP"), React.createElement("div", {
+      className: "text-lg md:text-2xl font-bold text-yellow-400"
+    }, userXP)))), React.createElement("div", {
+      className: "flex-1 flex flex-col items-center justify-center gap-4 md:gap-6 py-4 px-4"
+    }, !imageData ? React.createElement(React.Fragment, null, React.createElement("div", {
+      className: "text-6xl md:text-8xl animate-bounce"
+    }, "\uD83D\uDCD0"), React.createElement("h2", {
+      className: "text-2xl md:text-3xl font-bold text-center"
+    }, "CARICA IL PROBLEMA"), React.createElement("p", {
+      className: "text-slate-400 text-center max-w-md text-sm md:text-base"
+    }, "Scatta una foto o scegli uno screenshot dalla galleria"), React.createElement("div", {
+      className: "flex flex-col md:flex-row gap-3 md:gap-4 w-full max-w-lg"
+    }, React.createElement("label", {
+      className: "flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 md:py-4 px-4 md:px-8 rounded-xl md:rounded-2xl cursor-pointer shadow-lg flex items-center justify-center gap-2 md:gap-3 active:scale-95 text-base md:text-xl glow-blue"
+    }, React.createElement("input", {
+      type: "file",
+      onChange: handleUpload,
+      className: "hidden",
+      accept: "image/*",
+      capture: "environment"
+    }), "\uD83D\uDCF7 SCATTA FOTO"), React.createElement("label", {
+      className: "flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-3 md:py-4 px-4 md:px-8 rounded-xl md:rounded-2xl cursor-pointer shadow-lg flex items-center justify-center gap-2 md:gap-3 active:scale-95 text-base md:text-xl glow-green"
+    }, React.createElement("input", {
+      type: "file",
+      onChange: handleUpload,
+      className: "hidden",
+      accept: "image/*"
+    }), "\uD83D\uDDBC\uFE0F SCEGLI DA GALLERIA"))) : React.createElement("div", {
+      className: "w-full max-w-2xl space-y-3 md:space-y-4 animate-fade"
+    }, React.createElement("img", {
+      src: imageData,
+      className: "w-full rounded-xl md:rounded-2xl border-4 border-blue-500 shadow-2xl"
+    }), React.createElement("div", {
+      className: "flex gap-3"
+    }, React.createElement("button", {
+      onClick: analyzeProblem,
+      disabled: loading,
+      className: "flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold py-3 md:py-4 rounded-xl text-lg md:text-xl active:scale-95 glow-green disabled:opacity-50"
+    }, loading ? '⏳ Analizzo...' : '🚀 INIZIA RISOLUZIONE'), React.createElement("button", {
+      onClick: () => setImageData(null),
+      className: "bg-red-600 text-white font-bold py-3 md:py-4 px-4 md:px-6 rounded-xl text-lg md:text-xl active:scale-95"
+    }, "\uD83D\uDDD1\uFE0F")))));
+  }
+  if (screen === 'workflow' && problemData) {
+    const step = problemData.workflow[currentStep];
+    const progress = (currentStep + 1) / problemData.workflow.length * 100;
+    const attempts = stepAttempts[currentStep] || 0;
+    const hint = stepHints[currentStep];
+    return React.createElement("div", {
+      className: "min-h-screen flex flex-col p-2 md:p-3 gap-2 md:gap-3 overflow-y-auto"
+    }, React.createElement("div", {
+      className: "flex items-center justify-between bg-slate-800/50 backdrop-blur rounded-xl p-3 border-2 border-slate-700 shrink-0"
+    }, React.createElement("div", {
+      className: "flex items-center gap-2"
+    }, React.createElement("button", {
+      onClick: () => {
+        if (window.confirm('Tornare alla Home? Il progresso attuale andrà perso.')) {
+          window.location.href = 'index.html';
+        }
+      },
+      className: "text-2xl active:scale-95",
+      title: "Torna alla Home di EduGamer"
+    }, "\uD83C\uDFE0"), React.createElement("div", null, React.createElement("h1", {
+      className: "text-xl font-bold text-blue-400"
+    }, "\uD83C\uDFAF DISCOVER"), React.createElement("div", {
+      className: "text-xs text-slate-400"
+    }, React.createElement("span", {
+      className: "badge badge-info text-xs"
+    }, problemData.tipo_problema)))), React.createElement("div", {
+      className: "flex items-center gap-2"
+    }, React.createElement("a", {
+      href: "tutor.html?materia=discover",
+      className: "bg-purple-700 text-white px-3 py-1 rounded-lg font-bold text-sm active:scale-95 border-2 border-purple-400 no-underline"
+    }, "\uD83C\uDF93 Tutor"), React.createElement("button", {
+      onClick: () => setShowAPIKeyModal(true),
+      className: "bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded text-xs active:scale-95 transition-all",
+      title: "Modifica API Key"
+    }, "\uD83D\uDD11"), React.createElement("div", {
+      className: "text-right"
+    }, React.createElement("div", {
+      className: "text-xs text-slate-400"
+    }, "XP"), React.createElement("div", {
+      className: "text-xl font-bold text-yellow-400"
+    }, userXP)))), React.createElement("div", {
+      className: "problem-box shrink-0"
+    }, React.createElement("div", {
+      className: "flex items-center gap-2 mb-2"
+    }, React.createElement("span", {
+      className: "text-2xl"
+    }, "\uD83D\uDCDD"), React.createElement("span", {
+      className: "font-bold text-purple-300"
+    }, "PROBLEMA:")), React.createElement("p", {
+      className: "text-base leading-relaxed"
+    }, problemData.testo_problema)), React.createElement("div", {
+      className: "bg-slate-800/50 rounded-xl p-3 shrink-0"
+    }, React.createElement("div", {
+      className: "flex justify-between items-center mb-2"
+    }, React.createElement("span", {
+      className: "text-sm font-bold"
+    }, "STEP ", currentStep + 1, "/", problemData.workflow.length), React.createElement("span", {
+      className: "text-sm text-slate-400"
+    }, Math.round(progress), "%")), React.createElement("div", {
+      className: "h-3 bg-slate-700 rounded-full overflow-hidden"
+    }, React.createElement("div", {
+      className: "h-full bg-gradient-to-r from-blue-500 to-purple-500 progress-fill",
+      style: {
+        width: `${progress}%`
+      }
+    }))), React.createElement("div", {
+      className: "flex-1 flex gap-3 overflow-hidden"
+    }, React.createElement("div", {
+      className: "flex-1 scroll-area"
+    }, React.createElement("div", {
+      className: "step-card active"
+    }, React.createElement("div", {
+      className: "flex items-center gap-3 mb-4"
+    }, React.createElement("div", {
+      className: "w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-2xl font-bold"
+    }, currentStep + 1), React.createElement("div", null, React.createElement("div", {
+      className: "text-sm text-blue-400 font-bold"
+    }, step.titolo), React.createElement("div", {
+      className: "text-xs text-slate-400"
+    }, step.tipo.replace('_', ' ')))), React.createElement("div", {
+      className: "mb-4"
+    }, React.createElement("div", {
+      className: "text-lg font-bold mb-2 text-white"
+    }, step.domanda), attempts >= 3 && step.hint_3 && (() => {
+      const operation = extractOperationFromHint(step.hint_3);
+      return operation ? React.createElement("div", {
+        className: "bg-slate-900/50 p-3 rounded-lg border-2 border-yellow-500 mb-3 animate-fade"
+      }, React.createElement("div", {
+        className: "text-sm text-yellow-400 mb-1"
+      }, "\uD83D\uDCCA Operazione suggerita:"), React.createElement("div", {
+        className: "text-2xl font-bold text-center font-mono text-yellow-300"
+      }, operation), React.createElement("div", {
+        className: "text-xs text-slate-400 text-center mt-1"
+      }, "(Puoi usare la calcolatrice \u2192)")) : null;
+    })()), React.createElement("input", {
+      type: "text",
+      value: stepAnswers[currentStep] || '',
+      onChange: e => setStepAnswers({
+        ...stepAnswers,
+        [currentStep]: e.target.value
+      }),
+      placeholder: "Scrivi la risposta...",
+      className: `answer-input mb-4 ${hint && attempts >= 3 ? 'incorrect' : ''}`,
+      onKeyPress: e => e.key === 'Enter' && validateStep()
+    }), hint && React.createElement("div", {
+      className: "hint-box mb-4"
+    }, React.createElement("div", {
+      className: "flex items-start gap-2"
+    }, React.createElement("span", {
+      className: "text-2xl"
+    }, "\uD83D\uDCA1"), React.createElement("div", null, React.createElement("div", {
+      className: "font-bold text-yellow-300 mb-1"
+    }, "SUGGERIMENTO (", attempts, "/3):"), React.createElement("div", {
+      className: "text-sm"
+    }, hint)))), React.createElement("div", {
+      className: "flex gap-2"
+    }, React.createElement("button", {
+      onClick: validateStep,
+      className: "flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold py-3 rounded-xl active:scale-95"
+    }, "\u2705 VERIFICA RISPOSTA"), React.createElement("button", {
+      onClick: () => setShowCalc(!showCalc),
+      className: "bg-blue-600 text-white font-bold py-3 px-5 rounded-xl active:scale-95 md:hidden"
+    }, "\uD83E\uDDEE")), React.createElement("div", {
+      className: "mt-4 text-xs text-slate-500 text-center"
+    }, "Premi INVIO o clicca VERIFICA per controllare la risposta"))), React.createElement("div", {
+      className: `${showCalc ? 'block' : 'hidden md:block'} w-64 shrink-0`
+    }, React.createElement("div", {
+      className: "bg-slate-800/80 backdrop-blur rounded-xl p-3 border-2 border-slate-700 sticky top-0"
+    }, React.createElement("div", {
+      className: "text-center font-bold text-yellow-400 mb-2 text-sm"
+    }, "\uD83E\uDDEE CALCOLATRICE"), React.createElement("div", {
+      className: "bg-slate-950 rounded-lg p-3 mb-2 text-right text-xl font-mono text-yellow-400 h-14 flex items-center justify-end overflow-hidden border-2 border-slate-600"
+    }, calcDisplay || '0'), React.createElement("div", {
+      className: "grid grid-cols-4 gap-1"
+    }, ['7', '8', '9', '÷', '4', '5', '6', '×', '1', '2', '3', '-', '0', '.', '=', '+'].map(btn => React.createElement("button", {
+      key: btn,
+      onClick: () => handleCalc(btn),
+      className: `calc-btn ${btn === '=' ? 'bg-green-600' : ['÷', '×', '-', '+'].includes(btn) ? 'bg-blue-600' : 'bg-slate-700'} text-white`
+    }, btn))), React.createElement("div", {
+      className: "grid grid-cols-2 gap-1 mt-1"
+    }, React.createElement("button", {
+      onClick: () => handleCalc('⌫'),
+      className: "calc-btn bg-orange-600 text-white text-sm"
+    }, "\u232B"), React.createElement("button", {
+      onClick: () => handleCalc('C'),
+      className: "calc-btn bg-red-600 text-white text-sm"
+    }, "C"))))), showSuccessMessage && React.createElement("div", {
+      className: "fixed inset-0 bg-black/80 flex items-center justify-center z-50 animate-fade p-4 overflow-y-auto"
+    }, React.createElement("div", {
+      className: `max-w-2xl w-full my-8 p-6 md:p-8 rounded-2xl ${showSuccessMessage.type === 'success' ? 'bg-gradient-to-br from-green-600 to-emerald-600' : 'bg-gradient-to-br from-blue-600 to-purple-600'}`
+    }, showSuccessMessage.type === 'success' ? React.createElement(React.Fragment, null, React.createElement("div", {
+      className: "text-6xl md:text-7xl mb-4 animate-bounce text-center"
+    }, "\uD83C\uDF89"), React.createElement("div", {
+      className: "text-2xl md:text-3xl font-bold text-white mb-4 text-center"
+    }, showSuccessMessage.message), showSuccessMessage.xp && showSuccessMessage.xp !== 0 && React.createElement("div", {
+      className: "text-xl text-yellow-300 font-bold text-center"
+    }, showSuccessMessage.xp > 0 ? '+' : '', showSuccessMessage.xp, " XP")) : React.createElement(React.Fragment, null, React.createElement("div", {
+      className: "text-5xl md:text-6xl mb-4 text-center"
+    }, "\uD83D\uDCD6"), React.createElement("div", {
+      className: "text-xl md:text-2xl font-bold text-white mb-6 text-center"
+    }, showSuccessMessage.message), React.createElement("div", {
+      className: "bg-white/20 rounded-xl p-4 mb-4"
+    }, React.createElement("div", {
+      className: "text-sm md:text-base text-yellow-200 font-bold mb-2"
+    }, "\u2705 RISPOSTA CORRETTA:"), React.createElement("div", {
+      className: "text-xl md:text-2xl font-bold text-white text-center"
+    }, showSuccessMessage.correctAnswer)), showSuccessMessage.operation && React.createElement("div", {
+      className: "bg-white/20 rounded-xl p-4 mb-4"
+    }, React.createElement("div", {
+      className: "text-sm md:text-base text-yellow-200 font-bold mb-2"
+    }, "\uD83D\uDCCA OPERAZIONE:"), React.createElement("div", {
+      className: "text-xl md:text-2xl font-mono font-bold text-white text-center"
+    }, showSuccessMessage.operation)), React.createElement("div", {
+      className: "bg-white/20 rounded-xl p-4 mb-4"
+    }, React.createElement("div", {
+      className: "text-sm md:text-base text-yellow-200 font-bold mb-2"
+    }, "\uD83D\uDCA1 SPIEGAZIONE:"), React.createElement("div", {
+      className: "text-sm md:text-base text-white leading-relaxed"
+    }, showSuccessMessage.explanation)), showSuccessMessage.xp && showSuccessMessage.xp !== 0 && React.createElement("div", {
+      className: "text-lg text-yellow-300 font-bold text-center mb-4"
+    }, showSuccessMessage.xp > 0 ? '+' : '', showSuccessMessage.xp, " XP"), React.createElement("button", {
+      onClick: handleContinueAfterExplanation,
+      className: "w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-4 rounded-xl text-lg md:text-xl active:scale-95 glow-green transition-all"
+    }, "\u2705 HO CAPITO, CONTINUA")))));
+  }
+  if (screen === 'victory' && problemData) {
+    const totalXP = problemData.xp_guadagnati || 50;
+    return React.createElement("div", {
+      className: "h-screen overflow-y-auto p-4 flex items-center justify-center"
+    }, React.createElement("div", {
+      className: "max-w-2xl w-full animate-fade py-8"
+    }, React.createElement("div", {
+      className: "text-center mb-6"
+    }, React.createElement("div", {
+      className: "text-7xl md:text-9xl mb-3 animate-scale"
+    }, "\uD83C\uDF89"), React.createElement("h1", {
+      className: "text-3xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-3"
+    }, "PROBLEMA RISOLTO!"), React.createElement("p", {
+      className: "text-xl md:text-2xl text-green-400 font-bold"
+    }, "Hai guadagnato +", totalXP, " XP!")), React.createElement("div", {
+      className: "bg-slate-800/50 backdrop-blur rounded-2xl p-4 md:p-6 border-2 border-green-500 mb-4"
+    }, React.createElement("div", {
+      className: "text-center mb-3"
+    }, React.createElement("div", {
+      className: "text-sm text-slate-400 mb-1"
+    }, "XP TOTALI"), React.createElement("div", {
+      className: "text-4xl md:text-5xl font-bold text-yellow-400"
+    }, userXP)), React.createElement("div", {
+      className: "grid grid-cols-3 gap-3 md:gap-4 mb-3"
+    }, React.createElement("div", {
+      className: "text-center"
+    }, React.createElement("div", {
+      className: "text-2xl md:text-3xl mb-1"
+    }, "\uD83D\uDCCA"), React.createElement("div", {
+      className: "text-xs md:text-sm text-slate-400"
+    }, "Complessit\xE0"), React.createElement("div", {
+      className: "font-bold text-sm md:text-base"
+    }, problemData.complessita, "/5")), React.createElement("div", {
+      className: "text-center"
+    }, React.createElement("div", {
+      className: "text-2xl md:text-3xl mb-1"
+    }, "\uD83C\uDFAF"), React.createElement("div", {
+      className: "text-xs md:text-sm text-slate-400"
+    }, "Step Completati"), React.createElement("div", {
+      className: "font-bold text-sm md:text-base"
+    }, problemData.workflow.length)), React.createElement("div", {
+      className: "text-center"
+    }, React.createElement("div", {
+      className: "text-2xl md:text-3xl mb-1"
+    }, "\uD83D\uDCA1"), React.createElement("div", {
+      className: "text-xs md:text-sm text-slate-400"
+    }, "Hint Usati"), React.createElement("div", {
+      className: "font-bold text-sm md:text-base"
+    }, Object.keys(stepHints).length))), React.createElement("div", {
+      className: "bg-green-900/30 border-2 border-green-500 rounded-xl p-3 md:p-4"
+    }, React.createElement("div", {
+      className: "font-bold text-green-400 mb-2 text-sm md:text-base"
+    }, "\u2705 RISPOSTA FINALE:"), React.createElement("div", {
+      className: "text-base md:text-xl"
+    }, problemData.risposta_finale))), React.createElement("div", {
+      className: "bg-blue-900/30 border-2 border-blue-500 rounded-xl p-4 mb-4"
+    }, React.createElement("div", {
+      className: "flex items-start gap-3"
+    }, React.createElement("div", {
+      className: "text-3xl"
+    }, "\uD83D\uDCDD"), React.createElement("div", null, React.createElement("div", {
+      className: "font-bold text-blue-300 mb-2"
+    }, "IMPORTANTE!"), React.createElement("div", {
+      className: "text-sm text-blue-200"
+    }, "Scarica il report PDF per rivedere tutti i passaggi e riscrivere la soluzione sul tuo quaderno. Questo ti aiuter\xE0 a ricordare meglio il metodo!")))), React.createElement("div", {
+      className: "flex flex-col md:flex-row gap-3"
+    }, React.createElement("button", {
+      onClick: () => {
+        setScreen('upload');
+        setImageData(null);
+        setProblemData(null);
+      },
+      className: "flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 rounded-xl text-lg md:text-xl active:scale-95"
+    }, "\uD83D\uDD04 NUOVO PROBLEMA"), React.createElement("button", {
+      onClick: () => generatePDFReport(problemData, stepAnswers, stepAttempts, stepHints),
+      className: "flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold py-4 rounded-xl text-lg md:text-xl active:scale-95"
+    }, "\uD83D\uDCC4 SCARICA REPORT PDF"), React.createElement("a", {
+      href: "tutor.html?materia=discover",
+      className: "bg-purple-700 text-white font-bold py-4 px-6 rounded-xl text-lg md:text-xl active:scale-95 flex items-center justify-center border-2 border-purple-400 no-underline"
+    }, "\uD83C\uDF93 Tutor"), React.createElement("button", {
+      onClick: () => {
+        window.location.href = 'index.html';
+      },
+      className: "bg-slate-700 text-white font-bold py-4 px-6 rounded-xl text-lg md:text-xl active:scale-95 flex items-center justify-center",
+      title: "Torna alla home di EduGamer"
+    }, "\uD83C\uDFE0"))));
+  }
+  return null;
+};
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App, null));
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",__run);else __run();})();
+</script>
+</body>
+</html>
