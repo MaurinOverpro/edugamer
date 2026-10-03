@@ -122,6 +122,7 @@ Ha scritto questo testo ${AUD().prompt}, con dislessia:
 "${text}"
 Riscrivi il testo rendendolo più SCORREVOLE. Aggiungi "connettivi logici" (es: improvvisamente, poi, allora, perciò, mentre) per far scorrere la storia.
 NON aggiungere idee nuove, unisci solo meglio quelle esistenti. Usa parole chiare e un registro adatto all'età di chi scrive.
+Scrivi testo semplice: NIENTE markdown, asterischi, grassetti o simboli di formattazione.
 Rispondi SOLO con JSON:
 {
   "fluency_text": "il nuovo testo scorrevole",
@@ -163,6 +164,185 @@ Rispondi SOLO con JSON:
     }
   }
 };
+const splitSentences = par => par.match(/[^.!?…]+[.!?…]+["»”')\]]*\s*|[^.!?…]+$/g) || (par ? [par] : []);
+const toParagraphs = text => (text || '').split('\n').map(splitSentences);
+const fromParagraphs = pars => pars.map(s => s.join('')).join('\n');
+const DYS_FONT = {
+  fontFamily: "'OpenDyslexic', Verdana, sans-serif"
+};
+const speakSentences = (list, onIdx) => {
+  window.speechSynthesis.cancel();
+  const seq = ++window.speechSequenceID;
+  const next = i => {
+    if (seq !== window.speechSequenceID) return;
+    if (i >= list.length) {
+      onIdx(null);
+      return;
+    }
+    const t = cleanTextForSpeech(list[i].text);
+    if (!t.trim()) {
+      next(i + 1);
+      return;
+    }
+    onIdx(list[i].key);
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang = 'it-IT';
+    u.rate = 0.9;
+    if (window.EduGamer && window.EduGamer.applyVoice) window.EduGamer.applyVoice(u);
+    u.onend = () => next(i + 1);
+    u.onerror = () => {
+      if (seq === window.speechSequenceID) next(i + 1);
+    };
+    window.speechSynthesis.speak(u);
+  };
+  next(0);
+};
+const stopSpeaking = () => {
+  window.speechSequenceID++;
+  window.speechSynthesis.cancel();
+};
+const EditableText = ({
+  text,
+  onChange,
+  textClass = 'text-lg',
+  hint = true
+}) => {
+  const [editKey, setEditKey] = useState(null);
+  const [draft, setDraft] = useState('');
+  const [reading, setReading] = useState(null);
+  const [fullEdit, setFullEdit] = useState(false);
+  const [fullDraft, setFullDraft] = useState('');
+  const pars = toParagraphs(text);
+  const flat = [];
+  pars.forEach((ss, p) => ss.forEach((s, i) => flat.push({
+    key: p + '-' + i,
+    p,
+    i,
+    text: s
+  })));
+  useEffect(() => () => stopSpeaking(), []);
+  const stop = () => {
+    stopSpeaking();
+    setReading(null);
+  };
+  const readAll = () => {
+    setEditKey(null);
+    speakSentences(flat, setReading);
+  };
+  const openSentence = it => {
+    setEditKey(it.key);
+    setDraft(it.text.trim());
+    speakSentences([it], setReading);
+  };
+  const saveSentence = () => {
+    const it = flat.find(f => f.key === editKey);
+    if (!it) {
+      setEditKey(null);
+      return;
+    }
+    const trailing = (it.text.match(/\s*$/) || [''])[0];
+    const np = pars.map(a => a.slice());
+    np[it.p][it.i] = draft.trim() ? draft.trim() + trailing : '';
+    onChange(fromParagraphs(np));
+    setEditKey(null);
+  };
+  const btn = "px-4 py-3 rounded-xl font-bold text-white active:scale-95 transition-transform border";
+  if (fullEdit) return React.createElement("div", null, React.createElement("textarea", {
+    value: fullDraft,
+    onChange: e => setFullDraft(e.target.value),
+    autoFocus: true,
+    className: "w-full min-h-[260px] bg-slate-950 text-white p-4 rounded-xl border-2 border-yellow-400 text-lg leading-relaxed outline-none",
+    style: DYS_FONT
+  }), React.createElement("div", {
+    className: "flex flex-wrap gap-2 mt-3"
+  }, React.createElement("button", {
+    onClick: () => speakSentences(toParagraphs(fullDraft).flat().map((t, i) => ({
+      key: 'f' + i,
+      text: t
+    })), setReading),
+    className: btn + " bg-slate-700 border-slate-500"
+  }, "\uD83D\uDD0A Ascolta"), React.createElement("button", {
+    onClick: () => {
+      stop();
+      setFullEdit(false);
+    },
+    className: btn + " bg-slate-700 border-slate-500"
+  }, "\u2716 Annulla"), React.createElement("button", {
+    onClick: () => {
+      stop();
+      onChange(fullDraft);
+      setFullEdit(false);
+    },
+    className: btn + " bg-green-600 border-green-400"
+  }, "\u2705 Salva")));
+  return React.createElement("div", null, React.createElement("div", {
+    className: "flex flex-wrap gap-2 mb-3"
+  }, reading ? React.createElement("button", {
+    onClick: stop,
+    className: btn + " bg-red-700 border-red-400"
+  }, "\u23F9 Ferma") : React.createElement("button", {
+    onClick: readAll,
+    className: btn + " bg-purple-600 border-purple-400"
+  }, "\uD83D\uDD0A Ascolta frase per frase"), React.createElement("button", {
+    onClick: () => {
+      stop();
+      setEditKey(null);
+      setFullDraft(text);
+      setFullEdit(true);
+    },
+    className: btn + " bg-slate-700 border-slate-500"
+  }, "\u270F\uFE0F Correggi tutto")), hint && React.createElement("p", {
+    className: "text-sm text-slate-400 mb-3"
+  }, "\uD83D\uDC46 Tocca una frase: la ascolti e la puoi correggere."), React.createElement("div", {
+    className: textClass + " leading-relaxed"
+  }, pars.map((ss, p) => React.createElement("p", {
+    key: p,
+    className: "mb-3"
+  }, ss.map((s, i) => {
+    const key = p + '-' + i;
+    if (key === editKey) return React.createElement("span", {
+      key: key,
+      className: "block my-2 p-3 rounded-xl bg-slate-950 border-2 border-yellow-400"
+    }, React.createElement("textarea", {
+      autoFocus: true,
+      value: draft,
+      onChange: e => setDraft(e.target.value),
+      rows: Math.max(2, Math.ceil(draft.length / 38)),
+      className: "w-full bg-transparent text-white outline-none resize-none text-lg leading-relaxed",
+      style: DYS_FONT
+    }), React.createElement("span", {
+      className: "flex flex-wrap gap-2 mt-2"
+    }, React.createElement("button", {
+      onClick: () => speakSentences([{
+        key,
+        text: draft
+      }], setReading),
+      className: btn + " bg-slate-700 border-slate-500 text-base"
+    }, "\uD83D\uDD0A Rileggi"), React.createElement("button", {
+      onClick: () => {
+        stop();
+        setEditKey(null);
+      },
+      className: btn + " bg-slate-700 border-slate-500 text-base"
+    }, "\u2716 Annulla"), React.createElement("button", {
+      onClick: () => {
+        stop();
+        saveSentence();
+      },
+      className: btn + " bg-green-600 border-green-400 text-base"
+    }, "\u2705 Fatto")));
+    return React.createElement("span", {
+      key: key,
+      onClick: () => openSentence({
+        key,
+        p,
+        i,
+        text: s
+      }),
+      className: "cursor-pointer rounded px-0.5 transition-colors " + (reading === key ? "bg-yellow-400/30 text-white" : "hover:bg-white/10")
+    }, s);
+  })))));
+};
 const App = () => {
   const [stage, setStage] = useState('title');
   const [title, setTitle] = useState('');
@@ -179,6 +359,7 @@ const App = () => {
   const [studentText, setStudentText] = useState('');
   const [styleComment, setStyleComment] = useState('');
   const [aiMessage, setAiMessage] = useState(null);
+  const [returnStage, setReturnStage] = useState(null);
   const recognitionRef = useRef(null);
   const [isDraftRecording, setIsDraftRecording] = useState(false);
   const draftRecognitionRef = useRef(null);
@@ -310,7 +491,7 @@ const App = () => {
     setIsChecking(true);
     try {
       const res = await AI.improveFluency(textBase);
-      setFluentText(res.fluency_text);
+      setFluentText(String(res.fluency_text || '').replace(/\*\*|__/g, '').replace(/[*_]{1}(\S[^*_]*\S)[*_]{1}/g, '$1'));
       setStyleComment(res.ai_comment);
       speak(res.ai_comment);
     } catch (e) {
@@ -359,9 +540,50 @@ const App = () => {
     if (currentErrorIndex < errors.length - 1) {
       setCurrentErrorIndex(prev => prev + 1);
     } else {
-      speak("Hai superato tutte le sfide ortografiche! Ora facciamo una magia...");
-      startStyling(newText);
+      finishReview(newText);
     }
+  };
+  const finishReview = text => {
+    if (returnStage === 'final') {
+      setReturnStage(null);
+      speak("Fatto. Ecco il testo aggiornato.");
+      setStage('final');
+    } else {
+      speak("Hai superato tutte le sfide ortografiche! Ora facciamo una magia...");
+      startStyling(text);
+    }
+  };
+  const skipCorrection = () => {
+    speak("Va bene, lo lasciamo com'era.");
+    if (currentErrorIndex < errors.length - 1) {
+      setCurrentErrorIndex(prev => prev + 1);
+    } else {
+      finishReview(finalText);
+    }
+  };
+  const recheckFinal = async () => {
+    stopSpeaking();
+    setReturnStage('final');
+    setStage('review');
+    setIsChecking(true);
+    try {
+      const errs = await AI.checkText(finalText);
+      if (!errs || errs.length === 0) {
+        setErrors([]);
+        setReturnStage(null);
+        setStage('final');
+        speak("Nessun errore trovato. Il testo è a posto.");
+      } else {
+        setErrors(errs);
+        setCurrentErrorIndex(0);
+        speak(`Ho trovato ${errs.length} dettagli da sistemare.`);
+      }
+    } catch (e) {
+      alert("Errore di rete, riprova.");
+      setReturnStage(null);
+      setStage('final');
+    }
+    setIsChecking(false);
   };
   const acceptStyle = () => {
     setFinalText(fluentText);
@@ -676,7 +898,10 @@ const App = () => {
   }, "\uD83D\uDCA1 ", errors[currentErrorIndex].explanation), React.createElement("button", {
     onClick: applyCorrection,
     className: "btn-magico w-full py-4 rounded-xl font-bold text-white text-xl mt-2 shadow-lg"
-  }, "APPLICA CORREZIONE \u2728")))));
+  }, "APPLICA CORREZIONE \u2728"), React.createElement("button", {
+    onClick: skipCorrection,
+    className: "w-full py-3 rounded-xl font-bold text-slate-200 text-lg bg-slate-700 hover:bg-slate-600 border border-slate-500 active:scale-95"
+  }, "\uD83D\uDC4D NO, ERA GIUSTO")))));
   if (stage === 'style') return React.createElement("div", {
     className: "h-full flex flex-col bg-slate-900"
   }, React.createElement("div", {
@@ -705,7 +930,7 @@ const App = () => {
     className: "text-2xl text-pink-400 font-bold animate-pulse text-center"
   }, "L'AI sta unendo le frasi in un racconto fluido...")) : React.createElement(React.Fragment, null, React.createElement("p", {
     className: "text-slate-300 text-center text-base max-w-2xl bg-slate-800 p-3 rounded-xl border border-slate-700"
-  }, "Ascolta entrambe le versioni e scegli quella che ti piace!"), React.createElement("div", {
+  }, "Ascolta entrambe le versioni, correggi quello che non ti convince e scegli quella che preferisci."), React.createElement("div", {
     className: "flex flex-col md:flex-row w-full gap-4"
   }, React.createElement("div", {
     className: "flex-1 flex flex-col bg-slate-800 border-2 border-slate-600 rounded-2xl"
@@ -713,29 +938,27 @@ const App = () => {
     className: "bg-slate-700 p-3 flex justify-between items-center text-slate-300 border-b border-slate-600 rounded-t-2xl"
   }, React.createElement("span", {
     className: "font-bold text-lg"
-  }, "La tua versione"), React.createElement("button", {
-    onClick: () => speak(finalText),
-    className: "bg-slate-600 hover:bg-slate-500 w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-md border border-slate-500"
-  }, "\uD83D\uDD0A")), React.createElement("div", {
-    className: "p-5 text-lg leading-relaxed text-slate-300"
-  }, finalText.split('\n').map((par, i) => React.createElement("p", {
-    key: i,
-    className: "mb-3"
-  }, par)))), React.createElement("div", {
+  }, "La tua versione")), React.createElement("div", {
+    className: "p-5 text-slate-300"
+  }, React.createElement(EditableText, {
+    text: finalText,
+    onChange: t => {
+      setFinalText(t);
+      setStudentText(t);
+    }
+  }))), React.createElement("div", {
     className: "flex-1 flex flex-col bg-slate-900 border-2 border-pink-500 rounded-2xl shadow-[0_0_20px_rgba(236,72,153,0.3)]"
   }, React.createElement("div", {
     className: "bg-pink-900/50 p-3 flex justify-between items-center text-pink-300 border-b border-pink-700/50 rounded-t-2xl"
   }, React.createElement("span", {
     className: "font-bold text-lg"
-  }, "Versione Magica \u2728"), React.createElement("button", {
-    onClick: () => speak(fluentText),
-    className: "bg-pink-700 hover:bg-pink-600 w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-md text-white border border-pink-500"
-  }, "\uD83D\uDD0A")), React.createElement("div", {
-    className: "p-5 text-lg leading-relaxed text-white"
-  }, (fluentText || '').split('\n').map((par, i) => React.createElement("p", {
-    key: i,
-    className: "mb-3"
-  }, par))))), React.createElement("div", {
+  }, "Versione Magica \u2728")), React.createElement("div", {
+    className: "p-5 text-white"
+  }, React.createElement(EditableText, {
+    text: fluentText || '',
+    onChange: setFluentText,
+    hint: false
+  })))), React.createElement("div", {
     className: "flex flex-col sm:flex-row w-full gap-3 pt-2"
   }, React.createElement("button", {
     onClick: rejectStyle,
@@ -777,20 +1000,21 @@ const App = () => {
   }, React.createElement("h2", {
     className: "text-3xl sm:text-4xl font-black text-blue-400 text-center mb-2 drop-shadow-md"
   }, title), React.createElement("div", {
-    className: "bg-slate-800 p-6 sm:p-8 rounded-3xl border-2 border-slate-700 w-full text-xl sm:text-2xl leading-loose text-gray-200 shadow-inner h-max"
-  }, finalText.split('\n').map((par, i) => React.createElement("p", {
-    key: i,
-    className: "mb-6"
-  }, par))), React.createElement("div", {
+    className: "bg-slate-800 p-6 sm:p-8 rounded-3xl border-2 border-slate-700 w-full text-gray-200 shadow-inner h-max"
+  }, React.createElement(EditableText, {
+    text: finalText,
+    onChange: setFinalText,
+    textClass: "text-xl sm:text-2xl"
+  })), React.createElement("div", {
     className: "flex flex-col gap-3 w-full mt-auto mb-4"
   }, React.createElement("div", {
     className: "flex flex-col sm:flex-row gap-3"
   }, React.createElement("button", {
-    onClick: () => speak(finalText),
-    className: "flex-1 bg-purple-600 py-4 sm:py-5 rounded-2xl font-bold text-white text-lg sm:text-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 border-2 border-purple-400 transition-transform"
+    onClick: recheckFinal,
+    className: "flex-1 bg-blue-600 py-4 sm:py-5 rounded-2xl font-bold text-white text-lg sm:text-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 border-2 border-blue-400 transition-transform"
   }, React.createElement("span", {
     className: "text-2xl"
-  }, "\uD83D\uDD0A"), " ASCOLTA"), React.createElement("button", {
+  }, "\uD83D\uDD0D"), " RICONTROLLA ERRORI"), React.createElement("button", {
     onClick: exportPDF,
     className: "flex-1 bg-red-600 py-4 sm:py-5 rounded-2xl font-bold text-white text-lg sm:text-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 border-2 border-red-400 transition-transform"
   }, React.createElement("span", {
