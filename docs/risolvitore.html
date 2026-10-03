@@ -411,7 +411,11 @@ REGOLE CRITICHE:
 - Usa SEMPRE "step3_domande" e "step4_domande" come chiavi
 - In step4_domande: ogni "domanda" DEVE contenere i numeri delle operazioni precedenti nel testo. NON scrivere "Quante palline ha Alessandro?" ma scrivi "Alessandro ha 3 IN PIÙ di Marco (Marco = 11). Quanto fa 11 + 3?"
 - Il campo "calcolo" mostra sempre l'operazione: es. "11 + 3"
-- Il campo "etichetta" descrive il risultato trovato: es. "Palline di Alessandro"
+- Il campo "etichetta" descrive il risultato trovato: es. "Palline di Alessandro". È OBBLIGATORIO in ogni elemento di step4_domande.
+- CATENA DEI RISULTATI: se un calcolo usa il risultato di un calcolo precedente, la "domanda" lo riscrive in cifre come dato nuovo. Lo studente non deve ricordarlo né cercarlo.
+  ✅ "La scuola ha 72 pennarelli. Gli alunni ne perdono 10. Quanto fa 72 - 10?"
+  ❌ "Gli alunni ne perdono 10. Quanti ne rimangono?"  (manca il 72)
+  ❌ "Togli 10 al totale di prima."  (rimanda indietro invece di scrivere 72)
 - In "soluzione_finale": "testo" = frase completa, "valori" = oggetto con coppie nome:numero
 
 ESEMPIO JSON (adatta contenuto al problema reale):
@@ -526,6 +530,7 @@ function renderS4(idx) {
     // Current question
     if(idx<qs.length){
         const q=qs[idx];
+        ensurePrevResultsInQuestion(qs, idx);
         // Memory recap inside question card — always visible
         let memHtml='';
         if(S.memory.length>0){
@@ -551,6 +556,25 @@ function renderS4(idx) {
     }
     document.getElementById('s4-qs').innerHTML=html;
 }
+// Rete di sicurezza (discalculia): se il calcolo usa un risultato già trovato ma la
+// domanda non lo scrive, lo aggiungiamo in testa ("Pennarelli totali: 72."). Così il
+// numero compare sempre nella frase, anche se l'AI si dimentica di riportarlo.
+function s4Label(q, i){ return q.etichetta || ('Risultato del calcolo ' + (i + 1)); }
+function hasNum(str, n){
+    const esc = String(n).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp('(^|[^0-9.,])' + esc + '(?![0-9])').test(String(str || ''));
+}
+function ensurePrevResultsInQuestion(qs, idx){
+    const q = qs[idx];
+    if (!q || q._chained) return;
+    const missing = [];
+    for (let i = 0; i < idx; i++) {
+        const v = String(qs[i].risposta || '').trim();
+        if (v && hasNum(q.calcolo, v) && !hasNum(q.domanda, v)) missing.push(s4Label(qs[i], i) + ': ' + v + '.');
+    }
+    if (missing.length) q.domanda = missing.join(' ') + ' ' + q.domanda;
+    q._chained = true;
+}
 function checkS4cur(idx){
     const qs=getS4qs(), q=qs[idx];
     const v=document.getElementById('s4-cur').value.trim();
@@ -568,9 +592,10 @@ function checkS4cur(idx){
     }
     // Correct
     S.s4ans[idx]=v;
-    if(q.etichetta){
-        const ex=S.memory.findIndex(m=>m.label===q.etichetta);
-        if(ex>=0) S.memory[ex].value=v; else S.memory.push({label:q.etichetta,value:v});
+    {
+        const label=s4Label(q, idx);
+        const ex=S.memory.findIndex(m=>m.label===label);
+        if(ex>=0) S.memory[ex].value=v; else S.memory.push({label,value:v});
     }
     updateMem();
     if(idx+1>=qs.length){
