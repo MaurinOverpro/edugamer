@@ -63,7 +63,9 @@ EduGamer is meant for all ages (elementary → adults); DSA support is always on
 
 ### Voice (text-to-speech)
 
-All modules use the browser `speechSynthesis`. **Always call `window.EduGamer.applyVoice(u)` after `new SpeechSynthesisUtterance(...)`**: it sets `it-IT` and the best Italian voice (user choice → Edge "Natural"/"Online" → iOS "Enhanced/Avanzata" → "Google" → Android network voices). Never pick voices locally. Gemini TTS (`gemini-3.8-flash-lite-tts`) is a possible future upgrade, not implemented.
+All modules use the browser `speechSynthesis`. **Always call `window.EduGamer.applyVoice(u)` after `new SpeechSynthesisUtterance(...)`**: it sets `it-IT` and the best Italian voice (user choice → Edge "Natural"/"Online" → iOS "Enhanced/Avanzata" → "Google" → Android network voices). Never pick voices locally.
+
+**AI voice (optional, Impostazioni → "Voce AI")**: `game-system.js` hooks `window.speechSynthesis.speak/cancel/speaking` (`_installAIVoice`) so modules need no changes: audio comes from `gemini-3.8-flash-tts` (voice Kore, alt Charon for the second speaker) via the **Interactions API** `POST /v1beta/interactions` with style in `annotations[{type:"speech_metadata", style}]`. Do NOT put style instructions in the text: the model reads them aloud (verified). Each utterance falls back to the device voice on no key / offline / error / 20 s timeout; 429, 401/403 and invalid-key 400 disable AI voice for 10 min. Long texts are split (~350 chars) and prefetched; audio cached (40 items). localStorage: `edugamer_voice_ai` (1/0), `edugamer_voice_speed` (0.8–1.5, playbackRate). onboundary (Lavagna karaoke) does not fire with AI voice: Lavagna uses its timer fallback.
 
 ### AI Integration
 

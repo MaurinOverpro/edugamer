@@ -134,10 +134,27 @@
                 window.speechSynthesis.addEventListener('voiceschanged', load);
                 return () => window.speechSynthesis.removeEventListener('voiceschanged', load);
             }, []);
-            const testVoice = () => {
+            const [aiVoice, setAiVoice] = useState(() => localStorage.getItem('edugamer_voice_ai') === '1');
+            const [voiceSpeed, setVoiceSpeed] = useState(() => parseFloat(localStorage.getItem('edugamer_voice_speed') || '1'));
+            const [voiceTest, setVoiceTest] = useState('');
+            const SAMPLE = 'Ciao! Questa è la voce che leggerà i testi di EduGamer.';
+            const testVoice = async () => {
                 if (!window.speechSynthesis) return;
                 window.speechSynthesis.cancel();
-                const u = new SpeechSynthesisUtterance('Ciao! Questa è la voce che leggerà i testi di EduGamer.');
+                if (aiVoice && window.EduGamer) {
+                    if (!key) { setVoiceTest('Per la voce AI serve la API Key: uso la voce del dispositivo.'); }
+                    else {
+                        setVoiceTest('Preparo la voce AI…');
+                        try {
+                            localStorage.setItem('gemini_api_key', key);
+                            const url = await window.EduGamer._fetchTTS(SAMPLE, window.EduGamer.AI_VOICE.voices.main);
+                            const a = new Audio(url); a.preservesPitch = true; a.playbackRate = voiceSpeed;
+                            await a.play(); setVoiceTest('▶ Voce AI');
+                            return;
+                        } catch (e) { setVoiceTest('Voce AI non disponibile (' + e.message + '): uso la voce del dispositivo.'); }
+                    }
+                } else setVoiceTest('');
+                const u = new SpeechSynthesisUtterance(SAMPLE);
                 u.lang = 'it-IT'; u.rate = 0.9;
                 const v = voices.find(x => x.name === voiceName) || (window.EduGamer && window.EduGamer.getVoice());
                 if (v) u.voice = v;
@@ -164,6 +181,8 @@
                 DB.setKey(key); 
                 if (window.EduGamer) window.EduGamer.setAudienceKey(audience); else localStorage.setItem('edugamer_audience', audience);
                 if (voiceName) localStorage.setItem('edugamer_voice', voiceName); else localStorage.removeItem('edugamer_voice');
+                localStorage.setItem('edugamer_voice_ai', aiVoice ? '1' : '0');
+                localStorage.setItem('edugamer_voice_speed', String(voiceSpeed));
                 setShowSettings(false); 
                 alert("Impostazioni salvate."); 
             };
@@ -208,6 +227,19 @@
                                 </select>
                                 <button type="button" onClick={testVoice} className="px-4 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-sm">▶ Prova</button>
                             </div>
+                            <label className="flex items-center gap-3 mt-3 mb-1 text-left cursor-pointer">
+                                <input type="checkbox" checked={aiVoice} onChange={e => setAiVoice(e.target.checked)} className="w-6 h-6 accent-purple-500 shrink-0" />
+                                <span className="text-sm text-white font-bold">✨ Voce AI (Google) — più naturale e coinvolgente</span>
+                            </label>
+                            <p className="text-slate-500 text-xs mb-2 text-left">Usa la API Key e la connessione; se mancano, legge la voce del dispositivo. Primo ascolto dopo qualche secondo.</p>
+                            {aiVoice && (
+                                <div className="flex items-center gap-3 mb-2 text-sm text-slate-300">
+                                    <span className="shrink-0">Velocità</span>
+                                    <input type="range" min="0.8" max="1.5" step="0.05" value={voiceSpeed} onChange={e => setVoiceSpeed(parseFloat(e.target.value))} className="flex-1 accent-purple-500" />
+                                    <span className="w-12 text-right font-mono">{voiceSpeed.toFixed(2)}×</span>
+                                </div>
+                            )}
+                            {voiceTest && <p className="text-purple-300 text-xs mb-2 text-left">{voiceTest}</p>}
                             <p className="text-slate-500 text-xs mb-4 text-left">{voices.length ? `${voices.length} voci italiane su questo dispositivo.` : 'Nessuna voce italiana trovata su questo dispositivo.'} Su iPhone/iPad puoi scaricare voci "Avanzate" da Impostazioni → Accessibilità → Contenuto letto ad alta voce.</p>
                             <div className="flex gap-2 flex-col sm:flex-row">
                                 <button onClick={() => setShowSettings(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold p-3 rounded-xl transition-all">ANNULLA</button>

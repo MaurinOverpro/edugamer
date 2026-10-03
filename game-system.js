@@ -115,6 +115,193 @@ const EduGamer = {
         return u;
     },
 
+    // ==================== VOCE AI (Gemini TTS, opzionale) ====================
+    // Attivabile in Home → Impostazioni. Si aggancia a window.speechSynthesis:
+    // i moduli continuano a chiamare speechSynthesis.speak()/cancel() come prima e,
+    // se la voce AI è attiva, l'audio arriva da Gemini. Ogni frase che fallisce
+    // (niente chiave, offline, errore, timeout) viene letta dalla voce del dispositivo.
+    AI_VOICE: {
+        model: 'gemini-3.8-flash-tts',
+        endpoint: 'https://generativelanguage.googleapis.com/v1beta/interactions',
+        voices: { main: 'Kore', alt: 'Charon' },   // alt = secondo personaggio (dialoghi della Lavagna)
+        style: 'voce italiana chiara e coinvolgente, ritmo vivace ma ben scandito, come un bravo divulgatore',
+        timeoutMs: 20000,
+        maxChars: 350                               // frasi lunghe divise in pezzi: il primo arriva prima
+    },
+
+    isAIVoiceEnabled() {
+        try { return localStorage.getItem('edugamer_voice_ai') === '1'; } catch { return false; }
+    },
+    setAIVoiceEnabled(on) { localStorage.setItem('edugamer_voice_ai', on ? '1' : '0'); },
+
+    getAIVoiceSpeed() {
+        let s = 1;
+        try { s = parseFloat(localStorage.getItem('edugamer_voice_speed') || '1'); } catch {}
+        return isFinite(s) ? Math.min(1.5, Math.max(0.8, s)) : 1;
+    },
+    setAIVoiceSpeed(s) { localStorage.setItem('edugamer_voice_speed', String(s)); },
+
+    _aiVoiceUsable() {
+        if (!this.isAIVoiceEnabled()) return false;
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+        try { if (!localStorage.getItem('gemini_api_key')) return false; } catch { return false; }
+        return !this._aiVoiceDisabledUntil || Date.now() > this._aiVoiceDisabledUntil;
+    },
+
+    _splitForTTS(text) {
+        const max = this.AI_VOICE.maxChars;
+        const t = String(text || '').replace(/\s+/g, ' ').trim();
+        if (t.length <= max) return t ? [t] : [];
+        const sentences = t.match(/[^.!?;:]+[.!?;:]*\s*/g) || [t];
+        const parts = []; let cur = '';
+        for (const s of sentences) {
+            if ((cur + s).length > max && cur) { parts.push(cur.trim()); cur = ''; }
+            cur += s;
+        }
+        if (cur.trim()) parts.push(cur.trim());
+        return parts;
+    },
+
+    _ttsCache: new Map(),
+
+    async _fetchTTS(text, voiceName) {
+        const cacheKey = voiceName + '|' + text;
+        if (this._ttsCache.has(cacheKey)) return this._ttsCache.get(cacheKey);
+        const key = localStorage.getItem('gemini_api_key');
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), this.AI_VOICE.timeoutMs);
+        try {
+            const res = await fetch(this.AI_VOICE.endpoint, {
+                method: 'POST', signal: ctrl.signal,
+                headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: this.AI_VOICE.model,
+                    input: [{ type: 'user_input', content: [{ type: 'text', text,
+                        annotations: [{ type: 'speech_metadata', style: this.AI_VOICE.style }] }] }],
+                    response_format: { type: 'audio' },
+                    generation_config: { speech_config: [{ voice: voiceName }] }
+                })
+            });
+            if (!res.ok) {
+                // quota esaurita o chiave non valida: per 10 minuti si usa solo la voce del dispositivo
+                const badKey = res.status === 400 && /api key/i.test(await res.text().catch(() => ''));
+                if (badKey || res.status === 429 || res.status === 401 || res.status === 403) this._aiVoiceDisabledUntil = Date.now() + 10 * 60 * 1000;
+                throw new Error('TTS ' + res.status);
+            }
+            const data = await res.json();
+            const audio = (data.steps || []).filter(s => s.type === 'model_output')
+                .flatMap(s => s.content || []).filter(c => c.type === 'audio').pop();
+            if (!audio || !audio.data) throw new Error('TTS: nessun audio');
+            const bin = atob(audio.data); const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            const url = URL.createObjectURL(new Blob([bytes], { type: audio.mime_type || 'audio/wav' }));
+            this._ttsCache.set(cacheKey, url);
+            if (this._ttsCache.size > 40) { const k = this._ttsCache.keys().next().value; URL.revokeObjectURL(this._ttsCache.get(k)); this._ttsCache.delete(k); }
+            return url;
+        } finally { clearTimeout(timer); }
+    },
+
+    _installAIVoice() {
+        if (typeof window === 'undefined' || !window.speechSynthesis || window.speechSynthesis.__egAI) return;
+        const synth = window.speechSynthesis;
+        const nativeSpeak = synth.speak.bind(synth);
+        const nativeCancel = synth.cancel.bind(synth);
+        const proto = Object.getPrototypeOf(synth);
+        const nativeSpeaking = Object.getOwnPropertyDescriptor(proto, 'speaking');
+        const nativePending = Object.getOwnPropertyDescriptor(proto, 'pending');
+        const self = this;
+        const st = { queue: [], busy: false, audio: null, current: null, gen: 0 };
+        // promessa che si risolve a ogni cancel(): sblocca le attese (download/riproduzione) in corso
+        const newCancelSignal = () => { st.cancelSignal = new Promise(r => { st.cancelResolve = r; }); };
+        newCancelSignal();
+        const fire = (u, type) => setTimeout(() => { try { u.dispatchEvent(new Event(type)); } catch {} }, 0);
+
+        const voiceFor = (u) => {
+            const def = self.getVoice();
+            return (u.voice && def && u.voice.name !== def.name) ? self.AI_VOICE.voices.alt : self.AI_VOICE.voices.main;
+        };
+
+        const fallbackNative = (u, gen) => new Promise(resolve => {
+            const done = () => { u.removeEventListener('end', done); u.removeEventListener('error', done); resolve(); };
+            u.addEventListener('end', done); u.addEventListener('error', done);
+            if (gen === st.gen) nativeSpeak(u); else resolve();
+        });
+
+        const playUrl = (url, u, gen) => new Promise(resolve => {
+            if (gen !== st.gen) return resolve(true);
+            const a = new Audio(url);
+            a.preservesPitch = true;
+            a.playbackRate = Math.min(2, Math.max(0.6, self.getAIVoiceSpeed() * ((u.rate || 0.9) / 0.9)));
+            st.audio = a;
+            a.onended = () => resolve(true);
+            a.onerror = () => resolve(false);
+            a.play().catch(() => resolve(false));
+        });
+
+        const run = async () => {
+            if (st.busy) return;
+            st.busy = true;
+            while (st.queue.length) {
+                const item = st.queue.shift();
+                const { u, parts, gen } = item;
+                if (gen !== st.gen) continue;
+                const cancelled = st.cancelSignal.then(() => 'cancelled');
+                st.current = u;
+                let started = false, ok = true;
+                for (let i = 0; i < parts.length && gen === st.gen; i++) {
+                    let url = null;
+                    try { url = await Promise.race([parts[i], cancelled]); } catch { url = null; }
+                    if (gen !== st.gen || url === 'cancelled') break;
+                    if (!url) { ok = false; break; }
+                    if (!started) { fire(u, 'start'); started = true; }
+                    const played = await Promise.race([playUrl(url, u, gen), cancelled]);
+                    if (played === 'cancelled') break;
+                    if (!played) { ok = false; break; }
+                }
+                if (gen !== st.gen) continue;
+                if (!ok) {
+                    // ritorno automatico alla voce del dispositivo per questa frase
+                    await fallbackNative(u, gen);
+                } else {
+                    fire(u, 'end');
+                }
+                st.current = null; st.audio = null;
+            }
+            st.busy = false;
+        };
+
+        synth.speak = function (u) {
+            if (!self._aiVoiceUsable() || !u || !u.text || !u.text.trim()) return nativeSpeak(u);
+            const voice = voiceFor(u);
+            const texts = self._splitForTTS(u.text);
+            // scarica tutti i pezzi in anticipo (in ordine): mentre suona il primo, arrivano gli altri
+            let chain = Promise.resolve();
+            const parts = texts.map(t => { const p = chain.then(() => self._fetchTTS(t, voice)); chain = p.catch(() => {}); return p; });
+            parts.forEach(p => p.catch(() => {}));
+            st.queue.push({ u, parts, gen: st.gen });
+            run();
+        };
+
+        synth.cancel = function () {
+            st.gen++;
+            const cur = st.current;
+            st.queue = [];
+            if (st.audio) { try { st.audio.pause(); } catch {} st.audio = null; }
+            st.current = null;
+            const wake = st.cancelResolve; newCancelSignal(); wake();
+            if (cur) fire(cur, 'error');
+            nativeCancel();
+        };
+
+        try {
+            Object.defineProperty(synth, 'speaking', { configurable: true,
+                get: () => !!(st.current || st.queue.length) || (nativeSpeaking ? nativeSpeaking.get.call(synth) : false) });
+            Object.defineProperty(synth, 'pending', { configurable: true,
+                get: () => st.queue.length > 0 || (nativePending ? nativePending.get.call(synth) : false) });
+        } catch {}
+        synth.__egAI = true;
+    },
+
     // ==================== CONFIGURAZIONE ACHIEVEMENT ====================
     ACHIEVEMENTS: [
         // Primi passi
@@ -766,6 +953,7 @@ const EduGamer = {
     init: function() {
         this.migrateOldData();
         this._loadVoices();
+        this._installAIVoice();
         console.log('🎮 EduGamer System inizializzato!');
         console.log('📊 Stats:', this.getStats());
         console.log('🏆 Level:', this.getLevel());
