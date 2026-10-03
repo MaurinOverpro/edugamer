@@ -227,23 +227,44 @@ const AUD = () => (window.EduGamer && window.EduGamer.getAudience ? window.EduGa
 const getKey = () => localStorage.getItem('gemini_api_key') || '';
 
 // ===== TTS =====
-function speak(text) {
-    window.speechSynthesis.cancel();
-    const clean = String(text).replace(/[*#_`~]/g,'').replace(/<[^>]+>/g,'').replace(/\n+/g,'. ').replace(/\s+/g,' ').trim();
-    const u = new SpeechSynthesisUtterance(clean);
-    u.lang = 'it-IT'; u.rate = 0.88; u.pitch = 1.0;
-    if (window.EduGamer && window.EduGamer.applyVoice) window.EduGamer.applyVoice(u);
-    window.speechSynthesis.speak(u);
+// Una sola voce alla volta: ogni nuova lettura annulla quelle in attesa (titolo
+// dello step programmato, frase precedente). Dopo cancel() aspettiamo un attimo
+// prima di parlare: con alcune voci (Edge "Natural", Android) la frase vecchia
+// altrimenti continua e si sovrappone alla nuova.
+const STEP_TITLES = {
+    2: 'Step 2. Trova i numeri. Quanti numeri ci sono nel problema?',
+    3: 'Step 3. Situazione iniziale. Leggi le domande e rispondi.',
+    4: 'Step 4. Calcoli passo per passo. Un calcolo alla volta.',
+    5: 'Step 5. Soluzione finale. Scrivi le risposte.'
+};
+let _speakToken = 0, _stepTimer = null;
+function cleanForSpeech(text) {
+    return String(text).replace(/[*#_`~]/g,'').replace(/<[^>]+>/g,'').replace(/\n+/g,'. ').replace(/\s+/g,' ').trim();
 }
-function stopSpeak() { window.speechSynthesis.cancel(); }
+function speak(text) {
+    const token = ++_speakToken;
+    clearTimeout(_stepTimer);
+    window.speechSynthesis.cancel();
+    const clean = cleanForSpeech(text);
+    setTimeout(() => {
+        if (token !== _speakToken) return;                       // nel frattempo è arrivata un'altra lettura
+        if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(clean);
+        u.lang = 'it-IT'; u.rate = 0.88; u.pitch = 1.0;
+        if (window.EduGamer && window.EduGamer.applyVoice) window.EduGamer.applyVoice(u);
+        window.speechSynthesis.speak(u);
+    }, 150);
+}
+function stopSpeak() { _speakToken++; clearTimeout(_stepTimer); window.speechSynthesis.cancel(); }
 function speakStep(n) {
-    const titles = {
-        2: 'Step 2. Trova i numeri. Quanti numeri ci sono nel problema?',
-        3: 'Step 3. Situazione iniziale. Leggi le domande e rispondi.',
-        4: 'Step 4. Calcoli passo per passo. Un calcolo alla volta.',
-        5: 'Step 5. Soluzione finale. Scrivi le risposte.'
-    };
-    if (titles[n]) setTimeout(() => speak(titles[n]), 700);
+    clearTimeout(_stepTimer);
+    if (STEP_TITLES[n]) _stepTimer = setTimeout(() => speak(STEP_TITLES[n]), 200);
+}
+// Con la voce AI attiva i titoli degli step si preparano in anticipo: al cambio di step partono subito.
+function prefetchStepTitles() {
+    const E = window.EduGamer;
+    if (!E || !E._aiVoiceUsable || !E._aiVoiceUsable()) return;
+    Object.values(STEP_TITLES).forEach(t => E._fetchTTS(cleanForSpeech(t), E.AI_VOICE.voices.main).catch(() => {}));
 }
 
 // ===== CALCULATOR =====
@@ -391,6 +412,7 @@ async function analyzeProblem() {
     const key=getKey();
     if(!key){fb(1,'err','⚠️ API Key mancante! Vai alla Home → Impostazioni.');return;}
     S.text=text;
+    prefetchStepTitles();
     document.getElementById('loading').classList.remove('hidden');
     document.getElementById('step-1').classList.add('hidden');
 
