@@ -1,0 +1,25 @@
+{
+  "name": "edugamer-design-system",
+  "version": "0.1.0",
+  "private": true,
+  "description": "EduGamer — libreria di componenti in tema pirata (accessibile DSA, OpenDyslexic). Ricavata dalle pagine dell'app; l'app non dipende da questa cartella.",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "style": "dist/edugamer.css",
+  "files": ["dist"],
+  "scripts": {
+    "build": "node build-ds.mjs"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "typescript": "^5.6.3"
+  }
+}

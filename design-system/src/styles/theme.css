@@ -1,0 +1,69 @@
+/* ─────────────────────────────────────────────────────────────
+   EduGamer — variabili del tema pirata.
+   Valori presi 1:1 dalle pagine dell'app (index, isola, matematica, tutor, profilo).
+   I colori neon sono narrati come metafore pirata:
+   oro = tesoro, mare = acque profonde, abisso = fosforescenza, giungla = foresta tropicale.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  /* Fondali */
+  --eg-bg: #0a0e17;            /* notte in mare — sfondo di tutti i moduli */
+  --eg-bg-isola: #071020;      /* acqua profonda dell'Isola Misteriosa */
+  --eg-surface: #1e293b;       /* tavolato della nave (slate-800) */
+  --eg-surface-deep: #0f172a;  /* stiva (slate-900) */
+  --eg-surface-glass: rgba(30, 41, 59, 0.7);
+  --eg-border: #334155;        /* slate-700 */
+  --eg-border-strong: #475569; /* slate-600 */
+
+  /* Testo */
+  --eg-text: #e2e8f0;
+  --eg-text-strong: #ffffff;
+  --eg-text-muted: #94a3b8;
+  --eg-text-faint: #64748b;
+
+  /* Palette pirata */
+  --eg-oro: #fbbf24;           /* oro del tesoro */
+  --eg-oro-scuro: #f59e0b;
+  --eg-oro-antico: #ca8a04;    /* cornice dei Wanted */
+  --eg-mare: #38bdf8;          /* acque profonde */
+  --eg-mare-scuro: #3b82f6;
+  --eg-abisso: #c084fc;        /* fosforescenza abissale */
+  --eg-abisso-scuro: #7c3aed;
+  --eg-abisso-notte: #581c87;
+  --eg-giungla: #4ade80;       /* giungla tropicale */
+  --eg-giungla-scuro: #16a34a;
+  --eg-corallo: #fb923c;       /* enigmi / avvisi caldi */
+  --eg-rosso: #ef4444;         /* pericolo, errori */
+  --eg-indaco: #818cf8;
+
+  /* Pergamena */
+  --eg-pergamena: #f5e8c0;
+  --eg-pergamena-2: #ead9a0;
+  --eg-pergamena-bordo: #8b6410;
+  --eg-inchiostro: #78350f;    /* testo su pergamena (amber-900) */
+
+  /* Rarità medaglie */
+  --eg-rarita-comune: #94a3b8;
+  --eg-rarita-raro: #3b82f6;
+  --eg-rarita-epico: #a855f7;
+  --eg-rarita-leggendario: #fbbf24;
+
+  /* Tipografia — OpenDyslexic per TUTTO il testo leggibile (DSA) */
+  --eg-font: 'OpenDyslexic', Verdana, sans-serif;
+  --eg-font-titolo: Georgia, 'Times New Roman', serif; /* solo titoli decorativi brevi */
+  --eg-letter-spacing: 0.02em;
+  --eg-line-height: 1.6;
+  --eg-line-height-lettura: 1.8;
+
+  /* Forme e misure */
+  --eg-radius-sm: 10px;
+  --eg-radius: 12px;
+  --eg-radius-lg: 16px;
+  --eg-radius-xl: 24px;
+  --eg-touch: 56px;            /* area di tocco minima */
+
+  /* Bagliori */
+  --eg-glow-oro: 0 0 25px rgba(251, 191, 36, 0.5);
+  --eg-glow-giungla: 0 0 20px rgba(74, 222, 128, 0.2);
+  --eg-glow-abisso: 0 0 20px rgba(124, 58, 237, 0.4);
+  --eg-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+}

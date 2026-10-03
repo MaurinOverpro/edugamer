@@ -1,0 +1,5 @@
+/* OpenDyslexic — self-hosted (SIL OFL 1.1) */
+@font-face { font-family: 'OpenDyslexic'; font-style: normal; font-weight: 400; font-display: swap; src: url('./fonts/OpenDyslexic-Regular.woff') format('woff'); }
+@font-face { font-family: 'OpenDyslexic'; font-style: italic; font-weight: 400; font-display: swap; src: url('./fonts/OpenDyslexic-Italic.woff') format('woff'); }
+@font-face { font-family: 'OpenDyslexic'; font-style: normal; font-weight: 700; font-display: swap; src: url('./fonts/OpenDyslexic-Bold.woff') format('woff'); }
+@font-face { font-family: 'OpenDyslexic'; font-style: italic; font-weight: 700; font-display: swap; src: url('./fonts/OpenDyslexic-BoldItalic.woff') format('woff'); }

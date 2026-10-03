@@ -1,0 +1,37 @@
+{
+  "projectId": "7c19b2bb-bcd4-4b0d-8562-34bea9225eb4",
+  "shape": "package",
+  "pkg": "edugamer-design-system",
+  "globalName": "EduGamerDS",
+  "buildCmd": "npm run build",
+  "cssEntry": "dist/edugamer.css",
+  "tokensGlob": "src/styles/theme.css",
+  "provider": {
+    "component": "EduGamerRoot",
+    "props": {
+      "padded": true
+    }
+  },
+  "docsMap": {
+    "AchievementBadge": ".design-sync/groups/AchievementBadge.md",
+    "Celebration": ".design-sync/groups/Celebration.md",
+    "CharacterQuote": ".design-sync/groups/CharacterQuote.md",
+    "ChatBubble": ".design-sync/groups/ChatBubble.md",
+    "ChatThread": ".design-sync/groups/ChatThread.md",
+    "EduGamerRoot": ".design-sync/groups/EduGamerRoot.md",
+    "ModuleCard": ".design-sync/groups/ModuleCard.md",
+    "Panel": ".design-sync/groups/Panel.md",
+    "Parchment": ".design-sync/groups/Parchment.md",
+    "PathProgress": ".design-sync/groups/PathProgress.md",
+    "Pill": ".design-sync/groups/Pill.md",
+    "PirateAvatar": ".design-sync/groups/PirateAvatar.md",
+    "PirateButton": ".design-sync/groups/PirateButton.md",
+    "PirateInput": ".design-sync/groups/PirateInput.md",
+    "PirateModal": ".design-sync/groups/PirateModal.md",
+    "PirateTitle": ".design-sync/groups/PirateTitle.md",
+    "PlaceValueBlocks": ".design-sync/groups/PlaceValueBlocks.md",
+    "WantedPoster": ".design-sync/groups/WantedPoster.md",
+    "XPBar": ".design-sync/groups/XPBar.md"
+  },
+  "readmeHeader": ".design-sync/conventions.md"
+}
