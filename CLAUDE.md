@@ -57,9 +57,12 @@ Shared singleton loaded in every module via `<script src="game-system.js">`. Exp
 
 ### AI Integration
 
-All modules call the Google Gemini API directly from the browser:
-- **Text model**: `gemini-3-flash-preview` (gemini-2.5-flash deprecated March 2026)
-- **Image model**: `gemini-3.1-flash-image-preview` aka "Nano Banana 2" (gemini-2.5-flash-image deprecated April 2026). For higher fidelity use `gemini-3-pro-image-preview` ("Nano Banana Pro").
+All modules call the Google Gemini API directly from the browser. Models are chosen per task (verified on Google's docs, 3 Oct 2026):
+- **Math reasoning** (`matematica`, `risolvitore`, `discover`): `gemini-3.6-flash` — official replacement for `gemini-3-flash-preview`; paid price doubles on 1 Jan 2027.
+- **Language / maps / chat / research** (`italiano`, `lavagna`, `tutor`, `ricerche`, `isola` text): `gemini-3.5-flash-lite` — cheapest 3.5 model, accepts image input.
+- **Images** (`isola` avatar, `ricerche` illustrations): `gemini-3.1-flash-image` ("Nano Banana 2", stable).
+- **Wanted Poster** (`profilo`): `gemini-3-pro-image` ("Nano Banana Pro", stable) — best at rendering text inside images.
+- The `-preview` image models were shut down on 25 June 2026. Check https://ai.google.dev/gemini-api/docs/deprecations before changing models.
 - Endpoint: `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`
 - The key is retrieved from localStorage before each call
 
