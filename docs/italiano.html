@@ -52,6 +52,11 @@ const {
   useEffect
 } = React;
 const MODEL = "gemini-3.5-flash-lite";
+const AUD = () => window.EduGamer && window.EduGamer.getAudience ? window.EduGamer.getAudience() : {
+  key: 'medie',
+  prompt: 'uno studente di scuola media (11-13 anni)',
+  tone: 'Tono diretto e amichevole, mai infantile.'
+};
 const DB = {
   getKey: () => localStorage.getItem('gemini_api_key'),
   addXP: (amount, action) => {
@@ -68,10 +73,11 @@ const AI = {
   checkText: async text => {
     const key = DB.getKey();
     if (!key) throw new Error("Manca API Key!");
-    const prompt = `Analizza questo testo per un ragazzo con dislessia: "${text}"
+    const prompt = `Analizza questo testo scritto da ${AUD().prompt}, con dislessia: "${text}"
 Trova TUTTI gli errori di ortografia, punteggiatura e grammatica.
 Rispondi SOLO con un array JSON:
-[{"original":"parola sbagliata", "correction":"parola giusta", "explanation":"Breve motivo semplice"}]
+[{"original":"parola sbagliata", "correction":"parola giusta", "explanation":"Breve motivo chiaro"}]
+${AUD().tone}
 Se perfetto, restituisci: []`;
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 30000);
@@ -111,11 +117,11 @@ Se perfetto, restituisci: []`;
   improveFluency: async text => {
     const key = DB.getKey();
     if (!key) throw new Error("Manca API Key!");
-    const prompt = `Sei un maestro di scrittura creativa.
-Un tuo studente con dislessia ha scritto questo testo:
+    const prompt = `Sei un insegnante di scrittura.
+Ha scritto questo testo ${AUD().prompt}, con dislessia:
 "${text}"
 Riscrivi il testo rendendolo più SCORREVOLE. Aggiungi "connettivi logici" (es: improvvisamente, poi, allora, perciò, mentre) per far scorrere la storia.
-NON aggiungere idee nuove, unisci solo meglio quelle esistenti. Usa parole semplici.
+NON aggiungere idee nuove, unisci solo meglio quelle esistenti. Usa parole chiare e un registro adatto all'età di chi scrive.
 Rispondi SOLO con JSON:
 {
   "fluency_text": "il nuovo testo scorrevole",
@@ -363,11 +369,11 @@ const App = () => {
   const acceptStyle = () => {
     setFinalText(fluentText);
     DB.addXP(30);
-    speak("Ottima scelta! Il testo scorre meravigliosamente.");
+    speak("Fatto. Ecco il testo più scorrevole.");
     setStage('final');
   };
   const rejectStyle = () => {
-    speak("Nessun problema, la tua versione originale è già fantastica!");
+    speak("Va bene, teniamo la tua versione originale.");
     setStage('final');
   };
   const renderReviewText = () => {

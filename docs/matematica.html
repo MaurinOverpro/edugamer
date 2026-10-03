@@ -95,6 +95,11 @@ const {
   useRef
 } = React;
 const MODEL = "gemini-3.6-flash";
+const AUD = () => window.EduGamer && window.EduGamer.getAudience ? window.EduGamer.getAudience() : {
+  key: 'medie',
+  prompt: 'uno studente di scuola media (11-13 anni)',
+  tone: 'Tono diretto e amichevole, mai infantile.'
+};
 const DB = {
   getKey: () => localStorage.getItem('gemini_api_key'),
   addXP: (amount, source = 'matematica', action = 'activity') => {
@@ -108,7 +113,7 @@ const DB = {
 const solveProblem = async img => {
   const key = DB.getKey();
   if (!key) throw new Error("Manca API Key!");
-  const prompt = `Sei un insegnante di sostegno per uno studente di scuola media (11-14 anni) con DSA.
+  const prompt = `Sei un insegnante di sostegno per ${AUD().prompt}, con DSA. ${AUD().tone}
             Risolvi questo problema in modo CHIARO e SEMPLICE.
             
             Struttura la risposta così:

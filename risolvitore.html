@@ -223,6 +223,7 @@
 <script>
 // ===== CONFIG =====
 const MODEL = 'gemini-3.6-flash';
+const AUD = () => (window.EduGamer && window.EduGamer.getAudience ? window.EduGamer.getAudience() : { key:'medie', prompt:'uno studente di scuola media (11-13 anni)', tone:'Tono diretto e amichevole, mai infantile.' });
 const getKey = () => localStorage.getItem('gemini_api_key') || '';
 
 // ===== TTS =====
@@ -299,7 +300,7 @@ async function handleFoto(event) {
 async function extractTextFromImage(imgData, mimeType) {
     const key = getKey();
     if (!key) throw new Error('API Key mancante! Vai alla Home → Impostazioni.');
-    const prompt = `Sei un assistente per studenti delle medie. Guarda questa immagine ed estrai il testo del problema matematico.
+    const prompt = `Sei un assistente allo studio. Guarda questa immagine ed estrai il testo del problema matematico.
 
 IGNORA completamente (NON trascrivere):
 - Numeri e lettere di esercizio prima del testo: "1.", "2.", "3.", "a)", "b)", "c)", "Es. 1", "Esercizio 2", "N°3" ecc.
@@ -392,7 +393,7 @@ async function analyzeProblem() {
     document.getElementById('loading').classList.remove('hidden');
     document.getElementById('step-1').classList.add('hidden');
 
-    const prompt=`Analizza questo problema matematico per uno studente delle medie con DSA.
+    const prompt=`Analizza questo problema matematico per ${AUD().prompt}, con DSA. ${AUD().tone}
 
 PROBLEMA: "${text}"
 

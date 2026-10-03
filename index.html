@@ -125,6 +125,7 @@
             const [showSettings, setShowSettings] = useState(false);
             const [key, setKey] = useState(DB.getKey());
             const [showTutorMenu, setShowTutorMenu] = useState(false);
+            const [audience, setAudience] = useState(() => window.EduGamer ? window.EduGamer.getAudienceKey() : (localStorage.getItem('edugamer_audience') || 'medie'));
 
             // Aggiorna XP in tempo reale — reattivo agli eventi invece del polling
             useEffect(() => {
@@ -143,8 +144,9 @@
 
             const saveKey = () => { 
                 DB.setKey(key); 
+                if (window.EduGamer) window.EduGamer.setAudienceKey(audience); else localStorage.setItem('edugamer_audience', audience);
                 setShowSettings(false); 
-                alert("Chiave Salvata! Ora puoi usare i moduli."); 
+                alert("Impostazioni salvate."); 
             };
 
             const modules = [
@@ -167,6 +169,17 @@
                                 placeholder="Incolla API Key..." 
                                 className="w-full bg-slate-900 p-3 md:p-4 rounded-xl mb-4 text-white outline-none border border-slate-600 focus:border-purple-500" 
                             />
+                            <p className="text-slate-400 text-sm mb-2 text-left">Chi usa EduGamer? (adatta spiegazioni e tono dell'AI)</p>
+                            <div className="grid grid-cols-2 gap-2 mb-4">
+                                {[["elementari","🎒","Elementare","6-10 anni"],["medie","📒","Media","11-13 anni"],["superiori","📘","Superiore","14-18 anni"],["adulti","🎓","Università / Adulti","19+ anni"]].map(([k, ic, lb, age]) => (
+                                    <button key={k} type="button" onClick={() => setAudience(k)}
+                                        className={`p-3 rounded-xl border text-sm font-bold transition-all ${audience === k ? "bg-purple-900/60 border-purple-400 text-white" : "bg-slate-900 border-slate-600 text-slate-300"}`}>
+                                        <div className="text-xl">{ic}</div>
+                                        <div>{lb}</div>
+                                        <div className="text-xs font-normal text-slate-400">{age}</div>
+                                    </button>
+                                ))}
+                            </div>
                             <div className="flex gap-2 flex-col sm:flex-row">
                                 <button onClick={() => setShowSettings(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold p-3 rounded-xl transition-all">ANNULLA</button>
                                 <button onClick={saveKey} className="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold p-3 rounded-xl transition-all shadow-lg">SALVA</button>

@@ -20,6 +20,44 @@ const EduGamer = {
         { level: 10, name: "Gran Corsaro",  xpRequired: 10000, icon: "🌟",  color: "#ff0080" }
     ],
 
+    // ==================== PUBBLICO (livello scolastico) ====================
+    // Unica fonte di verità per "chi sta usando l'app": i prompt AI dei moduli
+    // la leggono con EduGamer.getAudience() invece di avere "medie" scritto nel codice.
+    // Il supporto DSA resta sempre attivo, a ogni età.
+    AUDIENCES: {
+        elementari: { label: "Scuola Elementare",   ages: "6-10 anni",
+            prompt: "uno studente di scuola elementare (6-10 anni)",
+            tone: "Tono caldo e incoraggiante, vocabolario semplice, esempi concreti della vita quotidiana di un bambino." },
+        medie:      { label: "Scuola Media",        ages: "11-13 anni",
+            prompt: "uno studente di scuola media (11-13 anni)",
+            tone: "Tono diretto e amichevole, mai infantile. Esempi legati alla vita di un ragazzo (sport, amici, videogiochi, natura)." },
+        superiori:  { label: "Scuola Superiore",    ages: "14-18 anni",
+            prompt: "uno studente di scuola superiore (14-18 anni)",
+            tone: "Tono maturo e rispettoso, come con un giovane adulto. Niente toni infantili né eccessi di entusiasmo. Usa il lessico specifico della materia, spiegandolo." },
+        adulti:     { label: "Università / Adulti", ages: "19+ anni",
+            prompt: "una persona adulta (università o formazione personale)",
+            tone: "Tono da adulto ad adulto, asciutto e preciso. Nessun tono scolastico o infantile, nessun complimento superfluo. Terminologia corretta, spiegata quando serve." }
+    },
+
+    getAudienceKey() {
+        try {
+            const k = localStorage.getItem('edugamer_audience');
+            return this.AUDIENCES[k] ? k : 'medie';
+        } catch { return 'medie'; }
+    },
+
+    setAudienceKey(key) {
+        if (!this.AUDIENCES[key]) return;
+        localStorage.setItem('edugamer_audience', key);
+        window.dispatchEvent(new CustomEvent('edugamer-audience-changed', { detail: { key } }));
+    },
+
+    /** { key, label, ages, prompt, tone } — da usare dentro i prompt AI. */
+    getAudience() {
+        const key = this.getAudienceKey();
+        return { key, ...this.AUDIENCES[key] };
+    },
+
     // ==================== CONFIGURAZIONE ACHIEVEMENT ====================
     ACHIEVEMENTS: [
         // Primi passi

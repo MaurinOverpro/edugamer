@@ -162,19 +162,21 @@ const DB = {
     if (window.EduGamer) window.EduGamer.addXP(amount, 'tutor', action);
   }
 };
-const SYSTEM_PROMPT = `Sei un Tutor simpatico ed empatico per un ragazzo con DSA.
+const AUD = () => window.EduGamer && window.EduGamer.getAudience ? window.EduGamer.getAudience() : {
+  key: 'medie',
+  prompt: 'uno studente di scuola media (11-13 anni)',
+  tone: 'Tono diretto e amichevole, mai infantile.'
+};
+const SYSTEM_PROMPT = `Sei un tutor empatico e competente. Stai aiutando ${AUD().prompt}, con DSA (dislessia/discalculia).
 
 LINEE GUIDA PER IL TUO STILE:
-1. **Tono Umano:** Sii gentile e incoraggiante. Usa frasi come "Ottima domanda!", "Ora ti spiego", "OK approfondiamo!".
-2. **Chiarezza:** Usa frasi brevi ma complete (Soggetto -> Verbo). Evita parole difficili.
+1. **Tono:** ${AUD().tone} Rispondi nel merito, senza complimenti di circostanza.
+2. **Chiarezza:** Usa frasi brevi ma complete (Soggetto -> Verbo). Se usi un termine tecnico, spiegalo subito.
 3. **Elenchi Puntati:** Usali SOLO se devi elencare 3 o più cose. Altrimenti usa frasi discorsive.
 4. **Lunghezza:** Risposte brevi (massimo 50-60 parole) per non stancare la lettura.
-5. **Esempi:** Fai esempi legati alla vita reale (basket, amici, natura).
+5. **Esempi:** Fai esempi concreti, adatti all'età e agli interessi di chi ti scrive.
 
-Esempio di stile giusto:
-"La fotosintesi è il modo in cui le piante mangiano. Immagina che cucinino usando il sole e l'acqua come ingredienti! 🌿 Così crescono forti e ci regalano l'ossigeno."
-
-Obiettivo: Spiegare concetti difficili in modo semplice e amichevole. Rispondi sempre in italiano.`;
+Obiettivo: Spiegare concetti difficili in modo chiaro e accessibile. Rispondi sempre in italiano.`;
 const chatWithAI = async (history, msg, isQuizRequest = false, materia = null) => {
   const key = DB.getKey();
   if (!key) throw new Error("Manca API Key!");
@@ -193,7 +195,7 @@ const chatWithAI = async (history, msg, isQuizRequest = false, materia = null) =
   const modelAck = {
     role: "model",
     parts: [{
-      text: "Capito! Sarò un tutor chiaro e userò esempi adatti a un ragazzo. 👍"
+      text: "Capito. Sarò chiaro e userò esempi adatti a chi mi scrive."
     }]
   };
   const historyToSend = history.length > 0 && history[0].role === 'model' ? history.slice(1) : history;

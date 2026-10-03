@@ -193,11 +193,18 @@ async function generateSlideImage(subject) {
 }
 
 const LEVELS = [
-    { key: 'elementari', label: 'Scuola Elementare',  desc: '6–10 anni',  icon: '🐚' },
-    { key: 'media',      label: 'Scuola Media',        desc: '11–13 anni', icon: '🧭' },
-    { key: 'superiore',  label: 'Scuola Superiore',    desc: '14–18 anni', icon: '⚓' },
-    { key: 'adulti',     label: 'Università / Adulti', desc: '19+ anni',   icon: '🏴‍☠️' },
+    { key: 'elementari', label: 'Scuola Elementare',  desc: '6–10 anni',  icon: '🎒' },
+    { key: 'media',      label: 'Scuola Media',        desc: '11–13 anni', icon: '📒' },
+    { key: 'superiore',  label: 'Scuola Superiore',    desc: '14–18 anni', icon: '📘' },
+    { key: 'adulti',     label: 'Università / Adulti', desc: '19+ anni',   icon: '🎓' },
 ];
+
+// Livello iniziale = pubblico scelto nelle Impostazioni della Home (game-system.js)
+const GLOBAL_TO_LEVEL = { elementari: 'elementari', medie: 'media', superiori: 'superiore', adulti: 'adulti' };
+function defaultLevel() {
+    const k = window.EduGamer && window.EduGamer.getAudienceKey ? window.EduGamer.getAudienceKey() : 'medie';
+    return GLOBAL_TO_LEVEL[k] || 'media';
+}
 
 function dsaNote(level) {
     if (level !== 'elementari') return '';
@@ -226,7 +233,7 @@ const CATEGORY_ICONS = {
 /* ── PHASE INPUT ─────────────────────────────────────────── */
 function PhaseInput({ onNext }) {
     const [topic, setTopic]           = useState('');
-    const [level, setLevel]           = useState('elementari');
+    const [level, setLevel]           = useState(defaultLevel);
     const [loading, setLoading]       = useState(false);
     const [titles, setTitles]         = useState(null);
     const [chosenTitle, setChosenTitle] = useState('');
@@ -693,7 +700,7 @@ Regole obbligatorie:
 - Domanda massimo 20 parole, ogni opzione massimo 10 parole
 - Una sola risposta corretta (campo "corretta": indice 0, 1 o 2)
 - Spiegazione breve del perché è corretta, massimo 15 parole
-- Linguaggio semplice adatto a studenti delle medie con DSA
+- Linguaggio chiaro adatto al livello ${LEVELS.find(l => l.key === level)?.label || 'Scuola Media'}, con DSA
 
 Rispondi SOLO con JSON valido (array di 6 oggetti):
 [{"domanda":"...","opzioni":["...","...","..."],"corretta":0,"spiegazione":"..."}]`);

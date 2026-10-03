@@ -142,6 +142,7 @@ const App = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [key, setKey] = useState(DB.getKey());
   const [showTutorMenu, setShowTutorMenu] = useState(false);
+  const [audience, setAudience] = useState(() => window.EduGamer ? window.EduGamer.getAudienceKey() : localStorage.getItem('edugamer_audience') || 'medie');
   useEffect(() => {
     const refresh = () => setXp(DB.getXP());
     window.addEventListener('edugamer-xp-added', refresh);
@@ -157,8 +158,9 @@ const App = () => {
   }, []);
   const saveKey = () => {
     DB.setKey(key);
+    if (window.EduGamer) window.EduGamer.setAudienceKey(audience);else localStorage.setItem('edugamer_audience', audience);
     setShowSettings(false);
-    alert("Chiave Salvata! Ora puoi usare i moduli.");
+    alert("Impostazioni salvate.");
   };
   const modules = [{
     name: "LAVAGNA AI",
@@ -200,7 +202,20 @@ const App = () => {
       onChange: e => setKey(e.target.value),
       placeholder: "Incolla API Key...",
       className: "w-full bg-slate-900 p-3 md:p-4 rounded-xl mb-4 text-white outline-none border border-slate-600 focus:border-purple-500"
-    }), React.createElement("div", {
+    }), React.createElement("p", {
+      className: "text-slate-400 text-sm mb-2 text-left"
+    }, "Chi usa EduGamer? (adatta spiegazioni e tono dell'AI)"), React.createElement("div", {
+      className: "grid grid-cols-2 gap-2 mb-4"
+    }, [["elementari", "🎒", "Elementare", "6-10 anni"], ["medie", "📒", "Media", "11-13 anni"], ["superiori", "📘", "Superiore", "14-18 anni"], ["adulti", "🎓", "Università / Adulti", "19+ anni"]].map(([k, ic, lb, age]) => React.createElement("button", {
+      key: k,
+      type: "button",
+      onClick: () => setAudience(k),
+      className: `p-3 rounded-xl border text-sm font-bold transition-all ${audience === k ? "bg-purple-900/60 border-purple-400 text-white" : "bg-slate-900 border-slate-600 text-slate-300"}`
+    }, React.createElement("div", {
+      className: "text-xl"
+    }, ic), React.createElement("div", null, lb), React.createElement("div", {
+      className: "text-xs font-normal text-slate-400"
+    }, age)))), React.createElement("div", {
       className: "flex gap-2 flex-col sm:flex-row"
     }, React.createElement("button", {
       onClick: () => setShowSettings(false),
