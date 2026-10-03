@@ -241,10 +241,23 @@ GENERA UN JSON COSÌ (SOLO JSON, NESSUN TESTO EXTRA):
       "titolo": "RAGIONA SUL CALCOLO",
       "domanda": "Marco ha fatto 3/4 del percorso di 16 km. Quanti km ha camminato?",
       "risposta_corretta": "12",
+      "etichetta_risultato": "Km camminati da Marco",
       "accetta_anche": ["12 km", "12km", "dodici"],
       "hint_1": "Guida ragionamento: 'Quando devi trovare una frazione di un numero, devi pensare a come dividere quel numero in parti'",
       "hint_2": "Guida ragionamento: 'Se devi trovare 3/4 di 16, puoi prima pensare: quanto è 1/4 di 16? Poi moltiplichi per 3'",
       "hint_3": "Risposta diretta con operazione: 'Devi fare: 16 × 3 ÷ 4. Cioè: 16 × 3 = 48, poi 48 ÷ 4 = 12 km'"
+    },
+    {
+      "step": 3,
+      "tipo": "calcolo",
+      "titolo": "QUANTO MANCA?",
+      "domanda": "Il percorso è di 16 km e Marco ne ha già camminati 12. Quanti km mancano per arrivare da Matteo?",
+      "risposta_corretta": "4",
+      "etichetta_risultato": "Km che mancano",
+      "accetta_anche": ["4 km", "4km", "quattro"],
+      "hint_1": "Guida ragionamento: 'Hai il percorso intero e la parte già fatta: cosa resta?'",
+      "hint_2": "Guida ragionamento: 'Togli dal percorso totale i km che Marco ha già camminato'",
+      "hint_3": "Risposta diretta con operazione: 'Devi fare: 16 − 12 = 4 km'"
     }
   ],
   "risposta_finale": "Mancano 4 km per arrivare da Matteo",
@@ -292,6 +305,14 @@ REGOLE IMPORTANTISSIME:
   
   ✅ ESEMPIO CORRETTO:
   "Ecco come si risolve: Devi calcolare 3/4 di 16 km. L'operazione è: 16 × 3 ÷ 4. Facciamo i calcoli: 16 × 3 = 48 km (questo è 3 volte il percorso intero). Poi 48 ÷ 4 = 12 km (dividiamo in 4 parti). Quindi Marco ha camminato 12 km."
+
+**CATENA DEI RISULTATI (FONDAMENTALE PER LA DISCALCULIA):**
+Quando uno step usa il risultato di uno step precedente, la sua "domanda" DEVE riscrivere quel numero in cifre, con l'unità e il significato, come un nuovo dato del problema. Lo studente non deve ricordarlo né tornare indietro a cercarlo.
+  ✅ Step 2: "La scuola compra 4 scatole da 18 pennarelli. Quanti pennarelli ha in tutto?" → 72
+  ✅ Step 3: "La scuola ha 72 pennarelli. Gli alunni ne perdono 10. Quanti pennarelli rimangono?"
+  ❌ Step 3: "Gli alunni ne perdono 10. Quanti ne rimangono?"   (manca il 72)
+  ❌ Step 3: "Togli 10 al totale che hai trovato prima."   (rimanda indietro invece di scrivere 72)
+Ogni step di tipo "calcolo" deve avere anche "etichetta_risultato": 2-4 parole che dicono cosa rappresenta il risultato (es. "Pennarelli totali", "Km che mancano").
 
 **CRUCIALE:** NON includere MAI il campo "operazione" come proprietà separata nello step JSON! 
 L'operazione matematica deve apparire SOLO nell'hint_3, mai come campo "operazione": "16 × 3 ÷ 4"
@@ -1130,6 +1151,27 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
                             </div>
                             <p className="text-base leading-relaxed">{problemData.testo_problema}</p>
                         </div>
+
+                        {/* RISULTATI GIÀ TROVATI (sempre visibili: lo studente non deve ricordarli) */}
+                        {(() => {
+                            const found = problemData.workflow
+                                .slice(0, currentStep)
+                                .filter(s => s.tipo !== 'estrazione_dati' && s.risposta_corretta);
+                            if (!found.length) return null;
+                            return (
+                                <div className="bg-slate-800/70 rounded-xl p-3 border-2 border-yellow-500/60 shrink-0">
+                                    <div className="text-sm font-bold text-yellow-400 mb-2">📌 RISULTATI TROVATI</div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {found.map((s, i) => (
+                                            <div key={i} className="bg-slate-900/80 rounded-lg px-3 py-2 border border-yellow-500/40">
+                                                <div className="text-xs text-slate-400">{s.etichetta_risultato || s.titolo}</div>
+                                                <div className="text-2xl font-bold text-yellow-300 font-mono">{s.risposta_corretta}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })()}
 
                         {/* PROGRESS BAR */}
                         <div className="bg-slate-800/50 rounded-xl p-3 shrink-0">
