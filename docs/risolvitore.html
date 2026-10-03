@@ -232,6 +232,7 @@ function speak(text) {
     const clean = String(text).replace(/[*#_`~]/g,'').replace(/<[^>]+>/g,'').replace(/\n+/g,'. ').replace(/\s+/g,' ').trim();
     const u = new SpeechSynthesisUtterance(clean);
     u.lang = 'it-IT'; u.rate = 0.88; u.pitch = 1.0;
+    if (window.EduGamer && window.EduGamer.applyVoice) window.EduGamer.applyVoice(u);
     window.speechSynthesis.speak(u);
 }
 function stopSpeak() { window.speechSynthesis.cancel(); }

@@ -58,6 +58,63 @@ const EduGamer = {
         return { key, ...this.AUDIENCES[key] };
     },
 
+    // ==================== VOCE (sintesi vocale del dispositivo) ====================
+    // Unico punto che sceglie la voce italiana. I moduli chiamano
+    // EduGamer.applyVoice(utterance) dopo aver creato la SpeechSynthesisUtterance.
+    // Ordine: voce scelta nelle Impostazioni → voce "naturale" migliore disponibile.
+    _voices: [],
+
+    _loadVoices() {
+        if (typeof window === 'undefined' || !window.speechSynthesis) return;
+        const read = () => { this._voices = window.speechSynthesis.getVoices() || []; };
+        read();
+        // Chrome/Edge/Android caricano l'elenco in ritardo: senza questo la prima frase usa la voce di base
+        window.speechSynthesis.addEventListener?.('voiceschanged', read);
+    },
+
+    _scoreVoice(v) {
+        const n = v.name.toLowerCase();
+        let s = 0;
+        if (v.lang === 'it-IT' || v.lang === 'it_IT') s += 10;
+        if (/natural|neural|online/.test(n)) s += 60;          // Edge: "Microsoft Isabella Online (Natural)"
+        if (/enhanced|premium|avanzat|migliorat/.test(n)) s += 55; // iOS/macOS: voci "Avanzate"
+        if (/google/.test(n)) s += 45;                          // Chrome desktop: "Google italiano"
+        if (/it-it-x-|network|rete/.test(n)) s += 35;           // Android: voci di rete Google
+        if (/isabella|elsa|diego|giuseppe|alice|federica|luca|paola|emma|benigno/.test(n)) s += 5;
+        if (/compact|espeak/.test(n)) s -= 40;                  // voci di bassa qualità
+        return s;
+    },
+
+    /** Voci italiane disponibili, dalla più naturale alla meno. */
+    listItalianVoices() {
+        if (!this._voices.length && typeof window !== 'undefined' && window.speechSynthesis) this._voices = window.speechSynthesis.getVoices() || [];
+        return this._voices
+            .filter(v => (v.lang || '').toLowerCase().replace('_', '-').startsWith('it'))
+            .sort((a, b) => this._scoreVoice(b) - this._scoreVoice(a));
+    },
+
+    /** La voce da usare: quella scelta dall'utente se esiste ancora, altrimenti la migliore. */
+    getVoice() {
+        const list = this.listItalianVoices();
+        let chosen = null;
+        try { chosen = localStorage.getItem('edugamer_voice'); } catch {}
+        return (chosen && list.find(v => v.name === chosen)) || list[0] || null;
+    },
+
+    setVoiceName(name) {
+        if (name) localStorage.setItem('edugamer_voice', name);
+        else localStorage.removeItem('edugamer_voice');
+    },
+
+    /** Imposta lingua e voce migliore su una SpeechSynthesisUtterance. Non tocca rate/pitch. */
+    applyVoice(u) {
+        if (!u) return u;
+        u.lang = 'it-IT';
+        const v = this.getVoice();
+        if (v) u.voice = v;
+        return u;
+    },
+
     // ==================== CONFIGURAZIONE ACHIEVEMENT ====================
     ACHIEVEMENTS: [
         // Primi passi
@@ -708,6 +765,7 @@ const EduGamer = {
     // ==================== INIT ====================
     init: function() {
         this.migrateOldData();
+        this._loadVoices();
         console.log('🎮 EduGamer System inizializzato!');
         console.log('📊 Stats:', this.getStats());
         console.log('🏆 Level:', this.getLevel());

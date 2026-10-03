@@ -669,6 +669,7 @@ const App = () => {
     if (stage === 'explore' || stage === 'connect') requestAnimationFrame(() => requestAnimationFrame(() => centerMap()));
   }, [stage, centerMap]);
   const getBestItVoice = () => {
+    if (window.EduGamer && window.EduGamer.getVoice) return window.EduGamer.getVoice();
     const v = window.speechSynthesis.getVoices(),
       it = v.filter(x => x.lang.startsWith('it'));
     return it.find(x => x.name.includes('Natural') || x.name.includes('Neural')) || it.find(x => x.name.includes('Google')) || it[0] || null;

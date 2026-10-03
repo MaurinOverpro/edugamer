@@ -55,10 +55,15 @@ Shared singleton loaded in every module via `<script src="game-system.js">`. Exp
 | `gemini_api_key` | Gemini API key entered by user |
 | `edu_xp` | Legacy XP key (kept for backwards compatibility) |
 | `edugamer_audience` | Target audience chosen in Home → Impostazioni: `elementari` / `medie` (default) / `superiori` / `adulti` |
+| `edugamer_voice` | Name of the speech-synthesis voice chosen in Impostazioni (empty = automatic best voice) |
 
 ### Audience (everyone, not just one student)
 
 EduGamer is meant for all ages (elementary → adults); DSA support is always on. **Never hard-code the audience in an AI prompt** ("scuola media", "ragazzo"): use `window.EduGamer.getAudience()` (`prompt` = who the user is, `tone` = register for that age), as the modules do via their local `AUD()` helper. UI copy must be age-neutral: no over-praise ("Sei bravissimo!", "fantastica!"); the pirate theme stays as narrative.
+
+### Voice (text-to-speech)
+
+All modules use the browser `speechSynthesis`. **Always call `window.EduGamer.applyVoice(u)` after `new SpeechSynthesisUtterance(...)`**: it sets `it-IT` and the best Italian voice (user choice → Edge "Natural"/"Online" → iOS "Enhanced/Avanzata" → "Google" → Android network voices). Never pick voices locally. Gemini TTS (`gemini-3.8-flash-lite-tts`) is a possible future upgrade, not implemented.
 
 ### AI Integration
 

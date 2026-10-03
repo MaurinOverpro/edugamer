@@ -304,6 +304,7 @@ const App = () => {
     const cleanText = cleanTextForSpeech(text);
     const u = new SpeechSynthesisUtterance(cleanText);
     u.lang = 'it-IT';
+    if (window.EduGamer && window.EduGamer.applyVoice) window.EduGamer.applyVoice(u);
     u.rate = speechRate;
     u.pitch = 1.0;
     u.onstart = () => setIsSpeaking(true);

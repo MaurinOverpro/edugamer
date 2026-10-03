@@ -125,6 +125,24 @@
             const [showSettings, setShowSettings] = useState(false);
             const [key, setKey] = useState(DB.getKey());
             const [showTutorMenu, setShowTutorMenu] = useState(false);
+            const [voices, setVoices] = useState([]);
+            const [voiceName, setVoiceName] = useState(() => localStorage.getItem('edugamer_voice') || '');
+            useEffect(() => {
+                if (!window.speechSynthesis) return;
+                const load = () => setVoices(window.EduGamer ? window.EduGamer.listItalianVoices() : window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('it')));
+                load();
+                window.speechSynthesis.addEventListener('voiceschanged', load);
+                return () => window.speechSynthesis.removeEventListener('voiceschanged', load);
+            }, []);
+            const testVoice = () => {
+                if (!window.speechSynthesis) return;
+                window.speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance('Ciao! Questa è la voce che leggerà i testi di EduGamer.');
+                u.lang = 'it-IT'; u.rate = 0.9;
+                const v = voices.find(x => x.name === voiceName) || (window.EduGamer && window.EduGamer.getVoice());
+                if (v) u.voice = v;
+                window.speechSynthesis.speak(u);
+            };
             const [audience, setAudience] = useState(() => window.EduGamer ? window.EduGamer.getAudienceKey() : (localStorage.getItem('edugamer_audience') || 'medie'));
 
             // Aggiorna XP in tempo reale — reattivo agli eventi invece del polling
@@ -145,6 +163,7 @@
             const saveKey = () => { 
                 DB.setKey(key); 
                 if (window.EduGamer) window.EduGamer.setAudienceKey(audience); else localStorage.setItem('edugamer_audience', audience);
+                if (voiceName) localStorage.setItem('edugamer_voice', voiceName); else localStorage.removeItem('edugamer_voice');
                 setShowSettings(false); 
                 alert("Impostazioni salvate."); 
             };
@@ -180,6 +199,16 @@
                                     </button>
                                 ))}
                             </div>
+                            <p className="text-slate-400 text-sm mb-2 text-left">🔊 Voce di lettura</p>
+                            <div className="flex gap-2 mb-1">
+                                <select value={voiceName} onChange={e => setVoiceName(e.target.value)}
+                                    className="flex-1 min-w-0 bg-slate-900 p-3 rounded-xl text-white border border-slate-600 text-sm">
+                                    <option value="">Automatica (la più naturale)</option>
+                                    {voices.map(v => <option key={v.name} value={v.name}>{v.name}</option>)}
+                                </select>
+                                <button type="button" onClick={testVoice} className="px-4 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-sm">▶ Prova</button>
+                            </div>
+                            <p className="text-slate-500 text-xs mb-4 text-left">{voices.length ? `${voices.length} voci italiane su questo dispositivo.` : 'Nessuna voce italiana trovata su questo dispositivo.'} Su iPhone/iPad puoi scaricare voci "Avanzate" da Impostazioni → Accessibilità → Contenuto letto ad alta voce.</p>
                             <div className="flex gap-2 flex-col sm:flex-row">
                                 <button onClick={() => setShowSettings(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold p-3 rounded-xl transition-all">ANNULLA</button>
                                 <button onClick={saveKey} className="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold p-3 rounded-xl transition-all shadow-lg">SALVA</button>

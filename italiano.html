@@ -206,10 +206,7 @@ Rispondi SOLO con JSON:
                     u.lang = 'it-IT'; 
                     u.rate = 0.9;
                     
-                    const voices = window.speechSynthesis.getVoices();
-                    const itVoices = voices.filter(v => v.lang.startsWith('it'));
-                    const bestVoice = itVoices.find(v => v.name.includes('Natural') || v.name.includes('Google')) || itVoices[0];
-                    if(bestVoice) u.voice = bestVoice;
+                    if (window.EduGamer && window.EduGamer.applyVoice) window.EduGamer.applyVoice(u);
                     
                     u.onend = () => { chunkIndex++; speakNextChunk(); };
                     u.onerror = () => { if (currentSeq === window.speechSequenceID) { chunkIndex++; speakNextChunk(); } };

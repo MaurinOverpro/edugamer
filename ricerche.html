@@ -104,6 +104,7 @@ function useSpeech() {
         window.speechSynthesis.cancel();
         const utt = new SpeechSynthesisUtterance(text);
         utt.lang = 'it-IT';
+        if (window.EduGamer && window.EduGamer.applyVoice) window.EduGamer.applyVoice(utt);
         utt.rate = 0.92;
         utt.onstart = () => setSpeaking(true);
         utt.onend   = () => setSpeaking(false);

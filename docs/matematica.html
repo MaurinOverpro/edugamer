@@ -372,6 +372,7 @@ const App = () => {
     u.lang = 'it-IT';
     u.rate = 0.85;
     u.pitch = 1.0;
+    if (window.EduGamer && window.EduGamer.applyVoice) window.EduGamer.applyVoice(u);
     window.speechSynthesis.speak(u);
   };
   const handleBtn = v => {

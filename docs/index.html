@@ -142,6 +142,25 @@ const App = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [key, setKey] = useState(DB.getKey());
   const [showTutorMenu, setShowTutorMenu] = useState(false);
+  const [voices, setVoices] = useState([]);
+  const [voiceName, setVoiceName] = useState(() => localStorage.getItem('edugamer_voice') || '');
+  useEffect(() => {
+    if (!window.speechSynthesis) return;
+    const load = () => setVoices(window.EduGamer ? window.EduGamer.listItalianVoices() : window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('it')));
+    load();
+    window.speechSynthesis.addEventListener('voiceschanged', load);
+    return () => window.speechSynthesis.removeEventListener('voiceschanged', load);
+  }, []);
+  const testVoice = () => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance('Ciao! Questa è la voce che leggerà i testi di EduGamer.');
+    u.lang = 'it-IT';
+    u.rate = 0.9;
+    const v = voices.find(x => x.name === voiceName) || window.EduGamer && window.EduGamer.getVoice();
+    if (v) u.voice = v;
+    window.speechSynthesis.speak(u);
+  };
   const [audience, setAudience] = useState(() => window.EduGamer ? window.EduGamer.getAudienceKey() : localStorage.getItem('edugamer_audience') || 'medie');
   useEffect(() => {
     const refresh = () => setXp(DB.getXP());
@@ -159,6 +178,7 @@ const App = () => {
   const saveKey = () => {
     DB.setKey(key);
     if (window.EduGamer) window.EduGamer.setAudienceKey(audience);else localStorage.setItem('edugamer_audience', audience);
+    if (voiceName) localStorage.setItem('edugamer_voice', voiceName);else localStorage.removeItem('edugamer_voice');
     setShowSettings(false);
     alert("Impostazioni salvate.");
   };
@@ -215,7 +235,26 @@ const App = () => {
       className: "text-xl"
     }, ic), React.createElement("div", null, lb), React.createElement("div", {
       className: "text-xs font-normal text-slate-400"
-    }, age)))), React.createElement("div", {
+    }, age)))), React.createElement("p", {
+      className: "text-slate-400 text-sm mb-2 text-left"
+    }, "\uD83D\uDD0A Voce di lettura"), React.createElement("div", {
+      className: "flex gap-2 mb-1"
+    }, React.createElement("select", {
+      value: voiceName,
+      onChange: e => setVoiceName(e.target.value),
+      className: "flex-1 min-w-0 bg-slate-900 p-3 rounded-xl text-white border border-slate-600 text-sm"
+    }, React.createElement("option", {
+      value: ""
+    }, "Automatica (la pi\xF9 naturale)"), voices.map(v => React.createElement("option", {
+      key: v.name,
+      value: v.name
+    }, v.name))), React.createElement("button", {
+      type: "button",
+      onClick: testVoice,
+      className: "px-4 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-sm"
+    }, "\u25B6 Prova")), React.createElement("p", {
+      className: "text-slate-500 text-xs mb-4 text-left"
+    }, voices.length ? `${voices.length} voci italiane su questo dispositivo.` : 'Nessuna voce italiana trovata su questo dispositivo.', " Su iPhone/iPad puoi scaricare voci \"Avanzate\" da Impostazioni \u2192 Accessibilit\xE0 \u2192 Contenuto letto ad alta voce."), React.createElement("div", {
       className: "flex gap-2 flex-col sm:flex-row"
     }, React.createElement("button", {
       onClick: () => setShowSettings(false),
