@@ -153,6 +153,9 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
         const MODEL = "gemini-3.5-flash-lite";
+        // Per i numeri serve il modello di ragionamento matematico: il lite giudicava "sbagliati" calcoli giusti (6 su 9 nei test del 5/10/2026).
+        const MATH_MODEL = "gemini-3.6-flash";
+        const isMathTalk = (msg, materia) => (materia && /Matematica|DISCOVER/.test(materia.label)) || /\d\s*[-+x×*:÷\/=]\s*\d/.test(msg || '');
 
         const DB = {
             getKey: () => localStorage.getItem('gemini_api_key'),
@@ -171,6 +174,7 @@ LINEE GUIDA PER IL TUO STILE:
 3. **Elenchi Puntati:** Usali SOLO se devi elencare 3 o più cose. Altrimenti usa frasi discorsive.
 4. **Lunghezza:** Risposte brevi (massimo 50-60 parole) per non stancare la lettura.
 5. **Esempi:** Fai esempi concreti, adatti all'età e agli interessi di chi ti scrive.
+6. **Compiti ed esercizi:** Se ti chiede di risolvere un esercizio, un problema o un compito (dargli il risultato, la risposta da copiare, un testo già scritto), NON dare il risultato finale né la soluzione completa. Aiutalo a fare solo il primo passo con una domanda o un suggerimento, poi lascia che continui lui. Per i problemi di matematica puoi proporgli DISCOVER, il modulo di EduGamer dove si fotografa il problema e lo si risolve un passo alla volta con aiuti graduali (non descriverlo in altro modo). Se insiste, spiega con gentilezza che il risultato lo trova lui e offri un aiuto un po' più vicino, mai la soluzione intera. Spiegare concetti e regole, o fare esempi diversi dall'esercizio, va sempre bene. Se ti propone la SUA risposta, prima rifai tu il calcolo con attenzione, poi la prima cosa che scrivi è se è giusta o sbagliata: se è giusta diglielo chiaramente; se è sbagliata indica dove guardare, senza correggerla al posto suo.
 
 Obiettivo: Spiegare concetti difficili in modo chiaro e accessibile. Rispondi sempre in italiano.`;
 
@@ -211,7 +215,9 @@ Obiettivo: Spiegare concetti difficili in modo chiaro e accessibile. Rispondi se
 
             const contents = [systemContents, modelAck, ...userContents, { role: 'user', parts: [{ text: finalMsg }] }];
 
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
+            const recent = history.slice(-2).map(m => m.text).join(' ');
+            const model = isMathTalk(msg + ' ' + recent, materia) ? MATH_MODEL : MODEL;
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ contents })
             });
