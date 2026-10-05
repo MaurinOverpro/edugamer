@@ -277,13 +277,13 @@ const Base10Renderer = ({
   const positions = allPos.slice(startIdx);
   const sepBefore = new Set(['m', 'mln']);
   const SIZE = {
-    u: 12,
-    d: 14,
-    c: 17,
-    m: 21,
-    dm: 25,
-    cm: 30,
-    mln: 36
+    u: 14,
+    d: 17,
+    c: 20,
+    m: 24,
+    dm: 29,
+    cm: 35,
+    mln: 42
   };
   const GAP = 3;
   const gridH = 3 * Math.max(...positions.map(p => SIZE[p.key])) + 2 * GAP;
@@ -319,7 +319,8 @@ const Base10Renderer = ({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        minWidth: '36px'
+        minWidth: '36px',
+        flexShrink: 0
       }
     }, React.createElement("div", {
       style: {

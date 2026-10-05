@@ -202,7 +202,7 @@
             const sepBefore = new Set(['m', 'mln']);
             // Ogni posizione è un pezzo ~20% più grande della precedente (colore + misura = doppio indizio).
             // I pezzi stanno in un quadrato 3×3 riempito dal basso: con 9 è pieno, il decimo non entra → cambio.
-            const SIZE = { u:12, d:14, c:17, m:21, dm:25, cm:30, mln:36 };
+            const SIZE = { u:14, d:17, c:20, m:24, dm:29, cm:35, mln:42 };
             const GAP = 3;
             const gridH = 3 * Math.max(...positions.map(p => SIZE[p.key])) + 2 * GAP;
 
@@ -221,7 +221,7 @@
                                     {showSep && (
                                         <div style={{width:'1px',background:'#475569',flexShrink:0,margin:'0 2px',alignSelf:'stretch'}}></div>
                                     )}
-                                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',minWidth:'36px'}}>
+                                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',minWidth:'36px',flexShrink:0}}>
                                         <div style={{fontSize:'9px',fontWeight:'bold',textTransform:'uppercase',color:pos.color,background:pos.bg,border:`1px solid ${pos.border}`,borderRadius:'4px',padding:'2px 4px',marginBottom:'4px',letterSpacing:'0.05em',whiteSpace:'nowrap'}}>
                                             {pos.label}
                                         </div>
