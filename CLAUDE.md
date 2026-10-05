@@ -72,6 +72,7 @@ All modules use the browser `speechSynthesis`. **Always call `window.EduGamer.ap
 All modules call the Google Gemini API directly from the browser. Models are chosen per task (verified on Google's docs, 3 Oct 2026):
 - **Math reasoning** (`matematica`, `risolvitore`, `discover`): `gemini-3.6-flash` — official replacement for `gemini-3-flash-preview`; paid price doubles on 1 Jan 2027.
 - **Language / maps / chat / research** (`italiano`, `lavagna`, `tutor`, `ricerche`, `isola` text): `gemini-3.5-flash-lite` — cheapest 3.5 model, accepts image input.
+- **Tutor exception**: when the talk is about numbers (materia Matematica/DISCOVER, or an operation like `24-9` in the message or the last 2 turns) `tutor.html` switches to `MATH_MODEL` = `gemini-3.6-flash`. Tested 5 Oct 2026: the lite model called correct calculations wrong 6 times out of 9; 3.6-flash 18/18. The tutor prompt also forbids doing homework for the student (first step + DISCOVER, never the full solution).
 - **Images** (`isola` avatar, `ricerche` illustrations): `gemini-3.1-flash-image` ("Nano Banana 2", stable).
 - **Wanted Poster** (`profilo`): `gemini-3-pro-image` ("Nano Banana Pro", stable) — best at rendering text inside images.
 - The `-preview` image models were shut down on 25 June 2026. Check https://ai.google.dev/gemini-api/docs/deprecations before changing models.
