@@ -276,6 +276,17 @@ const Base10Renderer = ({
   const startIdx = firstNZ === -1 ? 6 : firstNZ;
   const positions = allPos.slice(startIdx);
   const sepBefore = new Set(['m', 'mln']);
+  const SIZE = {
+    u: 12,
+    d: 14,
+    c: 17,
+    m: 21,
+    dm: 25,
+    cm: 30,
+    mln: 36
+  };
+  const GAP = 3;
+  const gridH = 3 * Math.max(...positions.map(p => SIZE[p.key])) + 2 * GAP;
   return React.createElement("div", {
     className: "bg-slate-800/40 p-3 rounded-xl border border-slate-700 w-full animate-fade-in mb-3"
   }, label && React.createElement("div", {
@@ -299,10 +310,9 @@ const Base10Renderer = ({
       style: {
         width: '1px',
         background: '#475569',
-        height: '140px',
         flexShrink: 0,
         margin: '0 2px',
-        alignSelf: 'center'
+        alignSelf: 'stretch'
       }
     }), React.createElement("div", {
       style: {
@@ -328,16 +338,26 @@ const Base10Renderer = ({
     }, pos.label), React.createElement("div", {
       style: {
         display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        gap: '2px',
-        height: '108px'
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        height: gridH + 'px'
+      }
+    }, React.createElement("div", {
+      style: {
+        display: 'flex',
+        flexWrap: 'wrap-reverse',
+        alignContent: 'flex-start',
+        gap: GAP + 'px',
+        width: 3 * SIZE[pos.key] + 2 * GAP + 'px'
       }
     }, pos.digit > 0 ? [...Array(pos.digit)].map((_, i) => React.createElement("div", {
       key: i,
-      className: pos.cls
-    })) : null), React.createElement("div", {
+      className: pos.cls,
+      style: {
+        width: SIZE[pos.key] + 'px',
+        height: SIZE[pos.key] + 'px'
+      }
+    })) : null)), React.createElement("div", {
       style: {
         fontSize: '22px',
         fontWeight: '900',

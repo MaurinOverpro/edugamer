@@ -200,6 +200,11 @@
             const startIdx = firstNZ === -1 ? 6 : firstNZ;
             const positions = allPos.slice(startIdx);
             const sepBefore = new Set(['m', 'mln']);
+            // Ogni posizione è un pezzo ~20% più grande della precedente (colore + misura = doppio indizio).
+            // I pezzi stanno in un quadrato 3×3 riempito dal basso: con 9 è pieno, il decimo non entra → cambio.
+            const SIZE = { u:12, d:14, c:17, m:21, dm:25, cm:30, mln:36 };
+            const GAP = 3;
+            const gridH = 3 * Math.max(...positions.map(p => SIZE[p.key])) + 2 * GAP;
 
             return (
                 <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700 w-full animate-fade-in mb-3">
@@ -214,14 +219,16 @@
                             return (
                                 <React.Fragment key={pos.key}>
                                     {showSep && (
-                                        <div style={{width:'1px',background:'#475569',height:'140px',flexShrink:0,margin:'0 2px',alignSelf:'center'}}></div>
+                                        <div style={{width:'1px',background:'#475569',flexShrink:0,margin:'0 2px',alignSelf:'stretch'}}></div>
                                     )}
                                     <div style={{display:'flex',flexDirection:'column',alignItems:'center',minWidth:'36px'}}>
                                         <div style={{fontSize:'9px',fontWeight:'bold',textTransform:'uppercase',color:pos.color,background:pos.bg,border:`1px solid ${pos.border}`,borderRadius:'4px',padding:'2px 4px',marginBottom:'4px',letterSpacing:'0.05em',whiteSpace:'nowrap'}}>
                                             {pos.label}
                                         </div>
-                                        <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',gap:'2px',height:'108px'}}>
-                                            {pos.digit > 0 ? [...Array(pos.digit)].map((_,i) => <div key={i} className={pos.cls}></div>) : null}
+                                        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'center',height:gridH+'px'}}>
+                                            <div style={{display:'flex',flexWrap:'wrap-reverse',alignContent:'flex-start',gap:GAP+'px',width:(3*SIZE[pos.key]+2*GAP)+'px'}}>
+                                                {pos.digit > 0 ? [...Array(pos.digit)].map((_,i) => <div key={i} className={pos.cls} style={{width:SIZE[pos.key]+'px',height:SIZE[pos.key]+'px'}}></div>) : null}
+                                            </div>
                                         </div>
                                         <div style={{fontSize:'22px',fontWeight:'900',color:pos.digit>0?pos.color:'#475569',marginTop:'4px',paddingTop:'4px',borderTop:`2px solid ${pos.border}`,minWidth:'36px',textAlign:'center',lineHeight:1}}>
                                             {pos.digit}
