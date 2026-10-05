@@ -49,7 +49,7 @@ Le props colore che accettano un esadecimale (`color` in `PirateModal`, `PathPro
 - Personaggi dell'Isola: `CharacterQuote`. Squall 🦜 #38bdf8, Numerus il Kraken 🐙 #fbbf24, Zara 🔭 #4ade80, Isabella 🌊 #c084fc, Rex 🗝️ #fb923c, Barbanera 💀 #fde68a.
 - Finestre: `PirateModal` (overlay; `overlay={false}` per mostrarla dentro la pagina). Traguardi: `Celebration`.
 - Tutor AI: `ChatThread` + `ChatBubble` (`from="studente"` verde a destra, `from="tutor"` viola a sinistra).
-- Matematica: `PlaceValueBlocks`. Colori fissi: migliaia arancio, centinaia viola, decine blu, unità verdi.
+- Matematica: `PlaceValueBlocks` (da 0 a 9.999.999). Un pezzo per ogni unità della cifra, in un quadrato 3×3 riempito dal basso. Colori fissi: unità verdi, decine blu, centinaia viola, migliaia arancio, poi rosso, rosa e oro per DM, CM e milioni. Ogni posizione ha un pezzo ~20% più grande della precedente (14→42 px). La decina è **un solo pezzo blu**, mai una barretta da 10. Le quantità "sciolte" (es. i gruppi di una divisione, 852 ÷ 9 → gruppi da 9) sono pezzi **verdi**: il blu indica solo le decine. Se i gruppi sono tanti se ne mostrano 10, poi una pila «+ N gruppi da X» con bordo oro.
 - Gradi pirata dei livelli 1–10: Marinaio, Esploratore, Navigatore, Corsaro, Avventuriero, Cacciatore, Leggenda, Gran Maestro, Anima Antica, Gran Corsaro.
 
 Prima di dare stile, leggi `styles.css` (importa `_ds_bundle.css` con tutte le classi `eg-*` e le variabili) e il file `components/<gruppo>/<Nome>/<Nome>.prompt.md` del componente.

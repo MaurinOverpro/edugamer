@@ -8,7 +8,7 @@
 
 ## Ambiente (Windows, PC di Mauro)
 - Verifica a vista: nessun Chromium di Playwright installato. Si usa **Edge** tramite `DS_CHROMIUM_PATH="C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"`. Playwright va installato in `.ds-sync` con `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm i playwright`.
-- Se la shell ha la cwd dentro `ds-bundle/`, la build fallisce con `EPERM` (Windows blocca il rm della cartella): lancia sempre da `design-system/`.
+- Se la shell ha la cwd dentro `ds-bundle/`, la build fallisce con `EPERM` (Windows blocca il rm della cartella): lancia sempre da `design-system/`. Se succede, `ds-bundle/` resta mezzo svuotato e il run dopo si ferma con `[OUT_UNSAFE]`: è solo output generato, cancellalo (`rm -rf ds-bundle`) e rilancia il driver.
 - Il `.gitignore` della radice ignora `*token*`: non chiamare "tokens" un file sorgente (per questo il foglio si chiama `theme.css`).
 
 ## Correzioni fatte durante la verifica
@@ -19,6 +19,7 @@
 - Nessuno (render check 19/19 pulito, 0 bad/thin).
 
 ## Rischi per le prossime sincronizzazioni
+- **`PlaceValueBlocks` copia a mano colori e misure di `Base10Renderer` in `matematica.html`** (5 ott 2026: quadrato 3×3, pezzi 14→42 px, decina = un pezzo). Se cambiano nell'app, aggiorna `POS` nel componente.
 - **Disallineamento dall'app**: la libreria è una copia. Se l'app cambia palette o componenti, qui nessuno se ne accorge.
 - Il ritratto di `WantedPoster` senza immagine è un'emoji su fondo pergamena; nell'app il poster vero è un'immagine generata dall'AI (`edugamer_wanted_poster`).
 - Il convertitore è stato eseguito con Node 24.14 e TypeScript 5.x; le anteprime sono verificate solo su Edge (Chromium), non su Safari/Firefox.
