@@ -357,10 +357,10 @@ Obiettivo: Spiegare concetti difficili in modo chiaro e accessibile. Rispondi se
                 setLoading(false);
             };
 
+            // Solo due scelte: "non ho capito" e "vediamo se ho capito" (5/10/2026: tolti Esempio, doppione di
+            // Spiegami meglio, ed È giusto?, che non diceva cosa controllare; il controllo funziona scrivendo la propria risposta).
             const quickActions = [
                 { label: "🤔 Spiegami meglio", msg: "Non ho capito bene, puoi spiegarmelo in modo più semplice con un esempio?" },
-                { label: "📝 Esempio", msg: "Puoi farmi un esempio pratico dalla vita reale?" },
-                { label: "✅ È giusto?", msg: "Ho capito bene? Dimmi se è corretto." },
                 { label: "🎯 Quiz!", msg: null, isQuiz: true },
             ];
 
@@ -484,6 +484,7 @@ Obiettivo: Spiegare concetti difficili in modo chiaro e accessibile. Rispondi se
                                 onClick={() => handleQuickAction(action)}
                                 disabled={loading}
                                 className="quick-btn"
+                                style={{flex:1, minHeight:'56px'}}
                             >
                                 {action.label}
                             </button>

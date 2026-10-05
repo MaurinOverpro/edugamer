@@ -378,12 +378,6 @@ const App = () => {
     label: "🤔 Spiegami meglio",
     msg: "Non ho capito bene, puoi spiegarmelo in modo più semplice con un esempio?"
   }, {
-    label: "📝 Esempio",
-    msg: "Puoi farmi un esempio pratico dalla vita reale?"
-  }, {
-    label: "✅ È giusto?",
-    msg: "Ho capito bene? Dimmi se è corretto."
-  }, {
     label: "🎯 Quiz!",
     msg: null,
     isQuiz: true
@@ -484,7 +478,11 @@ const App = () => {
     key: i,
     onClick: () => handleQuickAction(action),
     disabled: loading,
-    className: "quick-btn"
+    className: "quick-btn",
+    style: {
+      flex: 1,
+      minHeight: '56px'
+    }
   }, action.label))), React.createElement("div", {
     className: "flex-shrink-0 p-3 bg-slate-800 border-t border-slate-700 flex gap-2 items-center"
   }, React.createElement("button", {
