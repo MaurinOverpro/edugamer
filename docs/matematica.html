@@ -94,48 +94,7 @@ const {
   useEffect,
   useRef
 } = React;
-const AUD = () => window.EduGamer.getAudience();
-const DB = {
-  addXP: (amount, source = 'matematica', action = 'activity') => {
-    return window.EduGamer.addXP(amount, source, action);
-  }
-};
-const solveProblem = async img => {
-  const prompt = `Sei un insegnante di sostegno per ${AUD().prompt}, con DSA. ${AUD().tone}
-            Risolvi questo problema in modo CHIARO e SEMPLICE.
-            
-            Struttura la risposta così:
-            # TESTO DEL PROBLEMA
-            # DATI (cosa sappiamo)
-            # RAGIONAMENTO (come lo risolvo)
-            # CALCOLI (passo per passo)
-            # RISPOSTA FINALE
-            
-            Usa linguaggio semplice, frasi corte. Puoi usare emoji ma solo all'inizio delle sezioni.`;
-  const body = {
-    contents: [{
-      parts: [{
-        text: prompt
-      }, {
-        inlineData: {
-          mimeType: "image/jpeg",
-          data: img.split(',')[1]
-        }
-      }]
-    }]
-  };
-  return window.EduGamer.geminiText(window.EduGamer.MODELS.math, body);
-};
 const cleanTextForSpeech = text => text.replace(/[*#_`~]/g, '').replace(/[\u{1F300}-\u{1F9FF}]/gu, '').replace(/\n+/g, '. ').replace(/\.+/g, '.').replace(/\s+/g, ' ').trim();
-const cleanTextForShare = text => text.replace(/#{1,3}\s*/g, '').replace(/\*\*/g, '').replace(/\*/g, '').replace(/_/g, '').trim();
-const generateExerciseVersion = text => {
-  let exercise = cleanTextForShare(text);
-  exercise = exercise.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').replace(/[\u{2600}-\u{26FF}]/gu, '');
-  exercise = exercise.replace(/(\d+\s*[\+\-\×\*x÷\/]\s*\d+)\s*=\s*(\d+)/gi, '$1 = ______');
-  exercise = exercise.replace(/=\s*(\d+)(\s|\.|\,|$)/g, '= ______$2');
-  exercise = exercise.replace(/(RISPOSTA FINALE[:\s]*)([\s\S]*?)(?=\n\n|$)/gi, '$1\n\n______________________________\n\n(Scrivi qui la tua risposta)');
-  return exercise;
-};
 const PieChart = ({
   den,
   colored
@@ -355,14 +314,10 @@ const Base10Renderer = ({
 const App = () => {
   const [mode, setMode] = useState('calc');
   const [display, setDisplay] = useState('');
-  const [solverImg, setSolverImg] = useState(null);
-  const [solution, setSolution] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [highlight, setHighlight] = useState({
     r: null,
     c: null
   });
-  const [showShareMenu, setShowShareMenu] = useState(false);
   const [fracNum, setFracNum] = useState(1);
   const [fracDen, setFracDen] = useState(4);
   const [fracShape, setFracShape] = useState('pizza');
@@ -387,68 +342,6 @@ const App = () => {
     } else {
       setDisplay(p => p + v);
     }
-  };
-  const handleUpload = e => {
-    const f = e.target.files[0];
-    if (!f) return;
-    const r = new FileReader();
-    r.onload = evt => setSolverImg(evt.target.result);
-    r.readAsDataURL(f);
-    setSolution(null);
-  };
-  const runSolver = async () => {
-    if (!solverImg) return;
-    setLoading(true);
-    try {
-      const text = await solveProblem(solverImg);
-      setSolution(text);
-      DB.addXP(50, 'matematica', 'problem');
-      speak("Ho trovato la soluzione.");
-    } catch (e) {
-      alert("Errore: " + e.message);
-    }
-    setLoading(false);
-  };
-  const shareViaWhatsApp = () => {
-    if (!solution) return;
-    const text = cleanTextForShare(solution);
-    const msg = encodeURIComponent(`📚 PROBLEMA RISOLTO\n\n${text}\n\n✅ Risolto con EduGamer`);
-    window.open(`https://wa.me/?text=${msg}`, '_blank');
-    setShowShareMenu(false);
-  };
-  const saveAsFile = () => {
-    if (!solution) return;
-    const text = cleanTextForShare(solution);
-    const content = `PROBLEMA RISOLTO - EduGamer\n${'='.repeat(40)}\n\n${text}\n\n${'='.repeat(40)}\nData: ${new Date().toLocaleDateString('it-IT')}`;
-    const blob = new Blob([content], {
-      type: 'text/plain;charset=utf-8'
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `problema_${new Date().toISOString().slice(0, 10)}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    setShowShareMenu(false);
-  };
-  const saveAsExercise = () => {
-    if (!solution) return;
-    const exercise = generateExerciseVersion(solution);
-    const content = `ESERCIZIO DA COMPLETARE - EduGamer\n${'='.repeat(40)}\n\nIstruzioni: Leggi il problema e completa i calcoli!\nPoi confronta con la soluzione completa.\n\n${'='.repeat(40)}\n\n${exercise}\n\n${'='.repeat(40)}\nData: ${new Date().toLocaleDateString('it-IT')}\n\nBuon lavoro!`;
-    const blob = new Blob([content], {
-      type: 'text/plain;charset=utf-8'
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `esercizio_${new Date().toISOString().slice(0, 10)}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    setShowShareMenu(false);
   };
   const renderFractions = () => {
     const wholes = Math.floor(fracNum / fracDen);
@@ -699,38 +592,6 @@ const App = () => {
     });
     return null;
   };
-  const renderShareMenu = () => {
-    if (!showShareMenu) return null;
-    return React.createElement("div", {
-      className: "fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4",
-      onClick: () => setShowShareMenu(false)
-    }, React.createElement("div", {
-      className: "bg-slate-800 rounded-2xl p-4 w-full max-w-sm border-2 border-slate-600",
-      onClick: e => e.stopPropagation()
-    }, React.createElement("h3", {
-      className: "text-xl font-bold text-center text-white mb-4"
-    }, "\uD83D\uDCE4 Condividi Soluzione"), React.createElement("div", {
-      className: "flex flex-col gap-3"
-    }, React.createElement("button", {
-      onClick: shareViaWhatsApp,
-      className: "share-btn bg-green-600 text-white"
-    }, React.createElement("span", {
-      className: "text-xl"
-    }, "\uD83D\uDCAC"), " WhatsApp"), React.createElement("button", {
-      onClick: saveAsFile,
-      className: "share-btn bg-purple-600 text-white"
-    }, React.createElement("span", {
-      className: "text-xl"
-    }, "\uD83D\uDCBE"), " Salva Soluzione"), React.createElement("button", {
-      onClick: saveAsExercise,
-      className: "share-btn bg-yellow-600 text-white"
-    }, React.createElement("span", {
-      className: "text-xl"
-    }, "\uD83D\uDCDD"), " Salva Esercizio"), React.createElement("button", {
-      onClick: () => setShowShareMenu(false),
-      className: "share-btn bg-slate-600 text-white mt-2"
-    }, "\u2715 Chiudi"))));
-  };
   return React.createElement("div", {
     className: "h-full flex flex-col p-2 gap-2 bg-slate-900"
   }, React.createElement("div", {
@@ -866,7 +727,7 @@ const App = () => {
     className: "font-bold text-indigo-300"
   }, "METODO DISCOVER"), React.createElement("div", {
     className: "text-xs text-slate-500"
-  }, "Impara il metodo di risoluzione guidato")))))), renderShareMenu());
+  }, "Impara il metodo di risoluzione guidato")))))));
 };
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(App, null));
