@@ -155,11 +155,8 @@ const {
   useEffect,
   useRef
 } = React;
-const MODEL = "gemini-3.5-flash-lite";
-const MATH_MODEL = "gemini-3.6-flash";
 const isMathTalk = (msg, materia) => materia && /Matematica|DISCOVER/.test(materia.label) || /\d\s*[-+x×*:÷\/=]\s*\d/.test(msg || '');
 const DB = {
-  getKey: () => localStorage.getItem('gemini_api_key'),
   addXP: (amount, action) => {
     if (window.EduGamer) window.EduGamer.addXP(amount, 'tutor', action);
   }
@@ -177,8 +174,6 @@ LINEE GUIDA PER IL TUO STILE:
 
 Obiettivo: Spiegare concetti difficili in modo chiaro e accessibile. Rispondi sempre in italiano.`;
 const chatWithAI = async (history, msg, isQuizRequest = false, materia = null) => {
-  const key = DB.getKey();
-  if (!key) throw new Error("Manca API Key!");
   let finalMsg = msg;
   if (isQuizRequest) {
     finalMsg = `Basandoti su quello che abbiamo discusso, fammi UNA domanda per verificare se ho capito. 
@@ -213,22 +208,13 @@ const chatWithAI = async (history, msg, isQuizRequest = false, materia = null) =
     }]
   }];
   const recent = history.slice(-2).map(m => m.text).join(' ');
-  const model = isMathTalk(msg + ' ' + recent, materia) ? MATH_MODEL : MODEL;
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      contents
-    })
+  const {
+    MODELS
+  } = window.EduGamer;
+  const model = isMathTalk(msg + ' ' + recent, materia) ? MODELS.math : MODELS.text;
+  return window.EduGamer.geminiText(model, {
+    contents
   });
-  if (!res.ok) {
-    const errData = await res.json().catch(() => ({}));
-    throw new Error(errData.error?.message || `Errore API ${res.status}`);
-  }
-  const data = await res.json();
-  return data.candidates[0].content.parts[0].text;
 };
 const MATERIA_CONFIG = {
   matematica: {

@@ -302,6 +302,78 @@ const EduGamer = {
         synth.__egAI = true;
     },
 
+    // ==================== AI (Gemini) ====================
+    // Unico punto da cui i moduli chiamano Gemini. Per cambiare un modello si tocca
+    // solo MODELS (verifica prima https://ai.google.dev/gemini-api/docs/deprecations).
+    MODELS: {
+        math:   'gemini-3.6-flash',        // ragionamento matematico (matematica, risolvitore, discover, tutor sui numeri)
+        text:   'gemini-3.5-flash-lite',   // lingua, mappe, chat, ricerche
+        image:  'gemini-3.1-flash-image',  // avatar Isola, illustrazioni Ricerche
+        poster: 'gemini-3-pro-image'       // Wanted Poster (testo dentro l'immagine)
+    },
+
+    getApiKey() {
+        try { return localStorage.getItem('gemini_api_key') || ''; } catch { return ''; }
+    },
+
+    /**
+     * Chiama generateContent e restituisce la risposta JSON completa.
+     * Lancia sempre Error con un messaggio in italiano da mostrare all'utente.
+     * opts.timeout in ms (default 30 s; le immagini usano 120 s).
+     */
+    async gemini(model, body, opts = {}) {
+        const key = this.getApiKey();
+        if (!key) throw new Error('Manca la chiave API: vai nella Home → Impostazioni e inseriscila.');
+        const timeout = opts.timeout || 30000;
+
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), timeout);
+        let res;
+        try {
+            res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body), signal: ctrl.signal
+            });
+        } catch (e) {
+            if (e.name === 'AbortError') throw new Error(`Tempo scaduto (${Math.round(timeout / 1000)} s). Controlla la connessione e riprova.`);
+            throw new Error('Connessione non riuscita. Controlla internet e riprova.');
+        } finally {
+            clearTimeout(timer);
+        }
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            const msg = err?.error?.message || '';
+            if (res.status === 429) throw new Error('Limite di richieste raggiunto. Riprova più tardi.');
+            if (res.status === 401 || res.status === 403 || /API key/i.test(msg)) throw new Error('Chiave API non valida: controllala nella Home → Impostazioni.');
+            throw new Error(`Errore AI (${res.status})${msg ? ': ' + msg : ''}`);
+        }
+        return res.json();
+    },
+
+    /** Testo della risposta (parti di testo unite). Accetta un prompt stringa o un body completo. */
+    async geminiText(model, promptOrBody, opts) {
+        const body = typeof promptOrBody === 'string' ? { contents: [{ parts: [{ text: promptOrBody }] }] } : promptOrBody;
+        const data = await this.gemini(model, body, opts);
+        const text = (data.candidates?.[0]?.content?.parts || []).filter(p => p.text && !p.thought).map(p => p.text).join('');
+        if (!text) throw new Error("L'AI non ha risposto. Riprova.");
+        return text.trim();
+    },
+
+    /** Risposta JSON già convertita in oggetto (toglie eventuali ```json ... ```). */
+    async geminiJSON(model, promptOrBody, opts) {
+        const text = await this.geminiText(model, promptOrBody, opts);
+        try { return JSON.parse(text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()); }
+        catch { throw new Error("L'AI ha risposto in modo inatteso. Riprova."); }
+    },
+
+    /** Immagine generata: { mime, data (base64) }. */
+    async geminiImage(model, body, opts = {}) {
+        const data = await this.gemini(model, body, { timeout: 120000, ...opts });
+        const part = (data.candidates?.[0]?.content?.parts || []).find(p => p.inlineData);
+        if (!part) throw new Error("L'AI non ha generato l'immagine. Riprova.");
+        return { mime: part.inlineData.mimeType, data: part.inlineData.data };
+    },
+
     // ==================== CONFIGURAZIONE ACHIEVEMENT ====================
     ACHIEVEMENTS: [
         // Primi passi

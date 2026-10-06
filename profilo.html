@@ -107,8 +107,6 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        const IMAGE_MODEL = "gemini-3-pro-image";
-
         const PIRATE_LEVELS = {
             1: "a young cheerful pirate apprentice with a tiny bandana and big curious eyes, just starting their adventure on the seas",
             2: "a young pirate wearing a straw hat, carrying a small sword, with a determined and hopeful expression",
@@ -295,8 +293,7 @@ Report generato da EduGamer`;
             };
 
             const generateWantedPoster = async () => {
-                const key = localStorage.getItem('gemini_api_key');
-                if (!key || !uploadedPhoto) return;
+                if (!window.EduGamer.getApiKey() || !uploadedPhoto) return;
                 setIsGenerating(true);
                 setPosterError(null);
                 setGeneratedPoster(null);
@@ -340,40 +337,30 @@ Strict requirements:
                 ];
 
                 try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${IMAGE_MODEL}:generateContent?key=${key}`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            contents: [{ parts }],
-                            generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
-                        })
+                    const img = await window.EduGamer.geminiImage(window.EduGamer.MODELS.poster, {
+                        contents: [{ parts }],
+                        generationConfig: { responseModalities: ["IMAGE", "TEXT"] }
                     });
-                    const data = await res.json();
-                    const resParts = data?.candidates?.[0]?.content?.parts || [];
-                    const imgPart = resParts.find(p => p.inlineData);
-                    if (imgPart) {
-                        const posterData = {
-                            data: imgPart.inlineData.data,
-                            mime: imgPart.inlineData.mimeType,
-                            name: playerName,
-                            level: level.level,
-                            xp: stats.totalXP,
-                            date: new Date().toISOString()
-                        };
-                        setGeneratedPoster(posterData);
-                        localStorage.setItem('edugamer_wanted_poster', JSON.stringify(posterData));
-                        // Save to history (max 8, deduplicated by data)
-                        const prevHistory = JSON.parse(localStorage.getItem('edugamer_wanted_posters_history') || '[]');
-                        const deduped = prevHistory.filter(h => h.data !== posterData.data);
-                        const updatedHistory = [posterData, ...deduped].slice(0, 8);
-                        localStorage.setItem('edugamer_wanted_posters_history', JSON.stringify(updatedHistory));
-                        setPosterHistory(updatedHistory);
-                    } else {
-                        setPosterError("Nessuna immagine ricevuta. Riprova!");
-                    }
+                    const posterData = {
+                        data: img.data,
+                        mime: img.mime,
+                        name: playerName,
+                        level: level.level,
+                        xp: stats.totalXP,
+                        date: new Date().toISOString()
+                    };
+                    setGeneratedPoster(posterData);
+                    localStorage.setItem('edugamer_wanted_poster', JSON.stringify(posterData));
+                    // Save to history (max 8, deduplicated by data)
+                    const prevHistory = JSON.parse(localStorage.getItem('edugamer_wanted_posters_history') || '[]');
+                    const deduped = prevHistory.filter(h => h.data !== posterData.data);
+                    const updatedHistory = [posterData, ...deduped].slice(0, 8);
+                    localStorage.setItem('edugamer_wanted_posters_history', JSON.stringify(updatedHistory));
+                    setPosterHistory(updatedHistory);
                 } catch(e) {
-                    setPosterError("Errore di rete. Controlla la connessione.");
+                    setPosterError(e.message);
                 }
+
                 setIsGenerating(false);
             };
 

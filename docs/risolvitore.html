@@ -222,9 +222,7 @@
 
 <script>
 // ===== CONFIG =====
-const MODEL = 'gemini-3.6-flash';
 const AUD = () => window.EduGamer.getAudience();
-const getKey = () => localStorage.getItem('gemini_api_key') || '';
 
 // ===== TTS =====
 // Una sola voce alla volta: ogni nuova lettura annulla la precedente. Dopo cancel()
@@ -303,8 +301,6 @@ async function handleFoto(event) {
     reader.readAsDataURL(file);
 }
 async function extractTextFromImage(imgData, mimeType) {
-    const key = getKey();
-    if (!key) throw new Error('API Key mancante! Vai alla Home → Impostazioni.');
     const prompt = `Sei un assistente allo studio. Guarda questa immagine ed estrai il testo del problema matematico.
 
 IGNORA completamente (NON trascrivere):
@@ -316,13 +312,8 @@ IGNORA completamente (NON trascrivere):
 ESTRAI solo la parte che racconta il problema vero e proprio: il testo narrativo con i dati numerici che lo studente deve usare per risolvere.
 
 Rispondi SOLO con il testo pulito del problema, senza spiegazioni né aggiunte.`;
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ contents:[{ parts:[{ text:prompt },{ inlineData:{ mimeType, data:imgData.split(',')[1] } }] }] })
-    });
-    if (!res.ok) throw new Error('Errore API ' + res.status);
-    const data = await res.json();
-    return data.candidates[0].content.parts[0].text.trim();
+    return window.EduGamer.geminiText(window.EduGamer.MODELS.math,
+        { contents:[{ parts:[{ text:prompt },{ inlineData:{ mimeType, data:imgData.split(',')[1] } }] }] });
 }
 
 // ===== XP =====
@@ -390,8 +381,7 @@ function completeStep(n) {
 async function analyzeProblem() {
     const text=document.getElementById('prob-input').value.trim();
     if(!text){fb(1,'err','❌ Scrivi un problema prima di continuare!');return;}
-    const key=getKey();
-    if(!key){fb(1,'err','⚠️ API Key mancante! Vai alla Home → Impostazioni.');return;}
+    if(!window.EduGamer.getApiKey()){fb(1,'err','⚠️ API Key mancante! Vai alla Home → Impostazioni.');return;}
     S.text=text;
     document.getElementById('loading').classList.remove('hidden');
     document.getElementById('step-1').classList.add('hidden');
@@ -446,15 +436,8 @@ ESEMPIO JSON (adatta contenuto al problema reale):
 Analizza il problema reale e genera il JSON corretto seguendo questa struttura.`;
 
     try {
-        const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,{
-            method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
-        });
-        if(!res.ok) throw new Error('Errore API '+res.status);
-        const result=await res.json();
-        let txt=result.candidates[0].content.parts[0].text;
-        txt=txt.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
-        S.data=JSON.parse(txt);
+        S.data=await window.EduGamer.geminiJSON(window.EduGamer.MODELS.math, prompt);
+
         document.getElementById('loading').classList.add('hidden');
 
         // Sticky problem

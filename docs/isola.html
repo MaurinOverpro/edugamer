@@ -60,8 +60,6 @@ const {
   useEffect,
   useRef
 } = React;
-const MODEL_TEXT = "gemini-3.5-flash-lite";
-const MODEL_IMAGE = "gemini-3.1-flash-image";
 const LEVEL_XP = [0, 100, 300, 600, 1000, 1500, 2500, 4000, 6000, 10000];
 const calcLevel = xp => {
   let l = 1;
@@ -294,37 +292,22 @@ const DB = {
 };
 const AI = {
   generateAvatar: async (b64, mime, name) => {
-    const key = DB.getKey();
-    if (!key) throw new Error("Chiave API mancante");
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE}:generateContent?key=${key}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `Crea un avatar pirata cartoon colorato e divertente ispirato a questa foto. Stile fumetto vivace con colori saturi. Il pirata si chiama "${name}". Sfondo semplice. Solo il personaggio, ritratto dall'ombelico in su.`
-          }, {
-            inlineData: {
-              mimeType: mime,
-              data: b64
-            }
-          }]
-        }],
-        generationConfig: {
-          responseModalities: ['IMAGE']
-        }
-      })
+    const img = await window.EduGamer.geminiImage(window.EduGamer.MODELS.image, {
+      contents: [{
+        parts: [{
+          text: `Crea un avatar pirata cartoon colorato e divertente ispirato a questa foto. Stile fumetto vivace con colori saturi. Il pirata si chiama "${name}". Sfondo semplice. Solo il personaggio, ritratto dall'ombelico in su.`
+        }, {
+          inlineData: {
+            mimeType: mime,
+            data: b64
+          }
+        }]
+      }],
+      generationConfig: {
+        responseModalities: ['IMAGE']
+      }
     });
-    if (!res.ok) {
-      const e = await res.json();
-      throw new Error(e.error?.message || `Errore API ${res.status}`);
-    }
-    const data = await res.json();
-    const img = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-    if (!img) throw new Error("Nessuna immagine nella risposta AI");
-    return `data:${img.inlineData.mimeType};base64,${img.inlineData.data}`;
+    return `data:${img.mime};base64,${img.data}`;
   }
 };
 const Onboarding = ({

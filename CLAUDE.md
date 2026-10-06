@@ -69,15 +69,21 @@ All modules use the browser `speechSynthesis`. **Always call `window.EduGamer.ap
 
 ### AI Integration
 
-All modules call the Google Gemini API directly from the browser. Models are chosen per task (verified on Google's docs, 3 Oct 2026):
+All modules call the Google Gemini API directly from the browser, **always through `game-system.js`** — never write a `fetch` to Gemini inside a module:
+- `EduGamer.geminiText(model, promptOrBody, opts)` → text; `geminiJSON(...)` → parsed object (strips ```json fences); `geminiImage(model, body)` → `{ mime, data }`; `gemini(model, body)` → raw response.
+- Models: `EduGamer.MODELS.math` / `.text` / `.image` / `.poster`. To change a model, edit only `MODELS`.
+- Errors are thrown as `Error` with an Italian message ready for the UI (missing key, invalid key, 429, timeout, network). Timeout: 30 s default, 120 s for images, override with `{ timeout }`.
+- `EduGamer.getApiKey()` reads the key.
+
+Models are chosen per task (verified on Google's docs, 3 Oct 2026):
 - **Math reasoning** (`matematica`, `risolvitore`, `discover`): `gemini-3.6-flash` — official replacement for `gemini-3-flash-preview`; paid price doubles on 1 Jan 2027.
 - **Language / maps / chat / research** (`italiano`, `lavagna`, `tutor`, `ricerche`, `isola` text): `gemini-3.5-flash-lite` — cheapest 3.5 model, accepts image input.
 - **Tutor exception**: when the talk is about numbers (materia Matematica/DISCOVER, or an operation like `24-9` in the message or the last 2 turns) `tutor.html` switches to `MATH_MODEL` = `gemini-3.6-flash`. Tested 5 Oct 2026: the lite model called correct calculations wrong 6 times out of 9; 3.6-flash 18/18. The tutor prompt also forbids doing homework for the student (first step + DISCOVER, never the full solution).
 - **Images** (`isola` avatar, `ricerche` illustrations): `gemini-3.1-flash-image` ("Nano Banana 2", stable).
 - **Wanted Poster** (`profilo`): `gemini-3-pro-image` ("Nano Banana Pro", stable) — best at rendering text inside images.
 - The `-preview` image models were shut down on 25 June 2026. Check https://ai.google.dev/gemini-api/docs/deprecations before changing models.
-- Endpoint: `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`
-- The key is retrieved from localStorage before each call
+- Endpoint (inside `EduGamer.gemini`): `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`
+
 
 ### Tech Stack
 
