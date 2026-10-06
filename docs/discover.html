@@ -593,6 +593,7 @@ async function generatePDFReport(problemData, stepAnswers, stepAttempts, stepHin
   doc.text(`Suggerimenti utilizzati: ${totalHints}`, margin + 5, yPos);
   yPos += lineHeight;
   doc.text(`Tentativi totali effettuati: ${totalAttempts}`, margin + 5, yPos);
+  if (window.SoluzioneIllustrata) window.SoluzioneIllustrata.inserisciAllInizio(doc, await window.SoluzioneIllustrata.attendi());
   const totalPages = doc.internal.pages.length - 1;
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
@@ -699,6 +700,24 @@ const App = () => {
   const [calcDisplay, setCalcDisplay] = useState('');
   const [showCalc, setShowCalc] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  useEffect(() => {
+    if (screen === 'victory' && problemData && window.SoluzioneIllustrata) {
+      window.SoluzioneIllustrata.avvia({
+        titolo: '',
+        testo: problemData.testo_problema,
+        risposta: problemData.risposta_finale,
+        passi: problemData.workflow.map(s => ({
+          titolo: s.titolo,
+          domanda: s.domanda,
+          risposta: s.risposta_corretta,
+          spiegazione: s.hint_3
+        }))
+      });
+    } else if (screen === 'upload' && window.SoluzioneIllustrata) {
+      window.SoluzioneIllustrata.annulla();
+    }
+  }, [screen]);
   useEffect(() => {
     const key = DB.getKey();
     if (!key) {
@@ -1162,7 +1181,7 @@ const App = () => {
       className: "font-bold text-blue-300 mb-2"
     }, "IMPORTANTE!"), React.createElement("div", {
       className: "text-sm text-blue-200"
-    }, "Scarica il report PDF per rivedere tutti i passaggi e riscrivere la soluzione sul tuo quaderno. Questo ti aiuter\xE0 a ricordare meglio il metodo!")))), React.createElement("div", {
+    }, "Scarica il report PDF: all'inizio trovi la soluzione illustrata, poi tutti i passaggi per riscriverla sul quaderno. Questo ti aiuter\xE0 a ricordare meglio il metodo!")))), React.createElement("div", {
       className: "flex flex-col md:flex-row gap-3"
     }, React.createElement("button", {
       onClick: () => {
@@ -1172,9 +1191,17 @@ const App = () => {
       },
       className: "flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 rounded-xl text-lg md:text-xl active:scale-95"
     }, "\uD83D\uDD04 NUOVO PROBLEMA"), React.createElement("button", {
-      onClick: () => generatePDFReport(problemData, stepAnswers, stepAttempts, stepHints),
+      disabled: pdfBusy,
+      onClick: async () => {
+        setPdfBusy(true);
+        try {
+          await generatePDFReport(problemData, stepAnswers, stepAttempts, stepHints);
+        } finally {
+          setPdfBusy(false);
+        }
+      },
       className: "flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold py-4 rounded-xl text-lg md:text-xl active:scale-95"
-    }, "\uD83D\uDCC4 SCARICA REPORT PDF"), React.createElement("a", {
+    }, pdfBusy ? '⏳ PREPARO IL PDF…' : '📄 SCARICA REPORT PDF'), React.createElement("a", {
       href: "tutor.html?materia=discover",
       className: "bg-purple-700 text-white font-bold py-4 px-6 rounded-xl text-lg md:text-xl active:scale-95 flex items-center justify-center border-2 border-purple-400 no-underline"
     }, "\uD83C\uDF93 Tutor"), React.createElement("button", {
@@ -1193,5 +1220,7 @@ root.render(React.createElement(App, null));
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",__run);else __run();})();
 </script>
     <script src="game-system.js"></script>
+    <script src="soluzione-illustrata.js"></script>
+
 </body>
 </html>

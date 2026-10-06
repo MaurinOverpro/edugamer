@@ -214,7 +214,7 @@
         <p style="color:#e2e8f0;font-size:17px;margin-bottom:6px;">Hai risolto il problema!</p>
         <p style="color:#facc15;font-size:20px;font-weight:bold;margin-bottom:26px;">+<span id="v-xp">0</span> XP</p>
         <div style="display:flex;flex-direction:column;gap:12px;">
-            <button class="btn-p" style="justify-content:center;" onclick="downloadPDF()">📄 Scarica PDF per l'insegnante</button>
+            <button class="btn-p" style="justify-content:center;" onclick="downloadPDF(this)">📄 Scarica PDF (con soluzione illustrata)</button>
             <button class="btn-s" onclick="resetAll()">➜ Nuovo Problema</button>
         </div>
     </div>
@@ -223,6 +223,8 @@
 <script>
 // ===== CONFIG =====
 const AUD = () => window.EduGamer.getAudience();
+// Calcoli mostrati all'italiana: "3 * 0.80" -> "3 × 0,80" (solo visualizzazione: il controllo delle risposte usa i dati originali)
+const fmtCalc = s => String(s).replace(/\*/g,'×').replace(/(\d)\.(\d)/g,'$1,$2');
 
 // ===== TTS =====
 // Una sola voce alla volta: ogni nuova lettura annulla la precedente. Dopo cancel()
@@ -367,7 +369,9 @@ function completeStep(n) {
     setTimeout(()=>{
         const sc=document.getElementById('step-'+n);
         sc.classList.remove('active'); sc.classList.add('done');
+        if(n===5) avviaSoluzioneIllustrata();
         if(n<5){
+
             showStep(n+1); document.getElementById('step-'+(n+1)).classList.add('active');
             if(n===2) genS3();
             else if(n===3) genS4();
@@ -534,7 +538,7 @@ function renderS4(idx) {
                 <label class="q-label" style="font-size:17px;margin:0;flex:1;">${hiNums(q.domanda)}</label>
                 <button onclick="speak(getS4qs()[${idx}].domanda)" class="btn-speak">🔊</button>
             </div>
-            ${q.calcolo?`<div class="calc-prompt">🔢 ${escHtml(q.calcolo)} = ?</div>`:''}
+            ${q.calcolo?`<div class="calc-prompt">🔢 ${escHtml(fmtCalc(q.calcolo))} = ?</div>`:''}
             <input type="text" id="s4-cur" autocomplete="off" placeholder="Scrivi il risultato..." style="margin-top:8px;">
         </div>
         <button class="btn-p" onclick="checkS4cur(${idx})">✓ Verifica</button>
@@ -572,7 +576,7 @@ function checkS4cur(idx){
     }
     if(!validate(v,q.risposta,'number')){
         const fb4c=document.getElementById('fb-4c');
-        fb4c.textContent=`❌ Riprova! ${q.calcolo?'Il calcolo '+q.calcolo+' non fa '+v+'.':'Controlla il calcolo.'}`;
+        fb4c.textContent=`❌ Riprova! ${q.calcolo?'Il calcolo '+fmtCalc(q.calcolo)+' non fa '+v+'.':'Controlla il calcolo.'}`;
         fb4c.style.display='block';
         return;
     }
@@ -606,7 +610,7 @@ function checkS4cur(idx){
 function genS5(){
     const d=S.data, qs=getS4qs();
     let html='<div class="sum-box"><h4>📝 Riepilogo calcoli</h4><ul style="margin-left:16px;">';
-    qs.forEach(q=>{ if(q.calcolo) html+=`<li style="margin-bottom:7px;"><span style="color:#94a3b8;">${escHtml(q.etichetta||'')}:</span> <strong style="color:#4ade80;">${escHtml(q.calcolo)} = ${escHtml(q.risposta)}</strong></li>`; });
+    qs.forEach(q=>{ if(q.calcolo) html+=`<li style="margin-bottom:7px;"><span style="color:#94a3b8;">${escHtml(q.etichetta||'')}:</span> <strong style="color:#4ade80;">${escHtml(fmtCalc(q.calcolo))} = ${escHtml(fmtCalc(q.risposta))}</strong></li>`; });
     html+='</ul></div>';
     html+=`<div class="sol-box"><h4>🎯 Soluzione Finale</h4><p style="color:#a7f3d0;font-size:17px;line-height:1.7;">${escHtml(d.soluzione_finale.testo)}</p></div>`;
     // Box dati trovati nei calcoli, per riferimento immediato prima delle domande finali
@@ -644,7 +648,9 @@ function checkStep5(){
 // ===== RESET =====
 function resetAll(){
     document.getElementById('victory').style.display='none';
-    S.text='';S.data=null;S.done=[];S.s4idx=0;S.s4ans={};S.memory=[];
+    if(window.SoluzioneIllustrata) window.SoluzioneIllustrata.annulla();
+    S.text='';S.data=null;
+S.done=[];S.s4idx=0;S.s4ans={};S.memory=[];
     document.getElementById('prob-input').value='';
     document.getElementById('num-count').value='';
     document.getElementById('sticky-prob').classList.add('hidden');
@@ -674,14 +680,28 @@ function resetAll(){
 }
 
 // ===== PDF =====
-function downloadPDF(){
+// Soluzione illustrata: parte in sottofondo a fine percorso, va all'inizio del PDF.
+function avviaSoluzioneIllustrata(){
+    if(!window.SoluzioneIllustrata||!S.data) return;
+    const d=S.data, s3=getS3qs(), s4=getS4qs();
+    const passi=[{ titolo:'Trova i numeri', domanda:'Quali numeri servono?', risposta:(d.numeri_attesi||[]).join(', ') }];
+    if(s3.length) passi.push({ titolo:'Situazione iniziale', domanda:s3.map(q=>q.domanda).join(' '), risposta:s3.map(q=>(q.etichetta?q.etichetta+': ':'')+q.risposta).join('; ') });
+    s4.forEach(q=>passi.push({ titolo:q.etichetta||'Calcolo', domanda:q.domanda, risposta:fmtCalc(q.risposta), spiegazione:q.calcolo?`${fmtCalc(q.calcolo)} = ${fmtCalc(q.risposta)}`:'' }));
+    window.SoluzioneIllustrata.avvia({ titolo:'', testo:S.text, risposta:d.soluzione_finale.testo, passi });
+}
+async function downloadPDF(btn){
     if(!S.data){alert('Completa il problema prima di scaricare il PDF.');return;}
+    const label=btn?btn.textContent:'';
+    if(btn){btn.disabled=true;btn.textContent='⏳ Preparo il PDF…';}
+    try { await creaPDF(); } finally { if(btn){btn.disabled=false;btn.textContent=label;} }
+}
+async function creaPDF(){
     const {jsPDF}=window.jspdf;
     const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
     const W=210,M=18,CW=W-M*2;
     const today=new Date().toLocaleDateString('it-IT',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-    // Strip emoji and non-Latin-1 chars (jsPDF Helvetica supports only Latin-1)
-    const px=s=>String(s).replace(/—|–/g,'-').replace(/[^\x00-\xFF]/g,'').replace(/\s+/g,' ').trim();
+    // Strip emoji and non-Latin-1 chars (jsPDF Helvetica supports only Latin-1) — tranne €, che Helvetica ha
+    const px=s=>String(s).replace(/—|–/g,'-').replace(/[^\x00-\xFF€]/g,'').replace(/\s+/g,' ').trim();
     const sc=(...c)=>doc.setTextColor(...c);
     const sf=(...c)=>doc.setFillColor(...c);
     const sd=(...c)=>doc.setDrawColor(...c);
@@ -754,7 +774,7 @@ function downloadPDF(){
         let ty=y+7;dl.forEach(l=>{doc.text(l,M+7,ty);ty+=5.5;});
         if(q.calcolo){
             sc(4,120,87);doc.setFont('helvetica','bold');doc.setFontSize(12);
-            doc.text(px(q.calcolo)+' = '+px(q.risposta),M+7,y+bh-6);
+            doc.text(px(fmtCalc(q.calcolo))+' = '+px(fmtCalc(q.risposta)),M+7,y+bh-6);
             if(q.etichetta){sc(100,116,139);doc.setFontSize(10);doc.text(px(q.etichetta),W-M-2,y+bh-6,{align:'right'});}
         }
         y+=bh+6;
@@ -778,6 +798,7 @@ function downloadPDF(){
     sc(148,163,184);doc.setFont('helvetica','normal');doc.setFontSize(9);
     doc.text('Creato con EduGamer',W/2,290,{align:'center'});
 
+    if(window.SoluzioneIllustrata) window.SoluzioneIllustrata.inserisciAllInizio(doc, await window.SoluzioneIllustrata.attendi());
     doc.save('EduGamer_Problema_'+new Date().toLocaleDateString('it-IT').replace(/\//g,'-')+'.pdf');
 }
 
@@ -817,5 +838,7 @@ updateXP();
 </div>
 
 <script src="game-system.js"></script>
+<script src="soluzione-illustrata.js"></script>
+
 </body>
 </html>

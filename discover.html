@@ -677,6 +677,9 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
             yPos += lineHeight;
             doc.text(`Tentativi totali effettuati: ${totalAttempts}`, margin + 5, yPos);
             
+            // SOLUZIONE ILLUSTRATA come prime pagine (generata in sottofondo a fine percorso)
+            if (window.SoluzioneIllustrata) window.SoluzioneIllustrata.inserisciAllInizio(doc, await window.SoluzioneIllustrata.attendi());
+
             // FOOTER SU OGNI PAGINA
             const totalPages = doc.internal.pages.length - 1;
             for (let i = 1; i <= totalPages; i++) {
@@ -806,6 +809,21 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
             const [calcDisplay, setCalcDisplay] = useState('');
             const [showCalc, setShowCalc] = useState(false);
             const [showSuccessMessage, setShowSuccessMessage] = useState(null); // { type: 'success' | 'continue', message: '...' }
+            const [pdfBusy, setPdfBusy] = useState(false);
+
+            // A fine percorso parte in sottofondo la soluzione illustrata (va all'inizio del PDF)
+            useEffect(() => {
+                if (screen === 'victory' && problemData && window.SoluzioneIllustrata) {
+                    window.SoluzioneIllustrata.avvia({
+                        titolo: '',
+                        testo: problemData.testo_problema,
+                        risposta: problemData.risposta_finale,
+                        passi: problemData.workflow.map(s => ({ titolo: s.titolo, domanda: s.domanda, risposta: s.risposta_corretta, spiegazione: s.hint_3 }))
+                    });
+                } else if (screen === 'upload' && window.SoluzioneIllustrata) {
+                    window.SoluzioneIllustrata.annulla();
+                }
+            }, [screen]);
 
             // Controlla API key all'avvio
             useEffect(() => {
@@ -1397,7 +1415,7 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
                                     <div>
                                         <div className="font-bold text-blue-300 mb-2">IMPORTANTE!</div>
                                         <div className="text-sm text-blue-200">
-                                            Scarica il report PDF per rivedere tutti i passaggi e riscrivere la soluzione sul tuo quaderno. 
+                                            Scarica il report PDF: all'inizio trovi la soluzione illustrata, poi tutti i passaggi per riscriverla sul quaderno.
                                             Questo ti aiuterà a ricordare meglio il metodo!
                                         </div>
                                     </div>
@@ -1416,10 +1434,11 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
                                     🔄 NUOVO PROBLEMA
                                 </button>
                                 <button
-                                    onClick={() => generatePDFReport(problemData, stepAnswers, stepAttempts, stepHints)}
+                                    disabled={pdfBusy}
+                                    onClick={async () => { setPdfBusy(true); try { await generatePDFReport(problemData, stepAnswers, stepAttempts, stepHints); } finally { setPdfBusy(false); } }}
                                     className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold py-4 rounded-xl text-lg md:text-xl active:scale-95"
                                 >
-                                    📄 SCARICA REPORT PDF
+                                    {pdfBusy ? '⏳ PREPARO IL PDF…' : '📄 SCARICA REPORT PDF'}
                                 </button>
                                 <a
                                     href="tutor.html?materia=discover"
@@ -1450,5 +1469,7 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
         root.render(<App />);
     </script>
     <script src="game-system.js"></script>
+    <script src="soluzione-illustrata.js"></script>
+
 </body>
 </html>
