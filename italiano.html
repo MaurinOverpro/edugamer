@@ -211,10 +211,7 @@ Rispondi SOLO con JSON:
             const [ideas, setIdeas] = useState([]);
             const [currentIdeaInput, setCurrentIdeaInput] = useState('');
             const [isRecording, setIsRecording] = useState(false);
-            
-            const [drafts, setDrafts] = useState({});
-            const [currentDraftIndex, setCurrentDraftIndex] = useState(0);
-            
+
             const [finalText, setFinalText] = useState('');
             const [errors, setErrors] = useState([]);
             const [currentErrorIndex, setCurrentErrorIndex] = useState(0);
@@ -227,8 +224,6 @@ Rispondi SOLO con JSON:
             const [returnStage, setReturnStage] = useState(null);   // 'final' se la revisione parte da "Ricontrolla"
 
             const recognitionRef = useRef(null);
-            const [isDraftRecording, setIsDraftRecording] = useState(false);
-            const draftRecognitionRef = useRef(null);
 
             useEffect(() => {
                 if(SpeechRecognition) {
@@ -287,28 +282,6 @@ Rispondi SOLO con JSON:
                 speakNextChunk();
             };
 
-            const toggleDraftDictation = () => {
-                if(!SpeechRecognition) return alert("Dettatura vocale non supportata.");
-                if(isDraftRecording && draftRecognitionRef.current) {
-                    draftRecognitionRef.current.stop();
-                    return;
-                }
-                const recognition = new SpeechRecognition();
-                draftRecognitionRef.current = recognition;
-                recognition.lang = 'it-IT';
-                recognition.continuous = false;
-                recognition.interimResults = false;
-                recognition.onstart = () => setIsDraftRecording(true);
-                recognition.onend = () => setIsDraftRecording(false);
-                recognition.onerror = () => setIsDraftRecording(false);
-                recognition.onresult = (event) => {
-                    const transcript = event.results[0][0].transcript;
-                    const currentId = ideas[currentDraftIndex]?.id;
-                    if(currentId) setDrafts(prev => ({ ...prev, [currentId]: (prev[currentId] || '') + (prev[currentId] ? ' ' : '') + transcript }));
-                };
-                recognition.start();
-            };
-
             const toggleDictation = () => {
                 if(!recognitionRef.current) return alert("Dettatura vocale non supportata.");
                 if(isRecording) { recognitionRef.current.stop(); setIsRecording(false); }
@@ -318,7 +291,7 @@ Rispondi SOLO con JSON:
             const startBrainstorming = () => {
                 if(!title.trim()) return;
                 DB.addXP(10);
-                speak(`Ottimo titolo! Ora inseriamo le idee principali usando la tastiera o il microfono integrato.`);
+                speak(`Ottimo titolo! Ora racconta le tue idee, una alla volta. Puoi scrivere o premere il microfono.`);
                 setStage('brainstorm');
             };
 
@@ -339,15 +312,18 @@ Rispondi SOLO con JSON:
                 setIdeas(arr);
             };
 
-            const startDrafting = () => {
-                if(ideas.length === 0) return speak("Aggiungi almeno un'idea!");
-                speak(`Perfetto. Ora espandi ogni post-it in una frase.`);
-                setStage('draft');
-            };
-
-            const handleDraftChange = (val) => {
-                const currentId = ideas[currentDraftIndex]?.id;
-                if(currentId) setDrafts({ ...drafts, [currentId]: val });
+            // Niente fase di stesura (6/10/2026): per chi ha un DSA riscrivere ogni idea è un doppio lavoro.
+            // Le idee, nell'ordine in cui sono state dette, diventano il testo con le parole dello studente
+            // (nessuna riscrittura dell'AI: l'Investigatore deve correggere i SUOI errori).
+            const finishIdeas = () => {
+                const all = [...ideas.map(i => i.text), currentIdeaInput].map(t => t.trim()).filter(Boolean);
+                if(all.length === 0) return speak("Scrivi o detta almeno un'idea!");
+                if(currentIdeaInput.trim()) { setIdeas([...ideas, { id: Date.now().toString(), text: currentIdeaInput.trim() }]); setCurrentIdeaInput(''); }
+                const combined = all.join("\n\n");
+                DB.addXP(15);
+                setFinalText(combined);
+                speak("Fatto! Ora controllo se si è nascosto qualche errore.");
+                analyzeText(combined);
             };
 
             // Funzione di Stile Spostata in alto per sicurezza Javascript
@@ -379,21 +355,8 @@ Rispondi SOLO con JSON:
                         setCurrentErrorIndex(0);
                         speak(`Ho trovato ${errs.length} dettagli da sistemare. Risolviamoli uno alla volta!`);
                     }
-                } catch(e) { alert("Errore di rete, riprova."); setStage('draft'); }
+                } catch(e) { alert(e.message || "Errore di rete, riprova."); setStage('brainstorm'); }
                 setIsChecking(false);
-            };
-
-            const nextDraft = () => {
-                DB.addXP(15);
-                if(currentDraftIndex < ideas.length - 1) {
-                    setCurrentDraftIndex(prev => prev + 1);
-                    speak("Ottimo! Passiamo alla prossima idea.");
-                } else {
-                    const combined = ideas.map(i => drafts[i.id] || "").filter(t => t.trim() !== "").join("\n\n");
-                    setFinalText(combined);
-                    speak("Stesura completata! Ora indago per vedere se si è nascosto qualche errore.");
-                    analyzeText(combined);
-                }
             };
 
             const applyCorrection = () => {
@@ -611,25 +574,32 @@ Rispondi SOLO con JSON:
                         <div className="flex items-center gap-2">
                             <a href="index.html" className="bg-slate-700 px-3 py-2 rounded-xl text-white font-bold text-sm active:scale-95">🏠</a>
                             <a href="tutor.html?materia=italiano" className="bg-purple-700 px-3 py-2 rounded-xl text-white font-bold text-sm active:scale-95 border border-purple-400">🎓</a>
-                            <div className="text-yellow-400 font-bold text-lg hidden sm:block">💡 FASE 1: LE IDEE</div>
+                            <div className="text-yellow-400 font-bold text-lg hidden sm:block">💡 FASE 1: RACCONTA</div>
                         </div>
                         <div className="text-white font-bold truncate max-w-[120px] sm:max-w-xs text-center mx-2">{title}</div>
-                        <button onClick={startDrafting} className="bg-green-500 hover:bg-green-400 px-4 py-2 rounded-xl font-bold text-white active:scale-95 transition-all">CONTINUA ➡️</button>
+                        <button onClick={finishIdeas} disabled={ideas.length === 0 && !currentIdeaInput.trim()} className="bg-green-500 hover:bg-green-400 px-4 py-2 rounded-xl font-bold text-white active:scale-95 transition-all disabled:opacity-40">FATTO! 🔍</button>
                     </div>
 
-                    <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-4">
-                        <div className="w-full lg:w-1/3 bg-slate-800 p-4 rounded-3xl border-2 border-slate-700 flex flex-col gap-4 lg:self-start shrink-0">
-                            <h3 className="text-xl font-bold text-cyan-300">Aggiungi un'idea</h3>
-                            <p className="text-sm text-slate-400">Scrivi qui o usa il microfono della tastiera!</p>
-                            <textarea value={currentIdeaInput} onChange={e => setCurrentIdeaInput(e.target.value)} placeholder="Es: Zaino pesante..." className="editor-area min-h-[100px] text-lg" />
-                            <button onClick={addIdea} disabled={!currentIdeaInput.trim()} className="bg-blue-600 font-bold text-white py-3 rounded-xl active:scale-95 disabled:opacity-50">
-                                + CREA POST-IT
-                            </button>
+                    <div className="flex-1 min-h-0 overflow-y-auto w-full">
+                        <div className="max-w-3xl mx-auto w-full flex flex-col gap-4 pb-4">
+                        <div className="bg-slate-800 p-4 rounded-3xl border-2 border-slate-700 flex flex-col gap-3">
+                            <p className="text-lg text-slate-300">Scrivi o detta un'idea alla volta, come ti viene. Gli errori li sistemiamo dopo.</p>
+                            <textarea value={currentIdeaInput} onChange={e => setCurrentIdeaInput(e.target.value)} placeholder="Es: Siamo partiti presto con il pullman..." className="editor-area min-h-[100px] text-lg" />
+                            <div className="flex gap-3">
+                                {SpeechRecognition && (
+                                    <button onClick={toggleDictation} className={`px-5 py-3 rounded-xl font-bold text-white text-xl active:scale-95 shrink-0 ${isRecording ? 'bg-red-600 animate-pulse border-2 border-red-400' : 'bg-blue-600 border-2 border-blue-400'}`}>
+                                        {isRecording ? '⏹️' : '🎤'}
+                                    </button>
+                                )}
+                                <button onClick={addIdea} disabled={!currentIdeaInput.trim()} className="flex-1 bg-blue-600 font-bold text-white py-3 rounded-xl active:scale-95 disabled:opacity-50">
+                                    + AGGIUNGI IDEA
+                                </button>
+                            </div>
                         </div>
 
-                        <div className="flex-1 min-h-0 bg-slate-900 rounded-3xl p-4 border-2 border-slate-700 overflow-y-auto">
-                            <h3 className="text-slate-500 font-bold text-center mb-4">Usa ▲▼ per cambiare l'ordine</h3>
-                            <div className="flex flex-col gap-3 pb-4">
+                        <div className="flex flex-col gap-3">
+                            {ideas.length > 1 && <h3 className="text-slate-500 font-bold text-center">Se vuoi, sposta le idee con ▲▼</h3>}
+                            <div className="flex flex-col gap-3">
                                 {ideas.map((idea, index) => (
                                     <div key={idea.id} className="post-it flex items-center gap-2 text-xl">
                                         <span className="text-slate-500 font-black opacity-50 shrink-0 w-6 text-center text-base">#{index + 1}</span>
@@ -644,42 +614,13 @@ Rispondi SOLO con JSON:
                                             className="text-red-500 hover:bg-red-200 rounded-full font-bold text-xl w-9 h-9 flex items-center justify-center shrink-0">✕</button>
                                     </div>
                                 ))}
-                                {ideas.length === 0 && <div className="text-center text-slate-600 font-bold mt-10 text-xl border-2 border-dashed border-slate-700 p-10 rounded-2xl">Aggiungi i tuoi post-it qui!</div>}
+                                {ideas.length === 0 && <div className="text-center text-slate-600 font-bold text-xl border-2 border-dashed border-slate-700 p-8 rounded-2xl">Qui compariranno le tue idee, nell'ordine in cui le dici.</div>}
                             </div>
                         </div>
-                    </div>
-                </div>
-            );
 
-            if(stage === 'draft') return (
-                <div className="h-full flex flex-col p-4 gap-4 bg-slate-900">
-                    <div className="bg-slate-800 p-4 rounded-2xl flex justify-between items-center border-b-4 border-blue-400 shadow-lg shrink-0">
-                        <div className="flex items-center gap-2">
-                            <a href="index.html" className="bg-slate-700 px-3 py-2 rounded-xl text-white font-bold text-sm active:scale-95">🏠</a>
-                            <a href="tutor.html?materia=italiano" className="bg-purple-700 px-3 py-2 rounded-xl text-white font-bold text-sm active:scale-95 border border-purple-400">🎓</a>
-                            <div className="text-blue-400 font-bold text-lg hidden sm:block">📝 FASE 2: LA STESURA ({currentDraftIndex + 1}/{ideas.length})</div>
-                        </div>
-                        <div className="text-white font-bold truncate max-w-[120px] sm:max-w-xs">{title}</div>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto min-h-0 w-full pb-4">
-                        <div className="flex flex-col items-center justify-start max-w-4xl mx-auto w-full gap-6 mt-4">
-                            <div className="post-it w-full text-center text-2xl py-6 shadow-2xl relative">
-                                <span className="text-slate-500 text-lg absolute left-4 top-4">Idea {currentDraftIndex + 1}</span>
-                                <span className="block mt-4">" {ideas[currentDraftIndex]?.text} "</span>
-                            </div>
-                            <div className="w-full text-center text-slate-400 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
-                                Espandi l'idea usando la tastiera. Gli errori li sistemiamo dopo!
-                            </div>
-                            <textarea autoFocus value={drafts[ideas[currentDraftIndex]?.id] || ""} onChange={e => handleDraftChange(e.target.value)} placeholder="Scrivi la frase qui..." className="editor-area w-full text-xl sm:text-2xl p-6 shadow-inner min-h-[250px]" />
-                            <div className="flex gap-3 w-full mt-4">
-                                <button onClick={toggleDraftDictation} className={`px-5 py-4 rounded-2xl font-bold text-white text-xl active:scale-95 shrink-0 ${isDraftRecording ? 'bg-red-600 animate-pulse border-2 border-red-400' : 'bg-blue-600 border-2 border-blue-400'}`}>
-                                    {isDraftRecording ? '⏹️' : '🎤'}
-                                </button>
-                                <button onClick={nextDraft} disabled={!(drafts[ideas[currentDraftIndex]?.id] || "").trim()} className="btn-magico flex-1 py-5 rounded-2xl font-bold text-white text-xl sm:text-2xl">
-                                    {currentDraftIndex < ideas.length - 1 ? 'PROSSIMA IDEA ➡️' : 'FINITO! CONTROLLIAMO 🔍'}
-                                </button>
-                            </div>
+                        <button onClick={finishIdeas} disabled={ideas.length === 0 && !currentIdeaInput.trim()} className="btn-magico w-full py-5 rounded-2xl font-bold text-white text-xl sm:text-2xl">
+                            FATTO! CONTROLLIAMO 🔍
+                        </button>
                         </div>
                     </div>
                 </div>
@@ -691,7 +632,7 @@ Rispondi SOLO con JSON:
                         <div className="flex items-center gap-2">
                             <a href="index.html" className="bg-slate-700 px-3 py-2 rounded-xl text-white font-bold text-sm active:scale-95">🏠</a>
                             <a href="tutor.html?materia=italiano" className="bg-purple-700 px-3 py-2 rounded-xl text-white font-bold text-sm active:scale-95 border border-purple-400">🎓</a>
-                            <div className="text-purple-400 font-bold text-lg hidden sm:block">🔍 FASE 3: L'INVESTIGATORE</div>
+                            <div className="text-purple-400 font-bold text-lg hidden sm:block">🔍 FASE 2: L'INVESTIGATORE</div>
                         </div>
                         {!isChecking && errors.length > 0 && <div className="bg-purple-900 border border-purple-500 px-4 py-1 rounded-full text-purple-200 font-bold text-sm">Sfida {currentErrorIndex + 1} di {errors.length}</div>}
                     </div>
@@ -739,7 +680,7 @@ Rispondi SOLO con JSON:
                             <a href="index.html" className="bg-slate-700 px-3 py-2 rounded-xl text-white font-bold text-sm active:scale-95">🏠</a>
                             <a href="tutor.html?materia=italiano" className="bg-purple-700 px-3 py-2 rounded-xl text-white font-bold text-sm active:scale-95 border border-purple-400">🎓</a>
                         </div>
-                        <div className="text-pink-400 font-bold text-lg text-center">✨ FASE 4: LA MAGIA</div>
+                        <div className="text-pink-400 font-bold text-lg text-center">✨ FASE 3: LA MAGIA</div>
                         <div className="w-16"></div>
                     </div>
 
