@@ -7,6 +7,10 @@
 // Richiede game-system.js (window.EduGamer) e jsPDF.
 (function () {
     const E = () => window.EduGamer;
+    // SPENTA il 6/10/2026 (scelta di Mauro): nelle sue prove il foglio non usciva mai nel PDF e il costo
+    // in immagini era alto; il PDF testuale basta. Il codice resta per proporla alle maestre:
+    // per riaccenderla metti ATTIVA = true (e rimetti le scritte "con soluzione illustrata" in Discover/Risolvitore).
+    const ATTIVA = false;
     const MAX_PASSI = 3, MAX_FOGLI = 2;
 
     /** problema = { titolo, testo, passi: [{ titolo, domanda, risposta, spiegazione }], risposta } */
@@ -136,6 +140,7 @@ Rispondi SOLO JSON: {"ok": true|false, "errori": ["..."]}`;
     let corrente = null;
     /** Parte in sottofondo; errori silenziosi (il PDF uscirà comunque, senza illustrazione). */
     function avvia(problema) {
+        if (!ATTIVA) { corrente = null; return Promise.resolve({ fogli: [], log: ['spenta'] }); }
         corrente = genera(problema).catch(e => ({ fogli: [], log: ['errore: ' + e.message] }));
         corrente.then(r => console.log('[SoluzioneIllustrata]', r.log.join(' | ')));
         return corrente;
@@ -148,6 +153,7 @@ Rispondi SOLO JSON: {"ok": true|false, "errori": ["..."]}`;
     }
     function annulla() { corrente = null; }
 
-    window.SoluzioneIllustrata = { genera, aggiungiPagine, inserisciAllInizio, avvia, attendi, annulla, gruppi };
+    window.SoluzioneIllustrata = { ATTIVA,
+ genera, aggiungiPagine, inserisciAllInizio, avvia, attendi, annulla, gruppi };
 
 })();
