@@ -77,16 +77,21 @@ Se perfetto, restituisci: []`;
             },
 
             improveFluency: async (text) => {
-                const prompt = `Sei un insegnante di scrittura.
-Ha scritto questo testo ${AUD().prompt}, con dislessia:
-"${text}"
-Riscrivi il testo rendendolo più SCORREVOLE. Aggiungi "connettivi logici" (es: improvvisamente, poi, allora, perciò, mentre) per far scorrere la storia.
-NON aggiungere idee nuove, unisci solo meglio quelle esistenti. Usa parole chiare e un registro adatto all'età di chi scrive.
-Scrivi testo semplice: NIENTE markdown, asterischi, grassetti o simboli di formattazione.
+                // Prompt rifatto il 6/10/2026: con la lista di esempi ("improvvisamente, allora, perciò…") il modello
+                // li infilava tutti, inventando legami di causa ("ho mal di gola, così mi sono fatto l'insalata russa").
+                const prompt = `Sei un insegnante di italiano. Questo testo l'ha scritto o dettato ${AUD().prompt}, con dislessia. Le idee sono sue: mostragli come possono diventare un testo chiaro.
+TESTO: "${text}"
+Riscrivilo così:
+1. Correggi ortografia, accenti, apostrofi, maiuscole e punteggiatura.
+2. Frasi brevi: al massimo 15 parole, un'idea per frase. Raggruppa le frasi in paragrafi di 2-3 frasi sullo stesso argomento (non andare a capo dopo ogni frase).
+3. Connettivi: "perché", "quindi", "perciò", "così" SOLO se chi scrive dice chiaramente che un fatto è la causa dell'altro (es. "sto a casa perché ho mal di gola" sì; "ho mal di gola, perciò mi sono fatto l'insalata" NO, è un fatto in più, non una conseguenza). "Poi/dopo" solo per un ordine di tempo; "ma/però" per un contrasto. NEL DUBBIO NESSUN CONNETTIVO: due frasi separate vanno benissimo. Non ripetere lo stesso connettivo.
+4. Tieni l'ORDINE delle idee, il più possibile le parole e tutte le idee di chi ha scritto. NON aggiungere niente che non c'è: né fatti, né dettagli di tempo o luogo ("nel pomeriggio", "poco fa", "per cena"…), né emozioni. Non togliere idee.
+
+5. Registro adatto all'età di chi scrive. Testo semplice: niente markdown, asterischi o simboli.
 Rispondi SOLO con JSON:
 {
-  "fluency_text": "il nuovo testo scorrevole",
-  "ai_comment": "Breve messaggio di 15 parole (es: 'Ho aggiunto parole come -poi- per far scorrere le frasi!')"
+  "fluency_text": "il testo riscritto",
+  "ai_comment": "massimo 15 parole: cosa hai fatto, in concreto, senza lodi (es. 'Ho diviso in frasi corte e messo -perché- dove spieghi il motivo.')"
 }`;
                 return window.EduGamer.geminiJSON(window.EduGamer.MODELS.text, prompt);
             }
