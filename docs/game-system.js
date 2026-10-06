@@ -343,7 +343,9 @@ const EduGamer = {
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
             const msg = err?.error?.message || '';
+            if (res.status === 429 && /spend|spending cap/i.test(msg)) throw new Error('Raggiunto il tetto di spesa mensile della chiave API: va alzato su Google AI Studio (ai.studio/spend).');
             if (res.status === 429) throw new Error('Limite di richieste raggiunto. Riprova più tardi.');
+
             if (res.status === 402) throw new Error('Il credito della chiave API è finito: va ricaricato su Google AI Studio (aistudio.google.com).');
 
             if (res.status === 401 || res.status === 403 || /API key/i.test(msg)) throw new Error('Chiave API non valida: controllala nella Home → Impostazioni.');

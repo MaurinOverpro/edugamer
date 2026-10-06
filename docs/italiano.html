@@ -63,15 +63,32 @@ const cleanTextForSpeech = text => {
 };
 window.speechSequenceID = 0;
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const pezzoRe = pezzo => new RegExp('(?<![\\p{L}\\p{N}])' + pezzo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\p{L}\\p{N}])', 'gu');
+const occorrenze = (text, pezzo) => (String(text).match(pezzoRe(pezzo)) || []).length;
+const sostituisci = (text, pezzo, nuovo) => {
+  let fatto = false;
+  return text.replace(pezzoRe(pezzo), m => {
+    if (fatto) return m;
+    fatto = true;
+    return nuovo;
+  });
+};
 const AI = {
   checkText: async text => {
-    const prompt = `Analizza questo testo scritto da ${AUD().prompt}, con dislessia: "${text}"
-Trova TUTTI gli errori di ortografia, punteggiatura e grammatica.
-Rispondi SOLO con un array JSON:
-[{"original":"parola sbagliata", "correction":"parola giusta", "explanation":"Breve motivo chiaro"}]
-${AUD().tone}
-Se perfetto, restituisci: []`;
-    return window.EduGamer.geminiJSON(window.EduGamer.MODELS.text, prompt);
+    const prompt = `Sei un insegnante di italiano. Questo testo l'ha scritto o dettato ${AUD().prompt}, con dislessia:
+"""
+${text}
+"""
+Trova gli ERRORI DI PAROLA: ortografia (h mancante o in più, doppie, lettere scambiate o mancanti), accenti (e/è, perche/perché, stasèra), apostrofi (l insalata, cera/c'era, un po), parole attaccate o staccate, verbo sbagliato (a/ha, o/ho).
+NON segnalare: maiuscole, punti, virgole e altra punteggiatura (li sistemiamo dopo); scelte di stile; parole regionali o colloquiali corrette (es. piada, tv); frasi che si potrebbero dire meglio.
+Ogni errore una volta sola, nell'ordine in cui compare.
+Per ogni errore:
+- "original": il pezzo di testo copiato ESATTAMENTE com'è scritto (stesse lettere, stessi spazi), formato dalla parola sbagliata PIÙ la parola che la precede o la segue, così si trova in un punto solo (es. "io o fatto", non "o").
+- "correction": lo stesso pezzo corretto, cambiando solo l'errore.
+- "explanation": massimo 12 parole, la regola in modo semplice. ${AUD().tone}
+Rispondi SOLO con un array JSON: [{"original":"...","correction":"...","explanation":"..."}]. Se non ci sono errori di parola: [].`;
+    const errs = await window.EduGamer.geminiJSON(window.EduGamer.MODELS.math, prompt);
+    return (Array.isArray(errs) ? errs : []).filter(e => e && e.original && e.correction && e.original !== e.correction && occorrenze(text, e.original) === 1);
   },
   improveFluency: async text => {
     const prompt = `Sei un insegnante di italiano. Questo testo l'ha scritto o dettato ${AUD().prompt}, con dislessia. Le idee sono sue: mostragli come possono diventare un testo chiaro.
@@ -422,14 +439,19 @@ const App = () => {
     }
     setIsChecking(false);
   };
+  const nextErrorIndex = (from, text) => {
+    for (let k = from; k < errors.length; k++) if (occorrenze(text, errors[k].original) === 1) return k;
+    return -1;
+  };
   const applyCorrection = () => {
     const currentErr = errors[currentErrorIndex];
-    const newText = finalText.replace(currentErr.original, currentErr.correction);
+    const newText = sostituisci(finalText, currentErr.original, currentErr.correction);
     setFinalText(newText);
     DB.addXP(10);
     speak(`Corretto! ${currentErr.original} diventa ${currentErr.correction}.`);
-    if (currentErrorIndex < errors.length - 1) {
-      setCurrentErrorIndex(prev => prev + 1);
+    const next = nextErrorIndex(currentErrorIndex + 1, newText);
+    if (next >= 0) {
+      setCurrentErrorIndex(next);
     } else {
       finishReview(newText);
     }
@@ -446,8 +468,9 @@ const App = () => {
   };
   const skipCorrection = () => {
     speak("Va bene, lo lasciamo com'era.");
-    if (currentErrorIndex < errors.length - 1) {
-      setCurrentErrorIndex(prev => prev + 1);
+    const next = nextErrorIndex(currentErrorIndex + 1, finalText);
+    if (next >= 0) {
+      setCurrentErrorIndex(next);
     } else {
       finishReview(finalText);
     }
