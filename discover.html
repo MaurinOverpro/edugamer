@@ -178,7 +178,7 @@
     
     <script type="text/babel">
         const MODEL = "gemini-3.6-flash";
-        const AUD = () => (window.EduGamer && window.EduGamer.getAudience ? window.EduGamer.getAudience() : { key:'medie', prompt:'uno studente di scuola media (11-13 anni)', tone:'Tono diretto e amichevole, mai infantile.' });
+        const AUD = () => window.EduGamer.getAudience();
         
         // DATABASE & UTILITY
         const DB = {
@@ -188,11 +188,7 @@
                 return stats.xp !== undefined ? stats.xp : parseInt(localStorage.getItem('edu_xp') || '0');
             },
             addXP: (amount, source='discover', action='activity') => {
-                if (window.EduGamer) return window.EduGamer.addXP(amount, source, action);
-                const next = parseInt(localStorage.getItem('edu_xp') || '0') + amount;
-                localStorage.setItem('edu_xp', next.toString());
-                window.dispatchEvent(new Event('xpChanged'));
-                return next;
+                return window.EduGamer.addXP(amount, source, action);
             }
         };
 
@@ -1485,5 +1481,6 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
+    <script src="game-system.js"></script>
 </body>
 </html>

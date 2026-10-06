@@ -178,11 +178,7 @@
     <script>
 (function(){function __run(){
 const MODEL = "gemini-3.6-flash";
-const AUD = () => window.EduGamer && window.EduGamer.getAudience ? window.EduGamer.getAudience() : {
-  key: 'medie',
-  prompt: 'uno studente di scuola media (11-13 anni)',
-  tone: 'Tono diretto e amichevole, mai infantile.'
-};
+const AUD = () => window.EduGamer.getAudience();
 const DB = {
   getKey: () => localStorage.getItem('gemini_api_key'),
   getXP: () => {
@@ -190,11 +186,7 @@ const DB = {
     return stats.xp !== undefined ? stats.xp : parseInt(localStorage.getItem('edu_xp') || '0');
   },
   addXP: (amount, source = 'discover', action = 'activity') => {
-    if (window.EduGamer) return window.EduGamer.addXP(amount, source, action);
-    const next = parseInt(localStorage.getItem('edu_xp') || '0') + amount;
-    localStorage.setItem('edu_xp', next.toString());
-    window.dispatchEvent(new Event('xpChanged'));
-    return next;
+    return window.EduGamer.addXP(amount, source, action);
   }
 };
 const MASTER_PROMPT = `Sei un tutor esperto per ${AUD().prompt}, con DSA (discalculia, dislessia). ${AUD().tone}
@@ -1239,5 +1231,6 @@ root.render(React.createElement(App, null));
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",__run);else __run();})();
 </script>
+    <script src="game-system.js"></script>
 </body>
 </html>

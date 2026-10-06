@@ -78,10 +78,10 @@
     <script type="text/babel">
         const { useState, useRef, useEffect, useCallback } = React;
         const MODEL = "gemini-3.5-flash-lite";
-        const AUD = () => (window.EduGamer && window.EduGamer.getAudience ? window.EduGamer.getAudience() : { key:'medie', prompt:'uno studente di scuola media (11-13 anni)', tone:'Tono diretto e amichevole, mai infantile.' });
+        const AUD = () => window.EduGamer.getAudience();
         const DB = {
             getKey: () => localStorage.getItem('gemini_api_key'),
-            addXP: (a) => { if(window.EduGamer) return window.EduGamer.addXP(a,'lavagna','activity'); const n = parseInt(localStorage.getItem('edu_xp')||'0')+a; localStorage.setItem('edu_xp', n.toString()); window.dispatchEvent(new Event('xpChanged')); return n; },
+            addXP: (a) => window.EduGamer.addXP(a,'lavagna','activity'),
             save: (d) => localStorage.setItem('lavagna_interactive_v6', JSON.stringify(d)),
             load: () => JSON.parse(localStorage.getItem('lavagna_interactive_v6')||'null'),
             clear: () => localStorage.removeItem('lavagna_interactive_v6')

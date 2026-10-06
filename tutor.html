@@ -165,7 +165,7 @@
         };
 
         // PROMPT — il pubblico (elementari → adulti) arriva da EduGamer.getAudience() (game-system.js)
-        const AUD = () => (window.EduGamer && window.EduGamer.getAudience ? window.EduGamer.getAudience() : { key:'medie', prompt:'uno studente di scuola media (11-13 anni)', tone:'Tono diretto e amichevole, mai infantile.' });
+        const AUD = () => window.EduGamer.getAudience();
         const SYSTEM_PROMPT = `Sei un tutor empatico e competente. Stai aiutando ${AUD().prompt}, con DSA (dislessia/discalculia).
 
 LINEE GUIDA PER IL TUO STILE:

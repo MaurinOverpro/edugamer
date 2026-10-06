@@ -91,16 +91,12 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
         const MODEL = "gemini-3.6-flash"; 
-        const AUD = () => (window.EduGamer && window.EduGamer.getAudience ? window.EduGamer.getAudience() : { key:'medie', prompt:'uno studente di scuola media (11-13 anni)', tone:'Tono diretto e amichevole, mai infantile.' });
+        const AUD = () => window.EduGamer.getAudience();
 
         const DB = {
             getKey: () => localStorage.getItem('gemini_api_key'),
             addXP: (amount, source='matematica', action='activity') => {
-                if (window.EduGamer) return window.EduGamer.addXP(amount, source, action);
-                const next = parseInt(localStorage.getItem('edu_xp') || '0') + amount;
-                localStorage.setItem('edu_xp', next.toString());
-                window.dispatchEvent(new Event('xpChanged'));
-                return next;
+                return window.EduGamer.addXP(amount, source, action);
             }
         };
 
@@ -287,7 +283,7 @@
                 try {
                     const text = await solveProblem(solverImg);
                     setSolution(text);
-                    if(window.EduGamer) EduGamer.addXP(50, 'matematica', 'problem'); else DB.addXP(50);
+                    DB.addXP(50, 'matematica', 'problem');
                     speak("Ho trovato la soluzione.");
                 } catch(e) { alert("Errore: " + e.message); }
                 setLoading(false);
@@ -577,6 +573,7 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
+    <script src="game-system.js"></script>
 </body>
 </html>
 
