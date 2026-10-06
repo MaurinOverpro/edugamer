@@ -188,6 +188,54 @@ h2{font-size:60px;margin-top:14px;max-width:560px}
 .qa{flex:1;text-align:center;font-size:20px;font-weight:600;padding:14px 6px;border-radius:999px;border:1px solid var(--line);color:var(--ink);transition:all .3s}
 .qa.hot{background:var(--c);border-color:var(--c);color:#241037;transform:scale(.96)}
 
+/* ---------- ricerche ---------- */
+.topic{position:absolute;left:0;top:0;width:820px;background:var(--sea-2);border:1px solid var(--line);border-radius:18px;padding:18px 24px;box-sizing:border-box}
+.topic .k{font-size:16px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.topic .t{font-size:30px;font-weight:600;margin-top:4px}
+.tchips{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.tchip{font-size:18px;padding:8px 16px;border-radius:999px;border:1px solid var(--line);color:var(--mute)}
+.tchip.sel{background:#818cf8;border-color:#818cf8;color:#10123a;font-weight:600}
+.rc{position:absolute;left:0;top:0;width:400px;height:230px;box-sizing:border-box;background:var(--sea-2);border:2px solid #818cf8;border-radius:18px;padding:20px 24px;
+  transition:left .8s cubic-bezier(.6,.05,.25,1), top .8s cubic-bezier(.6,.05,.25,1), width .8s, height .8s, opacity .6s, transform .8s, padding .8s, border-color .5s;overflow:hidden}
+.rc b{display:block;font-size:28px;font-weight:600;white-space:nowrap;transition:font-size .8s}
+.rc p{font-size:20px;line-height:1.45;color:var(--mute);margin:10px 0 0;transition:opacity .4s}
+.rc.chipm{width:330px;height:54px;padding:12px 18px;border-radius:12px;border-color:var(--line)}
+.rc.chipm b{font-size:21px}
+.rc.chipm p{opacity:0}
+.rc.gone{border-color:var(--line)}
+.tray{position:absolute;left:460px;top:200px;width:360px;height:300px;border:2px dashed var(--line);border-radius:18px;transition:border-color .5s, background .5s}
+.tray .k{position:absolute;left:18px;top:-34px;font-size:16px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.tray.hot{border-color:#818cf8;background:rgba(129,140,248,.08)}
+.cnt{position:absolute;left:460px;top:520px;font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+.cnt .okm{color:var(--u);margin-left:10px}
+.pick{position:absolute;left:0;top:450px;width:400px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pick div{border-radius:12px;padding:12px;text-align:center;font-size:21px;font-weight:600;border:2px solid var(--line)}
+.pick .take{background:#818cf8;border-color:#818cf8;color:#10123a}
+.xmark{position:absolute;right:14px;top:12px;font-size:20px;color:var(--err);opacity:0;transition:opacity .4s}
+.rev .rc.chipm .xmark{opacity:1}
+.revnote{position:absolute;left:0;top:585px;width:820px;font-size:24px;line-height:1.45;color:var(--gold)}
+.mini{position:absolute;left:0;width:240px;height:50px;box-sizing:border-box;border-radius:12px;border:1px solid #818cf8;background:rgba(129,140,248,.12);padding:12px 16px;font-size:19px;font-weight:600}
+#flow path{stroke:#818cf8;stroke-width:2.5;fill:none;stroke-dasharray:260;stroke-dashoffset:260;transition:stroke-dashoffset 1s}
+#flow.on path{stroke-dashoffset:0}
+.doc{position:absolute;left:310px;top:0;width:510px;height:470px;box-sizing:border-box;background:#f3f0e6;color:#1f2a44;border-radius:14px;padding:26px 30px;transition:opacity .5s, filter .5s}
+.dim .doc{opacity:.35;filter:blur(1px)}
+.doc .dt{font-family:var(--display);font-size:30px;line-height:1.15}
+.doc .dh{font-size:21px;font-weight:700;margin-top:18px;color:#3730a3}
+.doc .ln{height:9px;border-radius:5px;background:#8b97ad;margin-top:13px;opacity:.7;transform-origin:left;transform:scaleX(0);transition:transform .7s}
+.doc .ln.on{transform:none}
+.doc .rd{font-size:19px;line-height:1.5;margin-top:10px;border-radius:6px;padding:2px 4px;transition:background .4s}
+.reading .doc .rd{background:#c7f9d4}
+.kw{margin-top:18px;border-top:2px solid #c9d3e3;padding-top:12px;font-size:18px;line-height:1.45}
+.kw b{color:#3730a3}
+.quiz{position:absolute;left:250px;top:230px;width:570px;background:var(--sea-2);border:2px solid var(--gold);border-radius:18px;padding:22px 26px;box-sizing:border-box;box-shadow:0 20px 50px rgba(0,0,0,.45)}
+.quiz .tag{font-size:16px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:600}
+.quiz .qq{font-size:26px;font-weight:600;margin-top:6px;padding-right:80px}
+.opts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px}
+.opts div{text-align:center;font-size:22px;padding:12px 6px;border-radius:12px;border:1px solid var(--line)}
+.opts .right{background:rgba(74,222,128,.18);border-color:var(--u);color:var(--u);font-weight:600}
+.pptx{position:absolute;left:250px;top:450px;display:flex;gap:12px}
+.pptx span{font-size:20px;font-weight:600;padding:10px 18px;border-radius:999px;border:1px solid var(--line);background:var(--sea-2)}
+
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{transition-duration:0s!important;animation:none!important;transition-delay:0s!important}
 }
@@ -277,7 +325,7 @@ h2{font-size:60px;margin-top:14px;max-width:560px}
     <div class="eyebrow">Italiano · Biblioteca Sommersa</div>
     <h2>Un errore alla volta, con il perché</h2>
     <ol class="caps">
-      <li>Il bambino scrive il suo testo.</li>
+      <li>Il bambino racconta le sue idee, una alla volta: le scrive o le detta.</li>
       <li>L'AI fa da detective: indica un errore e spiega la regola.</li>
       <li>L'ultima parola è del bambino. Se l'AI sbaglia, può rispondere «No, era giusto».</li>
     </ol>
@@ -322,7 +370,80 @@ h2{font-size:60px;margin-top:14px;max-width:560px}
   </div>
 </section>
 
-<!-- 6 · TUTOR -->
+<!-- 6 · RICERCHE: LE SCHEDE -->
+<section class="scene" data-steps="4">
+  <div class="left">
+    <div class="eyebrow">Ricerche · Costruisci la tua ricerca</div>
+    <h2>Le idee le sceglie il bambino</h2>
+    <ol class="caps">
+      <li>Si sceglie l'argomento e il livello di scuola. L'AI propone qualche titolo.</li>
+      <li>Arrivano 12 schede, una alla volta. Per ognuna: «Prendi» o passa oltre.</li>
+      <li>Ne servono almeno 3, al massimo 8. Quelle lasciate non entrano nella ricerca.</li>
+      <li>Prima di scrivere si rivedono tutte, e si può ancora togliere qualcosa.</li>
+    </ol>
+  </div>
+  <div class="canvas" id="ric1">
+    <div class="topic">
+      <div class="k">Di cosa vuoi parlare?</div>
+      <div class="t">I vulcani</div>
+      <div class="tchips"><span class="tchip">I vulcani d'Italia</span><span class="tchip sel">Il fuoco della Terra: i vulcani</span><span class="tchip">Come nasce un vulcano</span></div>
+    </div>
+    <div class="tray sh" data-show="1" id="tray"><span class="k">Le mie schede</span></div>
+    <div class="pick sh" data-show="1-2"><div class="take">+ Prendi</div><div>Passa →</div></div>
+    <div class="rc" data-st='{"0":[0,200,0,0,""],"1":[0,200,1,0,""],"2":[475,215,1,0,"c"]}' style="z-index:6"><b>Il Vesuvio</b><p>Nel 79 dopo Cristo una sua eruzione ha sepolto la città di Pompei.</p><span class="xmark">✕</span></div>
+    <div class="rc" data-st='{"0":[0,200,0,0,""],"1":[0,200,1,0,""],"2":[-160,170,0,-14,"g"]}' style="z-index:5"><b>Vulcani su Marte</b><p>Su Marte c'è il vulcano più grande del sistema solare.</p></div>
+    <div class="rc" data-st='{"0":[0,200,0,0,""],"1":[0,200,1,0,""],"2":[475,281,1,0,"c"]}' style="z-index:4"><b>Il magma</b><p>Sotto la crosta la roccia è così calda da diventare liquida.</p><span class="xmark">✕</span></div>
+    <div class="rc" data-st='{"0":[0,200,0,0,""],"1":[0,200,1,0,""],"2":[475,347,1,0,"c"]}' style="z-index:3"><b>L'Etna</b><p>È il vulcano attivo più alto d'Europa, in Sicilia.</p><span class="xmark">✕</span></div>
+    <div class="rc" data-st='{"0":[0,200,0,0,""],"1":[0,200,1,0,""],"2":[475,413,1,0,"c"]}' style="z-index:2"><b>Le eruzioni</b><p>Quando la pressione sale, il magma esce come lava.</p><span class="xmark">✕</span></div>
+    <div class="rc" data-st='{"0":[0,200,0,0,""],"1":[0,200,1,0,""],"3":[0,200,0,0,""]}' style="z-index:1"><b>Vulcani spenti</b><p>Alcuni vulcani non eruttano da migliaia di anni.</p></div>
+    <div class="cnt"><span class="sh" data-show="1-1">0 / 8</span></div>
+    <div class="cnt"><span class="sh" data-show="2">4 / 8 <span class="okm">minimo 3 ✓</span></span></div>
+    <p class="revnote sh" data-show="3">«Vulcani su Marte» l'ha lasciata: nella ricerca non ci sarà.</p>
+  </div>
+</section>
+
+<!-- 7 · RICERCHE: LA RICERCA -->
+<section class="scene" data-steps="4">
+  <div class="left">
+    <div class="eyebrow">Ricerche · La ricerca è sua</div>
+    <h2>Scritta solo con le sue schede</h2>
+    <ol class="caps">
+      <li>L'AI scrive la ricerca usando solo le schede scelte, senza aggiungere altro.</li>
+      <li>Frasi brevi, un titolo per ogni parte e le parole difficili spiegate in fondo.</li>
+      <li>La ricerca si può ascoltare ad alta voce.</li>
+      <li>Un quiz di 6 domande dice se ha capito. Poi si esporta in PowerPoint, pronta da presentare.</li>
+    </ol>
+  </div>
+  <div class="canvas" id="ric2" style="top:120px">
+    <div class="mini" style="top:40px">Il Vesuvio</div>
+    <div class="mini" style="top:110px">Il magma</div>
+    <div class="mini" style="top:180px">L'Etna</div>
+    <div class="mini" style="top:250px">Le eruzioni</div>
+    <svg id="flow" width="820" height="660" style="position:absolute;left:0;top:0" aria-hidden="true">
+      <path d="M240 65 C280 65 280 120 310 120"/><path d="M240 135 C280 135 280 150 310 150"/>
+      <path d="M240 205 C280 205 280 180 310 180"/><path d="M240 275 C280 275 280 210 310 210"/>
+    </svg>
+    <div class="doc">
+      <div class="dt">Il fuoco della Terra: i vulcani</div>
+      <div class="ln" data-on="0" style="width:96%"></div><div class="ln" data-on="0" style="width:88%"></div><div class="ln" data-on="0" style="width:70%"></div>
+      <div class="dh sh" data-show="1">Il magma e le eruzioni</div>
+      <div class="rd sh" data-show="1">Sotto la crosta la roccia è così calda da diventare liquida.</div>
+      <div class="dh sh" data-show="1">Il Vesuvio e l'Etna</div>
+      <div class="ln" data-on="1" style="width:92%"></div><div class="ln" data-on="1" style="width:64%"></div>
+      <div class="kw sh" data-show="1"><b>Magma</b> · roccia fusa sotto la crosta terrestre</div>
+    </div>
+    <div class="spk sh" data-show="2-2" style="left:330px;top:490px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z" fill="#4ade80"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>Lettura ad alta voce<span class="wave" aria-hidden="true"><i></i><i></i><i></i></span></div>
+    <div class="quiz sh" data-show="3">
+      <div class="tag">Quiz · domanda 2 di 6</div>
+      <div class="qq">Quale vulcano ha sepolto Pompei?</div>
+      <div class="opts"><div>Etna</div><div class="right">Vesuvio ✓</div><div>Stromboli</div></div>
+      <div class="xp" style="top:20px">+ XP</div>
+    </div>
+    <div class="pptx sh" data-show="3"><span>📊 PowerPoint</span></div>
+  </div>
+</section>
+
+<!-- 8 · TUTOR -->
 <section class="scene" data-steps="6">
   <div class="left">
     <div class="eyebrow">Tutor · Torre dell'Oracolo</div>
@@ -358,7 +479,7 @@ h2{font-size:60px;margin-top:14px;max-width:560px}
   </div>
 </section>
 
-<!-- 7 · IN CLASSE -->
+<!-- 9 · IN CLASSE -->
 <section class="scene" data-steps="2">
   <div class="left" style="width:1300px">
     <div class="eyebrow">In classe</div>
@@ -456,14 +577,19 @@ function render(){
   sc.querySelectorAll('.caps li').forEach((li,i)=>{li.classList.toggle('cur',i===K);li.classList.toggle('done',i<K);});
   movers.forEach(m=>{if(m.scene!==S)return;const c={};Object.keys(m.st).map(Number).sort((a,b)=>a-b).forEach(k=>{if(k<=K)Object.assign(c,m.st[k]);});
     const e=m.el.style;e.left=c.x+'px';e.top=c.y+'px';e.opacity=c.o;if(c.bg)e.background=c.bg;if(c.r)e.borderRadius=c.r;e.transition=c.tr||'';if(c.w){e.width=c.w+'px';e.height=c.w+'px';}});
+  sc.querySelectorAll('[data-st]').forEach(el=>{const st=JSON.parse(el.dataset.st);let c=null;Object.keys(st).map(Number).sort((a,b)=>a-b).forEach(k=>{if(k<=K)c=st[k];});
+    if(!c)return;el.style.left=c[0]+'px';el.style.top=c[1]+'px';el.style.opacity=c[2];el.style.transform='rotate('+c[3]+'deg)';el.classList.toggle('chipm',c[4]==='c');el.classList.toggle('gone',c[4]==='g');});
   if(S===0) document.getElementById('isola').classList.toggle('lit',K>=1);
   if(S===1){const d=digits[Math.min(K,2)];dD.textContent=d[0];dU.textContent=d[1];dD.style.opacity=d[0]==='0'?.3:1;
     dU.style.color=d[2]?'var(--err)':'var(--ink)';colU.classList.toggle('over',d[2]);}
   if(S===2) document.getElementById('probCard').classList.toggle('hl',K>=1);
   if(S===3){const it=document.getElementById('ita');it.classList.toggle('flag',K===1);it.classList.toggle('fixed',K>=2);it.classList.toggle('pressed',K>=2);}
   if(S===4){const l=document.getElementById('lav');l.classList.toggle('scan',K===1);document.getElementById('mappa').classList.toggle('on',K>=2);l.classList.toggle('read',K>=3);}
-  if(S===5){document.getElementById('mic').classList.toggle('hot',K===1);document.getElementById('qaMeglio').classList.toggle('hot',K===3);document.getElementById('qaQuiz').classList.toggle('hot',K===4);}
-  if(S===6) document.getElementById('lvPanel').classList.toggle('lv',K>=1);
+  if(S===5){document.getElementById('ric1').classList.toggle('rev',K>=3);document.getElementById('tray').classList.toggle('hot',K>=3);}
+  if(S===6){const r=document.getElementById('ric2');document.getElementById('flow').classList.toggle('on',true);r.classList.toggle('reading',K===2);r.classList.toggle('dim',K>=3);
+    r.querySelectorAll('.ln[data-on]').forEach(l=>l.classList.toggle('on',K>=+l.dataset.on));}
+  if(S===7){document.getElementById('mic').classList.toggle('hot',K===1);document.getElementById('qaMeglio').classList.toggle('hot',K===3);document.getElementById('qaQuiz').classList.toggle('hot',K===4);}
+  if(S===8) document.getElementById('lvPanel').classList.toggle('lv',K>=1);
   document.getElementById('prev').disabled=(S===0&&K===0);
 }
 function go(s,k){S=s;K=k;render();}
