@@ -684,8 +684,10 @@ S.done=[];S.s4idx=0;S.s4ans={};S.memory=[];
 function avviaSoluzioneIllustrata(){
     if(!window.SoluzioneIllustrata||!S.data) return;
     const d=S.data, s3=getS3qs(), s4=getS4qs();
-    const passi=[{ titolo:'Trova i numeri', domanda:'Quali numeri servono?', risposta:(d.numeri_attesi||[]).join(', ') }];
-    if(s3.length) passi.push({ titolo:'Situazione iniziale', domanda:s3.map(q=>q.domanda).join(' '), risposta:s3.map(q=>(q.etichetta?q.etichetta+': ':'')+q.risposta).join('; ') });
+    // Numeri e situazione iniziale in un solo passaggio "I dati": non sono calcoli, e meno passaggi = fogli più affidabili
+    const passi=[{ titolo:'I dati', domanda:['Quali numeri servono?',...s3.map(q=>q.domanda)].join(' '),
+        risposta:['Numeri: '+(d.numeri_attesi||[]).join(', '),...s3.map(q=>(q.etichetta?q.etichetta+': ':'')+q.risposta)].join('; ') }];
+
     s4.forEach(q=>passi.push({ titolo:q.etichetta||'Calcolo', domanda:q.domanda, risposta:fmtCalc(q.risposta), spiegazione:q.calcolo?`${fmtCalc(q.calcolo)} = ${fmtCalc(q.risposta)}`:'' }));
     window.SoluzioneIllustrata.avvia({ titolo:'', testo:S.text, risposta:d.soluzione_finale.testo, passi });
 }

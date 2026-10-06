@@ -76,7 +76,7 @@ Rispondi SOLO JSON: {"ok": true|false, "errori": ["..."]}`;
     async function foglioVerificato(problema, passi, da, k, tot, log) {
         const prompt = promptFoglio(problema, passi, da, k, tot);
         let sbagliati = 0;
-        for (let t = 1; t <= 4 && sbagliati < 2; t++) {
+        for (let t = 1; t <= 5 && sbagliati < 3; t++) {
             try {
                 const img = await disegnaFoglio(prompt);
                 const v = await controllaFoglio(img, problema, passi, da, k === tot - 1);
@@ -95,7 +95,8 @@ Rispondi SOLO JSON: {"ok": true|false, "errori": ["..."]}`;
     async function genera(problema) {
         const g = gruppi(problema.passi), log = [];
         if (!problema.titolo) {
-            try { problema.titolo = (await E().geminiText(E().MODELS.text, `Dai un titolo di massimo 5 parole, in italiano, a questo problema di matematica (es. "La spesa di Anastasia"). Rispondi solo con il titolo, senza virgolette.\n\n${problema.testo}`)).replace(/["«»*]/g, '').trim(); }
+            try { problema.titolo = (await E().geminiText(E().MODELS.text, `Dai un titolo di massimo 5 parole, in italiano, a questo problema di matematica (es. "La spesa di Anastasia"). Rispondi solo con il titolo, senza virgolette.\n\n${problema.testo}`)).replace(/["'«»*“”‘’]/g, ' ').replace(/\s+/g, ' ').trim(); }
+
             catch { problema.titolo = 'Soluzione illustrata'; }
         }
         let da = 1;
@@ -115,10 +116,14 @@ Rispondi SOLO JSON: {"ok": true|false, "errori": ["..."]}`;
         return true;
     }
 
-    /** Inserisce i fogli come PRIME pagine di un PDF già scritto. Se un foglio manca non inserisce nulla. */
+    /** Inserisce i fogli come PRIME pagine di un PDF già scritto. Tiene i fogli riusciti fino al primo mancante
+     *  (il foglio 1 da solo va bene: dopo seguono comunque le pagine con tutti i passaggi; un foglio 2 senza il 1 no). */
     function inserisciAllInizio(doc, fogli) {
-        if (!fogli || !fogli.length || fogli.some(f => !f)) return false;
-        fogli.forEach((f, k) => {
+        const buoni = [];
+        for (const f of (fogli || [])) { if (!f) break; buoni.push(f); }
+        if (!buoni.length) return false;
+        buoni.forEach((f, k) => {
+
             doc.addPage();
             const W = 210, H = 297, m = 10, w = W - 2 * m, h = w * 4 / 3, y = (H - h) / 2;
             doc.addImage(`data:${f.mime};base64,${f.data}`, 'JPEG', m, y, w, h);
