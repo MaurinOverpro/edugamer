@@ -343,7 +343,9 @@ async function analyzeImage(imageData) {
       }]
     }]
   };
-  let text = await window.EduGamer.geminiText(window.EduGamer.MODELS.math, body);
+  let text = await window.EduGamer.geminiText(window.EduGamer.MODELS.math, body, {
+    timeout: 90000
+  });
   text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
   try {
     return JSON.parse(text);

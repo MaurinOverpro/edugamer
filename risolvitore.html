@@ -313,7 +313,7 @@ ESTRAI solo la parte che racconta il problema vero e proprio: il testo narrativo
 
 Rispondi SOLO con il testo pulito del problema, senza spiegazioni né aggiunte.`;
     return window.EduGamer.geminiText(window.EduGamer.MODELS.math,
-        { contents:[{ parts:[{ text:prompt },{ inlineData:{ mimeType, data:imgData.split(',')[1] } }] }] });
+        { contents:[{ parts:[{ text:prompt },{ inlineData:{ mimeType, data:imgData.split(',')[1] } }] }] }, { timeout: 90000 });
 }
 
 // ===== XP =====
@@ -436,7 +436,8 @@ ESEMPIO JSON (adatta contenuto al problema reale):
 Analizza il problema reale e genera il JSON corretto seguendo questa struttura.`;
 
     try {
-        S.data=await window.EduGamer.geminiJSON(window.EduGamer.MODELS.math, prompt);
+        S.data=await window.EduGamer.geminiJSON(window.EduGamer.MODELS.math, prompt, { timeout: 90000 });
+
 
         document.getElementById('loading').classList.add('hidden');
 

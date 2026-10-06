@@ -351,7 +351,9 @@ Rispondi SOLO con il JSON, senza markdown, senza prefissi.`;
                 }]
             };
             
-            let text = await window.EduGamer.geminiText(window.EduGamer.MODELS.math, body);
+            // Analisi foto + costruzione del percorso: col modello math può superare i 30 s (misurati 29,9 s il 6/10/2026).
+            let text = await window.EduGamer.geminiText(window.EduGamer.MODELS.math, body, { timeout: 90000 });
+
 
             // Pulisci JSON da eventuali markdown
             text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
