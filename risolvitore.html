@@ -719,7 +719,7 @@ async function creaPDF(){
     const W=210,M=18,CW=W-M*2;
     const today=new Date().toLocaleDateString('it-IT',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
     // Strip emoji and non-Latin-1 chars (jsPDF Helvetica supports only Latin-1) — tranne €, che Helvetica ha
-    const px=s=>String(s).replace(/—|–/g,'-').replace(/[^\x00-\xFF€]/g,'').replace(/\s+/g,' ').trim();
+    const px=s=>String(s).replace(/[−–—‒]/g,'-').replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/…/g,'...').replace(/⋅|∙/g,'·').replace(/[^\x00-\xFF€]/g,'').replace(/\s+/g,' ').trim();
     const sc=(...c)=>doc.setTextColor(...c);
     const sf=(...c)=>doc.setFillColor(...c);
     const sd=(...c)=>doc.setDrawColor(...c);

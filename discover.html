@@ -452,7 +452,14 @@ Rispondi SOLO con il testo dell'hint, senza prefissi.`;
         async function generatePDFReport(problemData, stepAnswers, stepAttempts, stepHints) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            
+            // I font standard del PDF non hanno caratteri come il meno "−" (U+2212): se ne trova uno, jsPDF
+            // scrive tutta la riga spaziata lettera per lettera e oltre il margine. Li sostituiamo prima.
+            const pdfSafe = s => String(s).replace(/[−–—‒]/g, '-').replace(/[‘’]/g, "'").replace(/[“”]/g, '"')
+                .replace(/…/g, '...').replace(/⋅|∙/g, '·').replace(/[^\x00-\xFF€]/g, '');
+            const _text = doc.text.bind(doc), _split = doc.splitTextToSize.bind(doc);
+            doc.text = (t, ...a) => _text(Array.isArray(t) ? t.map(pdfSafe) : pdfSafe(t), ...a);
+            doc.splitTextToSize = (t, ...a) => _split(pdfSafe(t), ...a);
+
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
             const margin = 15;

@@ -415,6 +415,11 @@ async function generatePDFReport(problemData, stepAnswers, stepAttempts, stepHin
     jsPDF
   } = window.jspdf;
   const doc = new jsPDF();
+  const pdfSafe = s => String(s).replace(/[−–—‒]/g, '-').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/…/g, '...').replace(/⋅|∙/g, '·').replace(/[^\x00-\xFF€]/g, '');
+  const _text = doc.text.bind(doc),
+    _split = doc.splitTextToSize.bind(doc);
+  doc.text = (t, ...a) => _text(Array.isArray(t) ? t.map(pdfSafe) : pdfSafe(t), ...a);
+  doc.splitTextToSize = (t, ...a) => _split(pdfSafe(t), ...a);
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 15;
