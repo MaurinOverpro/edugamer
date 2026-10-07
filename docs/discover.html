@@ -315,7 +315,7 @@ Altre regole: Domande SEMPRE concrete e chiare (MAI vaghe come "cosa cerchi?")
 - UN CALCOLO = UNO STEP: ogni step di tipo "calcolo" contiene UNA sola operazione. Non unire mai due operazioni nella stessa domanda e non dare per scontato un risultato intermedio (es. ❌ "...per un totale di 10 parti. Quanto vale 1 parte?" → servono due step: prima "3 + 4 + 3", poi "390 ÷ 10")
 - TIPO PARTI: prima di qualsiasi calcolo, uno step trasforma la frazione in parti spiegando il perché. Es. "Anna ha i 3/4 di Bruno: se dividiamo i soldi di Bruno in 4 parti uguali, Anna ne ha 3. Quante parti ha Bruno?" → 4. Poi step separati per: togliere le differenze dal totale, contare le parti in tutto, trovare il valore di 1 parte, calcolare la quota di ciascuno
 - PIÙ DOMANDE: se il problema chiede più risultati (es. "quanto ha ognuno", oppure domande a), b), c)), ogni risultato ha il suo step e "risposta_finale" li riporta tutti
-- Se con i numeri del problema i risultati non vengono esatti (decimali infiniti, persone o oggetti non interi), NON arrotondare in silenzio: in "risposta_finale" scrivi che i dati del problema non danno un risultato esatto
+- DATI CHE NON TORNANO: prima di scrivere il workflow, risolvi il problema per conto tuo. Se con i numeri del problema i risultati non vengono esatti (decimali infiniti come 156 ÷ 11, persone o oggetti non interi, soldi con più di 2 decimali), NON creare il workflow: rispondi SOLO con {"dati_non_esatti": "spiegazione breve e semplice per lo studente: quale calcolo non viene esatto e che probabilmente nel testo c'è un numero sbagliato"}
 - SEMPRE includere unità di misura nelle risposte
 - Per problemi complessi: spezzali in micro-step semplici
 - Se c'è domanda nascosta: crea step apposito prima della domanda finale
@@ -696,6 +696,7 @@ const App = () => {
   const [screen, setScreen] = useState('upload');
   const [imageData, setImageData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [datiNonEsatti, setDatiNonEsatti] = useState('');
   const [problemData, setProblemData] = useState(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [stepAnswers, setStepAnswers] = useState({});
@@ -746,8 +747,14 @@ const App = () => {
   const analyzeProblem = async () => {
     if (!imageData) return;
     setLoading(true);
+    setDatiNonEsatti('');
     try {
       const data = await analyzeImage(imageData);
+      if (data.dati_non_esatti || !data.workflow) {
+        setDatiNonEsatti(data.dati_non_esatti || 'Non riesco a costruire il percorso per questo problema. Controlla il testo e riprova.');
+        setLoading(false);
+        return;
+      }
       setProblemData(data);
       setScreen('workflow');
       setCurrentStep(0);
@@ -909,14 +916,21 @@ const App = () => {
     }, React.createElement("img", {
       src: imageData,
       className: "w-full rounded-xl md:rounded-2xl border-4 border-blue-500 shadow-2xl"
-    }), React.createElement("div", {
+    }), datiNonEsatti && React.createElement("div", {
+      className: "bg-amber-900/40 border-2 border-amber-400 rounded-xl p-4 text-amber-100 text-base md:text-lg leading-relaxed"
+    }, React.createElement("div", {
+      className: "font-bold text-amber-300 mb-1"
+    }, "\u26A0\uFE0F I conti di questo problema non tornano"), datiNonEsatti), React.createElement("div", {
       className: "flex gap-3"
     }, React.createElement("button", {
       onClick: analyzeProblem,
       disabled: loading,
       className: "flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold py-3 md:py-4 rounded-xl text-lg md:text-xl active:scale-95 glow-green disabled:opacity-50"
     }, loading ? '⏳ Analizzo...' : '🚀 INIZIA RISOLUZIONE'), React.createElement("button", {
-      onClick: () => setImageData(null),
+      onClick: () => {
+        setImageData(null);
+        setDatiNonEsatti('');
+      },
       className: "bg-red-600 text-white font-bold py-3 md:py-4 px-4 md:px-6 rounded-xl text-lg md:text-xl active:scale-95"
     }, "\uD83D\uDDD1\uFE0F")))));
   }

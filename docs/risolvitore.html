@@ -408,7 +408,7 @@ REGOLE CRITICHE:
 - UN CALCOLO = UN ELEMENTO di step4_domande: ogni elemento contiene UNA sola operazione. Non unire mai due operazioni nello stesso elemento e non dare per scontato un risultato intermedio. Crea TUTTI gli elementi che servono: l'esempio sotto ne ha 3 solo perché quel problema ne richiede 3; problemi più lunghi ne avranno 6, 8, 10.
 - TIPO PARTI: prima di qualsiasi calcolo, un elemento di step4_domande trasforma la frazione in parti, spiegando il perché. Es. "Anna ha i 3/4 di Bruno: se dividiamo i soldi di Bruno in 4 parti uguali, Anna ne ha 3. Quante parti ha Bruno?" (risposta 4). Poi elementi separati per: togliere le differenze dal totale, contare le parti in tutto, trovare il valore di 1 parte, calcolare la quota di ciascuno.
 - PIÙ DOMANDE: se il problema chiede più risultati (es. "quanto ha ognuno", oppure domande a), b), c)), calcola ognuno con il suo elemento e mettili tutti in "soluzione_finale.valori".
-- Se con i numeri del problema i risultati non vengono esatti (decimali infiniti, quantità di persone o oggetti non intere), NON arrotondare in silenzio: in "soluzione_finale.testo" scrivi che i dati del problema non danno un risultato esatto.
+- DATI CHE NON TORNANO: prima di scrivere i passaggi, risolvi il problema per conto tuo. Se con i numeri del problema i risultati non vengono esatti (decimali infiniti come 156 : 11, persone o oggetti non interi, soldi con più di 2 decimali), NON creare i passaggi: rispondi SOLO con {"dati_non_esatti": "spiegazione breve e semplice per lo studente: quale calcolo non viene esatto e che probabilmente nel testo c'è un numero sbagliato"}
 - Rispondi SOLO con JSON valido, senza markdown né backtick
 - Usa SEMPRE "step3_domande" e "step4_domande" come chiavi
 - In step4_domande: ogni "domanda" DEVE contenere i numeri delle operazioni precedenti nel testo. NON scrivere "Quante palline ha Alessandro?" ma scrivi "Alessandro ha 3 IN PIÙ di Marco (Marco = 11). Quanto fa 11 + 3?"
@@ -450,6 +450,16 @@ Analizza il problema reale e genera il JSON corretto seguendo questa struttura.`
 
 
         document.getElementById('loading').classList.add('hidden');
+
+        // Dati che non danno un risultato esatto: niente passaggi, avviso che resta visibile
+        if(S.data.dati_non_esatti || !S.data.steps){
+            const msg=S.data.dati_non_esatti||'Non riesco a costruire i passaggi per questo problema. Controlla il testo e riprova.';
+            S.data=null;
+            document.getElementById('step-1').classList.remove('hidden');
+            const e=document.getElementById('fb-1');
+            e.className='feedback err'; e.textContent='⚠️ I conti di questo problema non tornano. '+msg; e.style.display='block';
+            return;
+        }
 
         // Sticky problem
         document.getElementById('sticky-prob-text').innerHTML=hiNums(text);
