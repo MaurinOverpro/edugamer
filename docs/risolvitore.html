@@ -402,8 +402,13 @@ TIPI SUPPORTATI:
 4. CONFRONTO — differenza tra quantità (in più, in meno, di più, quanti in più)
 5. PROPORZIONE — metà, doppio, triplo, percentuale semplice
 6. GEOMETRIA — perimetro e area di figure (lato, cm, rettangolo, quadrato)
+7. PARTI — totale diviso tra persone legate da frazioni o differenze (es. "Anna ha i 3/4 di Bruno", "Carla ha 30 € più di Anna")
 
 REGOLE CRITICHE:
+- UN CALCOLO = UN ELEMENTO di step4_domande: ogni elemento contiene UNA sola operazione. Non unire mai due operazioni nello stesso elemento e non dare per scontato un risultato intermedio. Crea TUTTI gli elementi che servono: l'esempio sotto ne ha 3 solo perché quel problema ne richiede 3; problemi più lunghi ne avranno 6, 8, 10.
+- TIPO PARTI: prima di qualsiasi calcolo, un elemento di step4_domande trasforma la frazione in parti, spiegando il perché. Es. "Anna ha i 3/4 di Bruno: se dividiamo i soldi di Bruno in 4 parti uguali, Anna ne ha 3. Quante parti ha Bruno?" (risposta 4). Poi elementi separati per: togliere le differenze dal totale, contare le parti in tutto, trovare il valore di 1 parte, calcolare la quota di ciascuno.
+- PIÙ DOMANDE: se il problema chiede più risultati (es. "quanto ha ognuno", oppure domande a), b), c)), calcola ognuno con il suo elemento e mettili tutti in "soluzione_finale.valori".
+- Se con i numeri del problema i risultati non vengono esatti (decimali infiniti, quantità di persone o oggetti non intere), NON arrotondare in silenzio: in "soluzione_finale.testo" scrivi che i dati del problema non danno un risultato esatto.
 - Rispondi SOLO con JSON valido, senza markdown né backtick
 - Usa SEMPRE "step3_domande" e "step4_domande" come chiavi
 - In step4_domande: ogni "domanda" DEVE contenere i numeri delle operazioni precedenti nel testo. NON scrivere "Quante palline ha Alessandro?" ma scrivi "Alessandro ha 3 IN PIÙ di Marco (Marco = 11). Quanto fa 11 + 3?"
@@ -451,7 +456,7 @@ Analizza il problema reale e genera il JSON corretto seguendo questa struttura.`
         document.getElementById('sticky-prob').classList.remove('hidden');
 
         // Type badge
-        const colors={'TRASFORMAZIONE':'#1e40af,#bfdbfe','COMPRAVENDITA':'#78350f,#fde68a','COMBINAZIONE':'#064e3b,#6ee7b7','CONFRONTO':'#581c87,#e9d5ff','PROPORZIONE':'#831843,#fbcfe8','GEOMETRIA':'#0c4a6e,#bae6fd'};
+        const colors={'TRASFORMAZIONE':'#1e40af,#bfdbfe','COMPRAVENDITA':'#78350f,#fde68a','COMBINAZIONE':'#064e3b,#6ee7b7','CONFRONTO':'#581c87,#e9d5ff','PROPORZIONE':'#831843,#fbcfe8','GEOMETRIA':'#0c4a6e,#bae6fd','PARTI':'#713f12,#fef08a'};
         const [bg,fg]=(colors[S.data.tipo]||'#1e293b,#94a3b8').split(',');
         document.getElementById('type-badge').innerHTML=`<span class="type-badge" style="background:${bg};color:${fg};">${S.data.tipo_label||S.data.tipo}</span>`;
         document.getElementById('prob-display').innerHTML=hiNums(text);

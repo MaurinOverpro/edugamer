@@ -201,6 +201,7 @@ TIPI DI PROBLEMI CHE POTRESTI INCONTRARE:
 8. PESO LORDO/NETTO/TARA: contenitore + contenuto
 9. DISTANZE/PERCORSI: totale - fatto = mancano
 10. CONFRONTO: "più di", "meno di", "differenza"
+11. PARTI: un totale diviso tra persone legate da frazioni o differenze (es: "Anna ha i 3/4 di Bruno, Carla ha 30 € più di Anna, in tutto 420 €")
 
 GENERA UN JSON COSÌ (SOLO JSON, NESSUN TESTO EXTRA):
 
@@ -310,7 +311,11 @@ L'operazione matematica deve apparire SOLO nell'hint_3, mai come campo "operazio
 
 Altre regole: Domande SEMPRE concrete e chiare (MAI vaghe come "cosa cerchi?")
 - Ogni step = 1 domanda + 1 risposta inequivocabile
-- Minimo 2 step, massimo 6 step
+- Minimo 2 step, massimo 12 step: usa TUTTI quelli che servono. L'esempio sopra ne ha 3 solo perché quel problema ne richiede 3
+- UN CALCOLO = UNO STEP: ogni step di tipo "calcolo" contiene UNA sola operazione. Non unire mai due operazioni nella stessa domanda e non dare per scontato un risultato intermedio (es. ❌ "...per un totale di 10 parti. Quanto vale 1 parte?" → servono due step: prima "3 + 4 + 3", poi "390 ÷ 10")
+- TIPO PARTI: prima di qualsiasi calcolo, uno step trasforma la frazione in parti spiegando il perché. Es. "Anna ha i 3/4 di Bruno: se dividiamo i soldi di Bruno in 4 parti uguali, Anna ne ha 3. Quante parti ha Bruno?" → 4. Poi step separati per: togliere le differenze dal totale, contare le parti in tutto, trovare il valore di 1 parte, calcolare la quota di ciascuno
+- PIÙ DOMANDE: se il problema chiede più risultati (es. "quanto ha ognuno", oppure domande a), b), c)), ogni risultato ha il suo step e "risposta_finale" li riporta tutti
+- Se con i numeri del problema i risultati non vengono esatti (decimali infiniti, persone o oggetti non interi), NON arrotondare in silenzio: in "risposta_finale" scrivi che i dati del problema non danno un risultato esatto
 - SEMPRE includere unità di misura nelle risposte
 - Per problemi complessi: spezzali in micro-step semplici
 - Se c'è domanda nascosta: crea step apposito prima della domanda finale
