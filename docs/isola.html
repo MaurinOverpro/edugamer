@@ -265,6 +265,9 @@ const CHARACTERS = {
     greeting: "Sei giunto fino alla vetta... Pochissimi ci riescono. Hai dimostrato forza, intelligenza e perseveranza. Questa fortezza è ora anche tua, Leggenda!"
   }
 };
+Object.keys(CHARACTERS).forEach(k => {
+  CHARACTERS[k].img = `img/personaggi/${k}.png`;
+});
 const PRESET_AVATARS = ['🏴‍☠️', '🦜', '⚓', '💀', '🗡️', '🔮', '🐙', '🌊', '🗺️', '💎', '🦊', '🐉'];
 const getLevelName = level => {
   const L = window.EduGamer?.LEVELS?.[level - 1];
@@ -1486,6 +1489,48 @@ const speak = text => {
   if (window.EduGamer?.applyVoice) window.EduGamer.applyVoice(u);else u.lang = 'it-IT';
   window.speechSynthesis.speak(u);
 };
+const CharPortrait = ({
+  char,
+  zone,
+  size = 84
+}) => {
+  const [broken, setBroken] = useState(false);
+  return React.createElement("div", {
+    className: "relative flex-shrink-0",
+    style: {
+      width: size,
+      height: size
+    }
+  }, React.createElement("div", {
+    className: "w-full h-full rounded-full overflow-hidden flex items-center justify-center",
+    style: {
+      background: 'radial-gradient(circle at 35% 30%,#1e3a5f,#071226)',
+      border: `3px solid ${zone.color}`,
+      boxShadow: `0 0 22px ${zone.color}55, inset 0 0 0 3px rgba(251,191,36,0.25)`,
+      fontSize: size * 0.5
+    }
+  }, char.img && !broken ? React.createElement("img", {
+    src: char.img,
+    alt: char.name,
+    onError: () => setBroken(true),
+    style: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover'
+    }
+  }) : char.emoji), React.createElement("div", {
+    className: "absolute flex items-center justify-center rounded-full",
+    style: {
+      width: size * 0.38,
+      height: size * 0.38,
+      right: -4,
+      bottom: -4,
+      fontSize: size * 0.2,
+      background: '#0f172a',
+      border: `2px solid ${zone.color}`
+    }
+  }, zone.emoji));
+};
 const LockedZoneModal = ({
   zone,
   xp,
@@ -1574,14 +1619,11 @@ const ZoneModal = ({
     style: {
       borderBottom: `1px solid ${zone.color}25`
     }
-  }, React.createElement("div", {
-    className: "w-16 h-16 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0",
-    style: {
-      background: `${zone.color}18`,
-      border: `2px solid ${zone.color}`,
-      boxShadow: `0 0 18px ${zone.color}40`
-    }
-  }, zone.emoji), React.createElement("div", {
+  }, React.createElement(CharPortrait, {
+    char: char,
+    zone: zone,
+    size: 84
+  }), React.createElement("div", {
     className: "flex-1 min-w-0"
   }, React.createElement("h2", {
     className: "text-xl font-black text-white leading-tight"
@@ -1750,12 +1792,16 @@ const LevelUpOverlay = ({
 }, React.createElement("div", {
   className: "text-center"
 }, React.createElement("div", {
-  className: "text-8xl mb-4 inline-block",
+  className: "mb-4 inline-block",
   style: {
     animation: 'float 1.2s ease-in-out infinite',
     filter: `drop-shadow(0 0 22px ${CHARACTERS[zone.charId]?.color || '#fbbf24'})`
   }
-}, zone.emoji), React.createElement("div", {
+}, React.createElement(CharPortrait, {
+  char: CHARACTERS[zone.charId],
+  zone: zone,
+  size: 140
+})), React.createElement("div", {
   className: "text-4xl mb-3"
 }, "\u2728"), React.createElement("div", {
   className: "text-yellow-400 font-black text-2xl mb-2",

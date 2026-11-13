@@ -94,6 +94,8 @@ for (const f of fs.readdirSync(root)) {
 }
 // cartella font
 fs.cpSync(path.join(root, 'fonts'), path.join(outDir, 'fonts'), { recursive: true });
+// immagini (ritratti dei personaggi, ecc.)
+if (fs.existsSync(path.join(root, 'img'))) fs.cpSync(path.join(root, 'img'), path.join(outDir, 'img'), { recursive: true });
 console.log('▸ Asset copiati (game-system.js, font, immagini).');
 
 console.log('\n✅ Build completata in docs/  →  pronta per GitHub Pages.');

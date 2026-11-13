@@ -140,6 +140,8 @@
         barbanera: { name:'Barbanera',             emoji:'💀', color:'#fde68a', greeting:"Finalmente un pirata degno di ammirare i miei tesori! Ogni medaglia che vedi è una vittoria conquistata con il tuo ingegno. Vieni ad ammirare le tue gemme!" },
         corsaro:   { name:'Il Gran Corsaro',      emoji:'👑', color:'#f87171', greeting:"Sei giunto fino alla vetta... Pochissimi ci riescono. Hai dimostrato forza, intelligenza e perseveranza. Questa fortezza è ora anche tua, Leggenda!" },
     };
+    /* Ritratti illustrati (generati con Canva): img/personaggi/<id>.png */
+    Object.keys(CHARACTERS).forEach(k => { CHARACTERS[k].img = `img/personaggi/${k}.png`; });
 
     const PRESET_AVATARS = ['🏴‍☠️','🦜','⚓','💀','🗡️','🔮','🐙','🌊','🗺️','💎','🦊','🐉'];
     /* Nome del livello — fonte di verità in game-system.js (window.EduGamer.LEVELS) */
@@ -786,6 +788,28 @@
         window.speechSynthesis.speak(u);
     };
 
+    /* Ritratto del personaggio (illustrazione Canva) con badge della zona.
+       Se l'immagine manca, mostra l'emoji del personaggio. */
+    const CharPortrait = ({ char, zone, size = 84 }) => {
+        const [broken, setBroken] = useState(false);
+        return (
+            <div className="relative flex-shrink-0" style={{width:size, height:size}}>
+                <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center"
+                    style={{background:'radial-gradient(circle at 35% 30%,#1e3a5f,#071226)', border:`3px solid ${zone.color}`,
+                        boxShadow:`0 0 22px ${zone.color}55, inset 0 0 0 3px rgba(251,191,36,0.25)`, fontSize: size * 0.5}}>
+                    {char.img && !broken
+                        ? <img src={char.img} alt={char.name} onError={() => setBroken(true)} style={{width:'100%', height:'100%', objectFit:'cover'}}/>
+                        : char.emoji}
+                </div>
+                <div className="absolute flex items-center justify-center rounded-full"
+                    style={{width:size*0.38, height:size*0.38, right:-4, bottom:-4, fontSize:size*0.2,
+                        background:'#0f172a', border:`2px solid ${zone.color}`}}>
+                    {zone.emoji}
+                </div>
+            </div>
+        );
+    };
+
     /* Zona ancora nella nebbia: mostra quando si svela */
     const LockedZoneModal = ({ zone, xp, onClose }) => {
         const need = Math.max(0, LEVEL_XP[zone.unlockLevel - 1] - xp);
@@ -826,10 +850,7 @@
                     onClick={e => e.stopPropagation()}>
                     {/* Header */}
                     <div className="flex items-center gap-4 p-5 pb-4" style={{borderBottom:`1px solid ${zone.color}25`}}>
-                        <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0"
-                            style={{background:`${zone.color}18`, border:`2px solid ${zone.color}`, boxShadow:`0 0 18px ${zone.color}40`}}>
-                            {zone.emoji}
-                        </div>
+                        <CharPortrait char={char} zone={zone} size={84}/>
                         <div className="flex-1 min-w-0">
                             <h2 className="text-xl font-black text-white leading-tight">{zone.name}</h2>
                             <p className="text-sm font-bold mt-0.5" style={{color:zone.color}}>{char.emoji} {char.name}</p>
@@ -917,9 +938,9 @@
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6 overlay-enter"
             style={{background:'rgba(0,0,0,0.88)'}} onClick={onClose}>
             <div className="text-center">
-                <div className="text-8xl mb-4 inline-block"
+                <div className="mb-4 inline-block"
                     style={{animation:'float 1.2s ease-in-out infinite', filter:`drop-shadow(0 0 22px ${CHARACTERS[zone.charId]?.color||'#fbbf24'})`}}>
-                    {zone.emoji}
+                    <CharPortrait char={CHARACTERS[zone.charId]} zone={zone} size={140}/>
                 </div>
                 <div className="text-4xl mb-3">✨</div>
                 <div className="text-yellow-400 font-black text-2xl mb-2" style={{textShadow:'0 0 20px rgba(251,191,36,0.8)'}}>
