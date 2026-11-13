@@ -1,0 +1,66 @@
+/* ─────────────────────────────────────────────────────────────
+   EduGamer — tema globale condiviso (caricato da tutti i moduli).
+   Solo ritocchi "di atmosfera" e accessibilità: non cambia layout.
+   Palette: oro del tesoro, acque profonde, fosforescenza, giungla.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --eg-bg: #0a0e17;
+  --eg-oro: #fbbf24;
+  --eg-mare: #38bdf8;
+  --eg-abisso: #c084fc;
+  --eg-giungla: #4ade80;
+  --eg-pergamena: #f5e8c0;
+  --eg-inchiostro: #3b2506;
+  color-scheme: dark;
+}
+
+/* Notte in mare: bagliore di luna in alto e acqua profonda in basso.
+   Sta dietro a tutto (z-index -1) e non intercetta i tocchi. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 45% at 15% -5%, rgba(56, 189, 248, 0.13), transparent 70%),
+    radial-gradient(ellipse 70% 40% at 95% 0%, rgba(192, 132, 252, 0.10), transparent 70%),
+    radial-gradient(ellipse 120% 50% at 50% 110%, rgba(14, 116, 144, 0.22), transparent 70%);
+}
+
+/* Focus da tastiera ben visibile (oro) */
+:focus-visible {
+  outline: 3px solid var(--eg-oro);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Selezione testo */
+::selection { background: rgba(251, 191, 36, 0.35); color: #fff; }
+
+/* Scrollbar sottile color corda */
+* { scrollbar-width: thin; scrollbar-color: #475569 transparent; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #475569; border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+/* Niente flash grigio al tocco su mobile */
+a, button { -webkit-tap-highlight-color: transparent; }
+
+/* Ingresso morbido della pagina */
+@keyframes eg-page-in { from { opacity: 0; } to { opacity: 1; } }
+#root { animation: eg-page-in 0.35s ease-out; }
+
+/* Titoli decorativi brevi (≤5 parole) */
+.title-pirate { font-family: Georgia, 'Times New Roman', serif; letter-spacing: normal; }
+
+/* Rispetta "riduci movimento" del sistema */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

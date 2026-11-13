@@ -24,17 +24,53 @@
         @keyframes xp-glow     { 0%,100% { box-shadow: 0 0 8px rgba(251,191,36,0.4); } 50% { box-shadow: 0 0 22px rgba(251,191,36,0.9); } }
         @keyframes foam-pulse  { 0%,100% { opacity: 0.25; } 50% { opacity: 0.55; } }
 
-        .wave-layer {
-            position: absolute; width: 200%; height: 100%;
-            background: repeating-linear-gradient(88deg,
-                transparent 0px, rgba(80,150,255,0.05) 55px, transparent 110px);
-            animation: wave-scroll 12s linear infinite;
+        @keyframes wave-bob    { 0%,100% { transform: translate(0,0); opacity: 0.25; } 50% { transform: translate(3px,-2px); opacity: 0.9; } }
+        @keyframes march       { to { stroke-dashoffset: -24; } }
+        @keyframes river       { to { stroke-dashoffset: -20; } }
+        @keyframes pulse-ring  { 0%,100% { opacity: 0.25; } 50% { opacity: 0.75; } }
+        @keyframes cloud-move  { from { transform: translateX(-160px); } to { transform: translateX(460px); } }
+        @keyframes gull        { 0% { transform: translate(-40px, 20px); } 100% { transform: translate(420px, -30px); } }
+        @keyframes fog         { 0%,100% { transform: translateX(-2px); } 50% { transform: translateX(2px); } }
+        @keyframes here        { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+        @keyframes shine       { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+
+        .isle-wave     { animation: wave-bob 4s ease-in-out infinite; }
+        .path-march    { animation: march 2.4s linear infinite; }
+        .river-flow    { animation: river 2s linear infinite; }
+        .zone-pulse    { animation: pulse-ring 2.6s ease-in-out infinite; }
+        .cloud-drift   { animation: cloud-move 90s linear infinite; }
+        .cloud-drift-2 { animation: cloud-move 120s linear infinite; }
+        .gull-drift    { animation: gull 38s linear infinite; }
+        .fog-drift     { animation: fog 5s ease-in-out infinite; }
+        .here-bob      { animation: here 1.6s ease-in-out infinite; }
+        .zone-btn:focus { outline: none; }
+        .zone-btn:focus-visible circle:nth-of-type(1) { stroke: #fbbf24; stroke-width: 3; }
+
+        /* Barra di vetro scuro con filo d'oro (top bar e pannello) */
+        .deck-bar {
+            background: linear-gradient(180deg, rgba(12,24,48,0.97), rgba(5,12,26,0.97));
+            border-bottom: 1px solid rgba(251,191,36,0.28);
+            box-shadow: 0 6px 24px rgba(0,0,0,0.45);
         }
-        .wave-layer-2 {
-            position: absolute; width: 200%; height: 100%;
-            background: repeating-linear-gradient(92deg,
-                transparent 0px, rgba(40,120,220,0.04) 70px, transparent 140px);
-            animation: wave-scroll 18s linear infinite reverse;
+        .icon-btn {
+            width: 48px; height: 48px; border-radius: 14px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; cursor: pointer; text-decoration: none;
+            background: linear-gradient(180deg, rgba(51,65,85,0.75), rgba(15,23,42,0.85));
+            border: 1px solid rgba(148,163,184,0.3);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 6px rgba(0,0,0,0.35);
+            transition: transform 0.15s, border-color 0.2s;
+        }
+        .icon-btn:active { transform: scale(0.92); }
+        .icon-btn:hover  { border-color: rgba(251,191,36,0.6); }
+        .icon-btn--gold  { background: linear-gradient(180deg, rgba(146,94,12,0.55), rgba(69,40,4,0.75)); border-color: rgba(251,191,36,0.45); }
+        .xp-fill {
+            background: linear-gradient(90deg, #f59e0b, #fbbf24, #fde68a, #fbbf24, #f59e0b);
+            background-size: 200% 100%; animation: shine 3s linear infinite;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; }
         }
 
         .zone-float  { animation: float 3.2s ease-in-out infinite; }
@@ -43,7 +79,7 @@
         .xp-bar-anim { animation: xp-glow 2.5s ease-in-out infinite; }
         .foam-anim   { animation: foam-pulse 3s ease-in-out infinite; }
 
-        .zone-btn { cursor: pointer; transition: transform 0.15s; }
+        .zone-btn { cursor: pointer; transition: transform 0.15s; transform-box: fill-box; transform-origin: center; }
         .zone-btn:active { transform: scale(0.88); }
         .zone-locked { filter: grayscale(1) brightness(0.38); cursor: default; pointer-events: none; }
 
@@ -51,6 +87,7 @@
         input:focus { outline: none; }
         ::-webkit-scrollbar { width: 0; }
     </style>
+    <link href="theme.css" rel="stylesheet">
 </head>
 <body>
 <div id="root"></div>
@@ -347,36 +384,155 @@
     );
 
     /* ── ISLAND SVG ─────────────────────────────────────────── */
+    /* Illustrazione vettoriale dell'isola (viewBox 400×520).
+       Ordine dei livelli: oceano → fondali → spiaggia → giungla → rilievi →
+       fiume/lago → alberi → sentieri → zone → nuvole → bussola → vignetta. */
+    const REDUCED_MOTION = typeof window !== 'undefined' && window.matchMedia
+        && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const Palm = ({ x, y, s = 1, flip = false }) => (
+        <g transform={`translate(${x},${y}) scale(${flip ? -s : s},${s})`}>
+            <ellipse cx="2" cy="1" rx="9" ry="2.6" fill="#000" opacity="0.22"/>
+            <path d="M 0 0 C 1 -8, 4 -15, 8 -22" fill="none" stroke="#6b4318" strokeWidth="3" strokeLinecap="round"/>
+            <path d="M 0 0 C 1 -8, 4 -15, 8 -22" fill="none" stroke="#a0692c" strokeWidth="1.2" strokeDasharray="1.5,2.2" strokeLinecap="round"/>
+            <g transform="translate(8,-22)">
+                <path d="M0 0 C -6 -5, -13 -3, -17 3 C -11 -1, -6 0, 0 0 Z" fill="#15803d"/>
+                <path d="M0 0 C 6 -6, 13 -5, 17 1 C 11 -2, 6 -1, 0 0 Z" fill="#16a34a"/>
+                <path d="M0 0 C -2 -7, -8 -11, -13 -10 C -7 -7, -3 -4, 0 0 Z" fill="#22c55e"/>
+                <path d="M0 0 C 3 -7, 9 -10, 14 -8 C 8 -6, 4 -3, 0 0 Z" fill="#15803d"/>
+                <path d="M0 0 C -4 2, -8 7, -9 12 C -6 7, -3 4, 0 0 Z" fill="#166534"/>
+                <path d="M0 0 C 4 2, 8 6, 10 11 C 6 7, 3 4, 0 0 Z" fill="#166534"/>
+                <circle cx="-1" cy="1.5" r="1.6" fill="#78350f"/><circle cx="1.6" cy="1.8" r="1.5" fill="#92400e"/>
+            </g>
+        </g>
+    );
+
+    const Tree = ({ x, y, r = 9, tone = 0 }) => {
+        const c = [['#14532d','#166534','#22c55e'], ['#134e2a','#15803d','#4ade80'], ['#1a4d2e','#1f7a3f','#86efac']][tone % 3];
+        return (
+            <g>
+                <ellipse cx={x + r * 0.35} cy={y + r * 0.75} rx={r} ry={r * 0.38} fill="#000" opacity="0.25"/>
+                <circle cx={x} cy={y} r={r} fill={c[0]}/>
+                <circle cx={x - r * 0.18} cy={y - r * 0.2} r={r * 0.78} fill={c[1]}/>
+                <circle cx={x - r * 0.35} cy={y - r * 0.4} r={r * 0.36} fill={c[2]} opacity="0.55"/>
+            </g>
+        );
+    };
+
+    const Ship = () => (
+        <g>
+            <ellipse cx="0" cy="7" rx="20" ry="3" fill="#bae6fd" opacity="0.25"/>
+            <path d="M -18 0 L 18 0 L 13 8 L -13 8 Z" fill="#5b3412" stroke="#2b1606" strokeWidth="1"/>
+            <path d="M -16 2.5 L 16 2.5" stroke="#d6a65a" strokeWidth="0.8" opacity="0.7"/>
+            <line x1="0" y1="0" x2="0" y2="-26" stroke="#3b2208" strokeWidth="1.6"/>
+            <line x1="-9" y1="-1" x2="-9" y2="-16" stroke="#3b2208" strokeWidth="1.2"/>
+            <path d="M 1 -24 Q 13 -17, 1 -6 Z" fill="#f5e8c0" stroke="#b08a4a" strokeWidth="0.6"/>
+            <path d="M -8 -15 Q 0 -10, -8 -4 Z" fill="#ead9a0" stroke="#b08a4a" strokeWidth="0.5"/>
+            <path d="M 0 -26 L 9 -23.5 L 0 -21 Z" fill="#111827"/>
+            <circle cx="4.2" cy="-23.6" r="0.9" fill="#f8fafc"/>
+        </g>
+    );
+
+    const Cloud = ({ x, y, s = 1, cls, delay = 0 }) => (
+        <g className={cls} style={{animationDelay: `${delay}s`}}>
+            <g transform={`translate(${x},${y}) scale(${s})`}>
+                <g opacity="0.16" transform="translate(10,26)">
+                    <ellipse cx="0" cy="0" rx="34" ry="10" fill="#020617"/>
+                </g>
+                <g opacity="0.55">
+                    <ellipse cx="0" cy="0" rx="30" ry="10" fill="#e2e8f0"/>
+                    <circle cx="-12" cy="-6" r="11" fill="#f1f5f9"/>
+                    <circle cx="6" cy="-9" r="14" fill="#f8fafc"/>
+                    <circle cx="20" cy="-3" r="9" fill="#e2e8f0"/>
+                </g>
+            </g>
+        </g>
+    );
+
+    /* Sentiero curvo tra due zone (curva quadratica, lato alternato) */
+    const curvedPath = (a, b, i) => {
+        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const k = (i % 2 ? 0.16 : -0.16);
+        return `M ${a.x} ${a.y} Q ${mx - dy * k} ${my + dx * k} ${b.x} ${b.y}`;
+    };
+
+    const WAVES = [[40,-40],[150,-80],[260,-30],[330,-110],[80,-150],[220,-170],[30,560],[140,600],[250,570],[350,620],[90,680],[300,700],[-60,120],[-90,380],[460,200],[440,460],[18,92],[384,236],[386,330],[14,474],[78,498],[150,508],[262,500],[330,508],[384,424],[388,112],[8,196],[296,14],[58,24],[140,6],[372,60],[10,300]];
+    const TREES = [
+        [150,148,9,0],[163,136,8,1],[139,162,8,2],[176,152,6,1],
+        [128,262,9,1],[144,277,8,0],[118,282,7,2],
+        [246,300,9,0],[232,314,7,1],[256,316,6,2],
+        [162,380,8,2],[148,392,7,0],[176,396,6,1],
+        [258,112,8,1],[270,100,7,0],[150,110,7,2],[140,124,6,0],
+        [340,232,7,0],[332,246,6,2],[68,262,7,1],[60,276,6,0],
+        [232,170,6,2],[168,200,6,1],[270,350,6,0],[120,350,6,2],
+    ];
+    const PALMS = [[124,424,1,true],[276,432,1,false],[62,362,0.9,true],[342,316,0.9,false],[46,236,0.85,true],[66,118,0.8,true],[338,100,0.8,false],[352,200,0.8,false]];
+
     const IslandSVG = ({ level, onZoneClick, avatarHistory = [] }) => {
         const avatarBubbles = avatarHistory.filter(h => h.avatarUrl?.startsWith('data:')).slice(0, 3);
+        /* "Sei qui": l'ultima zona sbloccata */
+        const here = ZONES.filter(z => level >= z.unlockLevel).sort((a, b) => b.unlockLevel - a.unlockLevel)[0];
+        const ink = '#3b2506';
         return (
-        <svg viewBox="0 0 400 520" style={{width:'100%',height:'100%',display:'block'}} preserveAspectRatio="xMidYMid meet">
+        <svg viewBox="0 0 400 520" style={{width:'100%',height:'100%',display:'block',overflow:'hidden'}} preserveAspectRatio="xMidYMid meet"
+            role="img" aria-label="Mappa dell'Isola Misteriosa">
             <defs>
-                <radialGradient id="ocean-deep" cx="50%" cy="50%">
-                    <stop offset="0%"   stopColor="#1a4a8a"/>
-                    <stop offset="70%"  stopColor="#0d2a55"/>
-                    <stop offset="100%" stopColor="#060e1e"/>
+                <radialGradient id="ocean-deep" gradientUnits="userSpaceOnUse" cx="200" cy="250" r="460">
+                    <stop offset="0%"   stopColor="#1d5fa8"/>
+                    <stop offset="45%"  stopColor="#123f7a"/>
+                    <stop offset="80%"  stopColor="#0a2550"/>
+                    <stop offset="100%" stopColor="#050f24"/>
                 </radialGradient>
-                <radialGradient id="island-fill" cx="48%" cy="35%">
-                    <stop offset="0%"   stopColor="#2e7c3e"/>
-                    <stop offset="45%"  stopColor="#1c5c28"/>
-                    <stop offset="80%"  stopColor="#1a4a20"/>
-                    <stop offset="100%" stopColor="#6e4010"/>
+                <radialGradient id="island-fill" cx="42%" cy="30%" r="75%">
+                    <stop offset="0%"   stopColor="#4caf50"/>
+                    <stop offset="40%"  stopColor="#2f8a3c"/>
+                    <stop offset="75%"  stopColor="#1f6a2e"/>
+                    <stop offset="100%" stopColor="#175222"/>
                 </radialGradient>
-                <radialGradient id="beach-fill" cx="50%" cy="50%">
-                    <stop offset="0%"   stopColor="#c8954a"/>
-                    <stop offset="100%" stopColor="#8b5e20"/>
+                <radialGradient id="beach-fill" cx="45%" cy="35%" r="70%">
+                    <stop offset="0%"   stopColor="#f3d79b"/>
+                    <stop offset="70%"  stopColor="#e2b86a"/>
+                    <stop offset="100%" stopColor="#c99448"/>
                 </radialGradient>
-                <filter id="isle-shadow" x="-15%" y="-15%" width="130%" height="130%">
-                    <feDropShadow dx="0" dy="4" stdDeviation="8" floodColor="#000" floodOpacity="0.5"/>
-                </filter>
+                <radialGradient id="highland" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%"   stopColor="#3f8f3a" stopOpacity="0.9"/>
+                    <stop offset="100%" stopColor="#3f8f3a" stopOpacity="0"/>
+                </radialGradient>
+                <radialGradient id="sun-glint" gradientUnits="userSpaceOnUse" cx="120" cy="100" r="340">
+                    <stop offset="0%"   stopColor="#fef3c7" stopOpacity="0.22"/>
+                    <stop offset="100%" stopColor="#fef3c7" stopOpacity="0"/>
+                </radialGradient>
+                <radialGradient id="vignette" gradientUnits="userSpaceOnUse" cx="200" cy="260" r="520">
+                    <stop offset="50%"  stopColor="#020617" stopOpacity="0"/>
+                    <stop offset="100%" stopColor="#020617" stopOpacity="0.6"/>
+                </radialGradient>
+                <radialGradient id="lake-fill" cx="40%" cy="35%">
+                    <stop offset="0%"   stopColor="#38bdf8"/>
+                    <stop offset="60%"  stopColor="#0e7490"/>
+                    <stop offset="100%" stopColor="#164e63"/>
+                </radialGradient>
+                <radialGradient id="medal" cx="40%" cy="35%">
+                    <stop offset="0%"   stopColor="#1e3a5f"/>
+                    <stop offset="100%" stopColor="#071226"/>
+                </radialGradient>
+                <linearGradient id="mtn-light" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#a8764a"/><stop offset="100%" stopColor="#7a4f2a"/>
+                </linearGradient>
                 <filter id="soft-blur" x="-30%" y="-30%" width="160%" height="160%">
                     <feGaussianBlur stdDeviation="5"/>
                 </filter>
-                <filter id="glow-filter" x="-40%" y="-40%" width="180%" height="180%">
-                    <feGaussianBlur stdDeviation="4" result="b"/>
-                    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                <filter id="shallow-blur" x="-10%" y="-10%" width="120%" height="120%">
+                    <feGaussianBlur stdDeviation="7"/>
                 </filter>
+                <filter id="fog-blur" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="3.2"/>
+                </filter>
+                <filter id="grain" x="0" y="0" width="100%" height="100%">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="7" result="n"/>
+                    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.9 -0.35"/>
+                </filter>
+                <clipPath id="isle-clip"><path d={ISLAND_PATH_D}/></clipPath>
                 {avatarBubbles.map((_, i) => (
                     <clipPath key={'avclip'+i} id={'av-clip-'+i}>
                         <circle cx={32} cy={355 + i * 44} r="14"/>
@@ -384,42 +540,40 @@
                 ))}
             </defs>
 
-            {/* ── OCEAN ── */}
-            <rect width="400" height="520" fill="url(#ocean-deep)"/>
-            {/* Horizontal shimmer waves */}
-            {[40,90,145,200,258,315,370,430,480].map(y =>
-                <line key={y} x1="0" y1={y} x2="400" y2={y}
-                    stroke="rgba(120,180,255,0.06)" strokeWidth="1.5"/>
-            )}
-            {/* Diagonal wave highlights */}
-            {[[-20,80,420,500],[30,20,380,420],[-30,300,420,600]].map(([x1,y1,x2,y2],i) =>
-                <line key={'d'+i} x1={x1} y1={y1} x2={x2} y2={y2}
-                    stroke="rgba(80,160,255,0.035)" strokeWidth="1"/>
-            )}
+            {/* ── OCEANO ── */}
+            <rect x="-800" y="-800" width="2000" height="2120" fill="url(#ocean-deep)"/>
+            <rect x="-800" y="-800" width="2000" height="2120" fill="url(#sun-glint)"/>
+            {WAVES.map(([wx, wy], i) => (
+                <path key={'w'+i} className="isle-wave" style={{animationDelay:`${(i * 0.37) % 4}s`}}
+                    d={`M ${wx} ${wy} q 4 -4 8 0 q 4 -4 8 0`} fill="none"
+                    stroke="rgba(186,230,253,0.45)" strokeWidth="1.2" strokeLinecap="round"/>
+            ))}
 
-            {/* Rocks in the sea */}
-            {[[45,180,14,8],[350,380,12,7],[30,420,10,6],[368,140,11,6],[355,470,9,5],[22,320,8,5]].map(([rx,ry,rw,rh],i) =>
+            {/* Scogli */}
+            {[[45,180,9,6],[352,384,8,5],[24,420,7,4],[376,150,7,4],[360,470,6,4],[20,322,6,4]].map(([rx,ry,rw,rh],i) =>
                 <g key={'r'+i}>
-                    <ellipse cx={rx} cy={ry} rx={rw} ry={rh} fill="#2a1a0a" opacity="0.8"/>
-                    <ellipse cx={rx} cy={ry-2} rx={rw*0.7} ry={rh*0.5} fill="#3a2a10" opacity="0.6"/>
-                    {/* Foam around rocks */}
-                    <ellipse cx={rx} cy={ry} rx={rw+4} ry={rh+3}
-                        fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"
-                        strokeDasharray="3,4" className="foam-anim"
-                        style={{animationDelay:`${i*0.6}s`}}/>
+                    <ellipse cx={rx} cy={ry+1} rx={rw+5} ry={rh+3} fill="none" stroke="rgba(224,242,254,0.35)" strokeWidth="1.2"
+                        strokeDasharray="3,4" className="foam-anim" style={{animationDelay:`${i*0.6}s`}}/>
+                    <path d={`M ${rx-rw} ${ry+rh*0.4} Q ${rx-rw*0.6} ${ry-rh*1.2}, ${rx} ${ry-rh} Q ${rx+rw*0.7} ${ry-rh*0.9}, ${rx+rw} ${ry+rh*0.4} Z`}
+                        fill="#475569"/>
+                    <path d={`M ${rx-rw*0.5} ${ry-rh*0.4} Q ${rx-rw*0.2} ${ry-rh*0.95}, ${rx+rw*0.2} ${ry-rh*0.8}`}
+                        fill="none" stroke="#94a3b8" strokeWidth="1" strokeLinecap="round"/>
                 </g>
             )}
 
-            {/* ── ISLAND SHADOW (blur layer behind) ── */}
-            <path d={ISLAND_PATH_D}
-                fill="#000" opacity="0.4" style={{filter:'url(#soft-blur)'}}/>
+            {/* ── FONDALI (acqua turchese intorno all'isola) ── */}
+            <path d={ISLAND_PATH_D} fill="none" stroke="#2dd4bf" strokeWidth="34" strokeLinejoin="round" opacity="0.28" style={{filter:'url(#shallow-blur)'}}/>
+            <path d={ISLAND_PATH_D} fill="none" stroke="#67e8f9" strokeWidth="14" strokeLinejoin="round" opacity="0.32" style={{filter:'url(#soft-blur)'}}/>
 
-            {/* ── BEACH (outer) ── */}
-            <path d={ISLAND_PATH_D}
-                fill="url(#beach-fill)" stroke="#5a3205" strokeWidth="2.5"
-                style={{filter:'url(#isle-shadow)'}}/>
+            {/* ── SPIAGGIA ── */}
+            <path d={ISLAND_PATH_D} fill="#000" opacity="0.35" transform="translate(0,5)" style={{filter:'url(#soft-blur)'}}/>
+            <path d={ISLAND_PATH_D} fill="url(#beach-fill)" stroke="#a8763a" strokeWidth="1.5" strokeLinejoin="round"/>
 
-            {/* ── VEGETATION LAYER ── */}
+            {/* ── SCHIUMA ── */}
+            <path d={ISLAND_PATH_D} fill="none" stroke="rgba(240,249,255,0.55)" strokeWidth="2.2"
+                strokeDasharray="7,9" strokeLinejoin="round" className="foam-anim" transform="translate(0,1)"/>
+
+            {/* ── GIUNGLA ── */}
             <path d="M 200 56
                 L 214 50 L 224 56 L 238 44 L 250 52
                 C 270 46, 290 60, 310 82
@@ -444,167 +598,226 @@
                 L 100 86 L 114 76
                 C 132 62, 156 52, 178 46
                 L 188 41 L 200 56 Z"
-                fill="url(#island-fill)"/>
+                fill="url(#island-fill)" stroke="#14532d" strokeWidth="1.5" strokeLinejoin="round"/>
+            {/* Altopiani più chiari */}
+            <ellipse cx="160" cy="220" rx="70" ry="60" fill="url(#highland)"/>
+            <ellipse cx="270" cy="200" rx="60" ry="50" fill="url(#highland)"/>
+            <ellipse cx="200" cy="340" rx="80" ry="45" fill="url(#highland)" opacity="0.7"/>
+            {/* Grana della carta sull'isola */}
+            <g clipPath="url(#isle-clip)" opacity="0.5" style={{mixBlendMode:'overlay'}}>
+                <rect width="400" height="520" filter="url(#grain)"/>
+            </g>
 
-            {/* ── FOAM / SURF LINE ── */}
-            <path d={ISLAND_PATH_D}
-                fill="none"
-                stroke="rgba(200,235,255,0.28)" strokeWidth="6"
-                strokeDasharray="8,12" className="foam-anim"/>
+            {/* ── MONTAGNA DELLA FORTEZZA ── */}
+            <g>
+                <ellipse cx="202" cy="120" rx="58" ry="10" fill="#000" opacity="0.25"/>
+                <path d="M 138 120 L 172 64 L 186 78 L 200 34 L 222 70 L 232 60 L 266 120 Z" fill="#6b4423"/>
+                <path d="M 200 34 L 222 70 L 232 60 L 266 120 L 204 120 Z" fill="#4a2e17"/>
+                <path d="M 138 120 L 172 64 L 186 78 L 200 34 L 204 120 Z" fill="url(#mtn-light)" opacity="0.9"/>
+                <path d="M 200 34 L 210 52 L 204 50 L 199 56 L 193 50 L 188 54 Z" fill="#f8fafc" opacity="0.9"/>
+                <path d="M 172 64 L 178 74 L 172 72 L 167 76 Z" fill="#f1f5f9" opacity="0.75"/>
+                <path d="M 232 60 L 238 70 L 233 69 L 228 72 Z" fill="#e2e8f0" opacity="0.6"/>
+            </g>
 
-            {/* ── MOUNTAINS (fortezza area) ── */}
-            <polygon points="200,52 240,118 160,118" fill="#3e2005" opacity="0.8"/>
-            <polygon points="200,44 228,100 172,100" fill="#5a3010" opacity="0.85"/>
-            <polygon points="200,38 220,80 180,80"  fill="#7a4818" opacity="0.9"/>
-            {/* Snow cap */}
-            <polygon points="200,38 212,62 188,62"  fill="#e8dcc8" opacity="0.55"/>
+            {/* ── FIUME E LAGO ── */}
+            <path d="M 214 116 C 232 140, 214 166, 238 188 S 262 206, 258 222" fill="none"
+                stroke="#0e7490" strokeWidth="5" strokeLinecap="round" opacity="0.9"/>
+            <path d="M 214 116 C 232 140, 214 166, 238 188 S 262 206, 258 222" fill="none"
+                stroke="#67e8f9" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="4,6" className="river-flow"/>
+            <ellipse cx="262" cy="233" rx="26" ry="14" fill="#a16207" opacity="0.45"/>
+            <ellipse cx="262" cy="232" rx="23" ry="12" fill="url(#lake-fill)"/>
+            <path d="M 250 229 q 4 -3 8 0 M 262 236 q 4 -3 8 0" fill="none" stroke="rgba(224,242,254,0.7)" strokeWidth="1" strokeLinecap="round" className="isle-wave"/>
 
-            {/* ── LAKE (centro isola) ── */}
-            <ellipse cx="205" cy="258" rx="28" ry="17" fill="#0d3060" opacity="0.92"/>
-            <ellipse cx="205" cy="258" rx="23" ry="13" fill="#1a5294" opacity="0.78"/>
-            <ellipse cx="205" cy="255" rx="15" ry="8"  fill="#2272c8" opacity="0.55"/>
-            <line x1="197" y1="254" x2="213" y2="254" stroke="rgba(120,200,255,0.45)" strokeWidth="1.5" strokeLinecap="round"/>
-            <line x1="200" y1="261" x2="210" y2="261" stroke="rgba(120,200,255,0.28)" strokeWidth="1"   strokeLinecap="round"/>
-            <ellipse cx="205" cy="258" rx="29" ry="18" fill="none" stroke="rgba(56,189,248,0.32)" strokeWidth="1"/>
+            {/* ── VEGETAZIONE ── */}
+            {TREES.map(([tx,ty,r,t],i) => <Tree key={'t'+i} x={tx} y={ty} r={r} tone={t}/>)}
+            {PALMS.map(([px,py,s,f],i) => <Palm key={'p'+i} x={px} y={py} s={s} flip={f}/>)}
 
-            {/* ── VEGETATION DETAIL ── */}
-            {/* Tree clusters */}
-            {[
-                [135,210,11,9],[145,222,9,8],[125,225,10,8],   // west cluster
-                [268,228,11,9],[278,218,9,8],[258,240,10,8],   // east cluster
-                [155,315,10,8],[165,328,9,7],[145,330,9,8],    // sw cluster
-                [248,330,10,8],[260,320,9,7],[240,342,9,7],    // se cluster
-                [188,178,9,7],[198,168,8,7],[178,185,9,7],     // n-center
-                [210,380,9,7],[222,390,8,6],[198,392,8,6],     // south
-            ].map(([tx,ty,rw,rh],i) => (
-                <g key={'t'+i}>
-                    <rect x={tx-2} y={ty+2} width="4" height={rh+6} fill="#2a1500" opacity="0.7"/>
-                    <ellipse cx={tx}   cy={ty}   rx={rw}     ry={rh}     fill="#1a6030" opacity="0.85"/>
-                    <ellipse cx={tx}   cy={ty-4} rx={rw*0.75} ry={rh*0.8} fill="#228038" opacity="0.8"/>
-                    <ellipse cx={tx}   cy={ty-8} rx={rw*0.5}  ry={rh*0.6} fill="#2a9040" opacity="0.75"/>
-                </g>
-            ))}
-            {/* Palm trees near beach */}
-            {[[200,415,8,5],[168,408,7,4],[232,412,7,4]].map(([tx,ty,rw,rh],i) => (
-                <g key={'p'+i}>
-                    <rect x={tx-1.5} y={ty-16} width="3" height="18" fill="#5a3a10" opacity="0.8"
-                        style={{transform:`rotate(${i===1?-8:i===2?8:0}deg)`, transformOrigin:`${tx}px ${ty}px`}}/>
-                    <ellipse cx={tx} cy={ty-18} rx={rw} ry={rh} fill="#1a7030" opacity="0.8"
-                        style={{transform:`rotate(${i===1?-8:i===2?8:0}deg)`, transformOrigin:`${tx}px ${ty}px`}}/>
-                </g>
-            ))}
-            {/* Small bushes */}
-            {[[90,350,7,4],[310,350,6,4],[95,250,6,4],[305,250,6,4]].map(([bx,by,rw,rh],i) =>
-                <ellipse key={'b'+i} cx={bx} cy={by} rx={rw} ry={rh} fill="#1a6028" opacity="0.7"/>
-            )}
-
-            {/* ── TREASURE MAP PATHS ── */}
+            {/* ── SENTIERI DEL TESORO ── */}
             {PATHS.map(([a,b], i) => {
                 const za = ZONES.find(z => z.id===a), zb = ZONES.find(z => z.id===b);
                 if (!za || !zb) return null;
                 const vis = level >= za.unlockLevel && level >= zb.unlockLevel;
-                return <line key={'path'+i}
-                    x1={za.x} y1={za.y} x2={zb.x} y2={zb.y}
-                    stroke={vis ? "rgba(220,185,70,0.6)" : "rgba(90,80,60,0.2)"}
-                    strokeWidth="1.8" strokeDasharray="5,9"
-                    style={{transition:'stroke 0.6s'}}/>;
-            })}
-
-            {/* ── ZONES ── */}
-            {ZONES.map((zone, idx) => {
-                const unlocked = level >= zone.unlockLevel;
-                const [l1, l2] = splitLabel(zone.name);
+                const d = curvedPath(za, zb, i);
                 return (
-                    <g key={zone.id}
-                        className={`zone-btn ${unlocked ? 'zone-float' : 'zone-locked'}`}
-                        onClick={() => unlocked && onZoneClick(zone)}
-                        style={{animationDelay:`${idx * 0.45}s`}}>
-                        {/* Outer glow ring */}
-                        {unlocked && (
-                            <circle cx={zone.x} cy={zone.y} r="32"
-                                fill="none" stroke={zone.color} strokeWidth="1.2" opacity="0.35"
-                                style={{filter:`drop-shadow(0 0 5px ${zone.color})`}}/>
-                        )}
-                        {/* Circle body */}
-                        <circle cx={zone.x} cy={zone.y} r="22"
-                            fill={unlocked ? 'rgba(6,16,38,0.92)' : 'rgba(10,10,14,0.75)'}
-                            stroke={unlocked ? zone.color : '#2a2a36'}
-                            strokeWidth={unlocked ? 2.5 : 1.5}
-                            style={unlocked ? {filter:`drop-shadow(0 2px 10px ${zone.color}55)`} : {}}/>
-                        {/* Emoji */}
-                        <text x={zone.x} y={zone.y+8} textAnchor="middle" fontSize="19">
-                            {unlocked ? zone.emoji : '🔒'}
-                        </text>
-                        {/* Label background */}
-                        <rect x={zone.x-48} y={zone.y+28} width="96" height={l2 ? 26 : 14}
-                            rx="5" fill="rgba(0,0,0,0.55)" opacity={unlocked ? 0.8 : 0.4}/>
-                        {/* Label text — always fully readable, 2 lines if needed */}
-                        <text textAnchor="middle" fontSize="8.5" fontWeight="bold" fontFamily="OpenDyslexic, Verdana, sans-serif"
-                            fill={unlocked ? '#e2e8f0' : '#555'}>
-                            <tspan x={zone.x} y={zone.y + 39}>{l1}</tspan>
-                            {l2 && <tspan x={zone.x} dy="11">{l2}</tspan>}
-                        </text>
-                        {/* Fog overlay */}
-                        {!unlocked && (
-                            <circle cx={zone.x} cy={zone.y} r="28"
-                                fill="rgba(70,70,100,0.35)"
-                                style={{filter:'url(#soft-blur)'}}/>
-                        )}
+                    <g key={'path'+i}>
+                        <path d={d} fill="none" stroke={vis ? ink : '#0f172a'} strokeWidth="4" opacity={vis ? 0.35 : 0.2} strokeLinecap="round"/>
+                        <path d={d} fill="none" stroke={vis ? '#fde68a' : 'rgba(148,163,184,0.35)'}
+                            strokeWidth="1.9" strokeDasharray="5,7" strokeLinecap="round"
+                            className={vis ? 'path-march' : ''}/>
                     </g>
                 );
             })}
 
-            {/* ── AVATAR HISTORY BUBBLES ── */}
+            {/* ── ZONE ── */}
+            {ZONES.map((zone, idx) => {
+                const unlocked = level >= zone.unlockLevel;
+                const [l1, l2] = splitLabel(zone.name);
+                const lh = l2 ? 26 : 15;
+                return (
+                    <g key={zone.id}
+                        className={`zone-btn ${unlocked ? 'zone-float' : ''}`}
+                        onClick={() => onZoneClick(zone)}
+                        role="button" tabIndex="0"
+                        aria-label={unlocked ? zone.name : `${zone.name}, si svela al livello ${zone.unlockLevel}`}
+                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onZoneClick(zone); } }}
+                        style={{animationDelay:`${idx * 0.45}s`}}>
+                        {/* area di tocco ampia (≥ 56px) */}
+                        <circle cx={zone.x} cy={zone.y + 8} r="34" fill="transparent"/>
+                        <ellipse cx={zone.x} cy={zone.y + 21} rx="17" ry="4.5" fill="#000" opacity="0.35"/>
+                        {unlocked ? (
+                            <>
+                                <circle cx={zone.x} cy={zone.y} r="29" fill="none" stroke={zone.color} strokeWidth="1.5"
+                                    className="zone-pulse" style={{filter:`drop-shadow(0 0 6px ${zone.color})`, animationDelay:`${idx*0.3}s`}}/>
+                                <circle cx={zone.x} cy={zone.y} r="22" fill="url(#medal)" stroke={zone.color} strokeWidth="2.6"
+                                    style={{filter:`drop-shadow(0 2px 8px ${zone.color}88)`}}/>
+                                <circle cx={zone.x} cy={zone.y} r="18" fill="none" stroke="#fbbf24" strokeWidth="0.7" opacity="0.55"/>
+                                <text x={zone.x} y={zone.y + 7} textAnchor="middle" fontSize="19">{zone.emoji}</text>
+                            </>
+                        ) : (
+                            <>
+                                <circle cx={zone.x} cy={zone.y} r="21" fill="#0b1324" stroke="#334155" strokeWidth="1.5" opacity="0.9"/>
+                                <g style={{filter:'url(#fog-blur)'}} className="fog-drift">
+                                    <circle cx={zone.x - 12} cy={zone.y + 2} r="13" fill="#cbd5e1" opacity="0.5"/>
+                                    <circle cx={zone.x + 10} cy={zone.y - 4} r="15" fill="#e2e8f0" opacity="0.45"/>
+                                    <circle cx={zone.x + 2}  cy={zone.y + 9} r="12" fill="#94a3b8" opacity="0.45"/>
+                                </g>
+                                <text x={zone.x} y={zone.y + 5} textAnchor="middle" fontSize="14">🔒</text>
+                                <rect x={zone.x - 15} y={zone.y - 33} width="30" height="13" rx="6.5" fill="#0f172a" stroke="#fbbf24" strokeWidth="0.8" opacity="0.95"/>
+                                <text x={zone.x} y={zone.y - 23.8} textAnchor="middle" fontSize="7.5" fontWeight="bold"
+                                    fontFamily="OpenDyslexic, Verdana, sans-serif" fill="#fbbf24">Lv.{zone.unlockLevel}</text>
+                            </>
+                        )}
+                        {/* Etichetta su pergamena */}
+                        <rect x={zone.x-49} y={zone.y+27} width="98" height={lh} rx="4"
+                            fill={unlocked ? '#f5e8c0' : 'rgba(15,23,42,0.78)'}
+                            stroke={unlocked ? '#8b6410' : '#334155'} strokeWidth="1"/>
+                        <text textAnchor="middle" fontSize="8.5" fontWeight="bold" fontFamily="OpenDyslexic, Verdana, sans-serif"
+                            fill={unlocked ? ink : '#94a3b8'}>
+                            <tspan x={zone.x} y={zone.y + 38}>{l1}</tspan>
+                            {l2 && <tspan x={zone.x} dy="11">{l2}</tspan>}
+                        </text>
+                    </g>
+                );
+            })}
+
+            {/* ── SEI QUI: bandierina sull'ultima zona sbloccata ── */}
+            {here && (
+                <g className="here-bob" style={{pointerEvents:'none'}}>
+                    <line x1={here.x + 17} y1={here.y - 14} x2={here.x + 17} y2={here.y - 40} stroke="#3b2208" strokeWidth="1.6" strokeLinecap="round"/>
+                    <path d={`M ${here.x + 17} ${here.y - 40} L ${here.x + 35} ${here.y - 34} L ${here.x + 17} ${here.y - 28} Z`} fill="#dc2626" stroke="#7f1d1d" strokeWidth="0.6"/>
+                    <circle cx={here.x + 24} cy={here.y - 34} r="2.2" fill="#f8fafc"/>
+                </g>
+            )}
+
+            {/* ── NAVE (naviga lungo la costa sud) ── */}
+            {REDUCED_MOTION ? (
+                <g transform="translate(300,494) scale(0.75)"><Ship/></g>
+            ) : (
+                <g>
+                    <g transform="scale(0.75)">
+                        <g>
+                            <Ship/>
+                            <animateMotion dur="80s" repeatCount="indefinite"
+                                path="M -60 660 C 60 650, 160 672, 270 656 S 460 650, 600 662"/>
+                        </g>
+                    </g>
+                </g>
+            )}
+
+            {/* ── GABBIANI ── */}
+            <g className="gull-drift" style={{pointerEvents:'none'}}>
+                <path d="M 0 0 q 3 -3 6 0 q 3 -3 6 0" transform="translate(60,70)" fill="none" stroke="#f8fafc" strokeWidth="1.1" strokeLinecap="round"/>
+                <path d="M 0 0 q 2.4 -2.4 4.8 0 q 2.4 -2.4 4.8 0" transform="translate(76,62)" fill="none" stroke="#f8fafc" strokeWidth="1" strokeLinecap="round"/>
+            </g>
+
+            {/* ── NUVOLE ── */}
+            <g style={{pointerEvents:'none'}}>
+                <Cloud x={40}  y={150} s={0.9} cls="cloud-drift"   delay={0}/>
+                <Cloud x={120} y={330} s={0.7} cls="cloud-drift-2" delay={-30}/>
+                <Cloud x={20}  y={455} s={0.6} cls="cloud-drift"   delay={-55}/>
+            </g>
+
+            {/* ── STORICO AVATAR ── */}
             {avatarBubbles.map((av, i) => {
                 const bx = 32, by = 355 + i * 44;
                 return (
-                    <g key={'av'+i} opacity="0.92">
+                    <g key={'av'+i} opacity="0.95">
                         <circle cx={bx} cy={by} r="17" fill="rgba(10,18,38,0.95)" stroke="#fbbf24" strokeWidth="2"/>
                         <image href={av.avatarUrl} x={bx-14} y={by-14} width="28" height="28"
                             clipPath={'url(#av-clip-'+i+')'} preserveAspectRatio="xMidYMid slice"/>
                         <circle cx={bx} cy={by} r="17" fill="none" stroke="#fbbf24" strokeWidth="2"/>
-                        <text x={bx} y={by+28} textAnchor="middle" fontSize="7.5" fill="#fbbf24" fontWeight="bold" fontFamily="OpenDyslexic, Verdana, sans-serif">Lv.{av.level}</text>
+                        <rect x={bx-14} y={by+19} width="28" height="11" rx="5.5" fill="#0f172a" opacity="0.9"/>
+                        <text x={bx} y={by+27} textAnchor="middle" fontSize="7.5" fill="#fbbf24" fontWeight="bold" fontFamily="OpenDyslexic, Verdana, sans-serif">Lv.{av.level}</text>
                     </g>
                 );
             })}
 
-            {/* ── COMPASS ROSE ── */}
-            <g transform="translate(352, 468)">
-                {/* Outer decorative ring */}
-                <circle cx="0" cy="0" r="28" fill="rgba(6,16,38,0.75)"
-                    stroke="rgba(200,170,80,0.5)" strokeWidth="1.5"/>
-                <circle cx="0" cy="0" r="22" fill="none"
-                    stroke="rgba(200,170,80,0.3)" strokeWidth="0.8"/>
-                {/* Cardinal lines */}
-                <line x1="0" y1="-20" x2="0"  y2="20"  stroke="#c8a850" strokeWidth="0.8" opacity="0.6"/>
-                <line x1="-20" y1="0" x2="20" y2="0"   stroke="#c8a850" strokeWidth="0.8" opacity="0.6"/>
-                {/* Diagonal lines */}
-                <line x1="-14" y1="-14" x2="14" y2="14" stroke="#c8a850" strokeWidth="0.5" opacity="0.3"/>
-                <line x1="14" y1="-14" x2="-14" y2="14" stroke="#c8a850" strokeWidth="0.5" opacity="0.3"/>
-                {/* North arrow (gold) */}
-                <polygon points="0,-20 -5,-6 0,-10 5,-6" fill="#fbbf24"/>
-                {/* South arrow (white) */}
-                <polygon points="0,20 -4,7 0,11 4,7"    fill="#e2d8b8" opacity="0.8"/>
-                {/* East arrow */}
-                <polygon points="20,0 7,-4 11,0 7,4"    fill="#e2d8b8" opacity="0.7"/>
-                {/* West arrow */}
-                <polygon points="-20,0 -7,-4 -11,0 -7,4" fill="#e2d8b8" opacity="0.7"/>
-                {/* Center dot */}
-                <circle cx="0" cy="0" r="3" fill="#fbbf24"/>
-                {/* Cardinal labels */}
-                <text x="0"   y="-24" textAnchor="middle" fontSize="7" fill="#fbbf24" fontWeight="bold">N</text>
-                <text x="0"   y="33"  textAnchor="middle" fontSize="7" fill="#c8b890">S</text>
-                <text x="27"  y="3"   textAnchor="middle" fontSize="7" fill="#c8b890">E</text>
-                <text x="-27" y="3"   textAnchor="middle" fontSize="7" fill="#c8b890">O</text>
+            {/* ── ROSA DEI VENTI ── */}
+            <g transform="translate(366, 40)" style={{pointerEvents:'none'}}>
+                <circle r="25" fill="rgba(245,232,192,0.92)" stroke="#8b6410" strokeWidth="1.5"/>
+                <circle r="20" fill="none" stroke="#8b6410" strokeWidth="0.6" opacity="0.6"/>
+                <g opacity="0.55">
+                    <polygon points="0,-15 3,-3 15,0 3,3 0,15 -3,3 -15,0 -3,-3" fill="#a16207" transform="rotate(45)"/>
+                </g>
+                <polygon points="0,-18 4,-4 0,0" fill="#b91c1c"/>
+                <polygon points="0,-18 -4,-4 0,0" fill="#ef4444"/>
+                <polygon points="0,18 4,4 0,0"  fill="#3b2506"/>
+                <polygon points="0,18 -4,4 0,0" fill="#78350f"/>
+                <polygon points="18,0 4,4 0,0"  fill="#3b2506"/>
+                <polygon points="18,0 4,-4 0,0" fill="#78350f"/>
+                <polygon points="-18,0 -4,-4 0,0" fill="#3b2506"/>
+                <polygon points="-18,0 -4,4 0,0"  fill="#78350f"/>
+                <circle r="2.4" fill="#fbbf24" stroke="#78350f" strokeWidth="0.6"/>
+                <text y="-20.5" textAnchor="middle" fontSize="6" fontWeight="bold" fill="#7f1d1d" fontFamily="Georgia, serif">N</text>
             </g>
+
+            {/* ── VIGNETTA ── */}
+            <rect x="-800" y="-800" width="2000" height="2120" fill="url(#vignette)" style={{pointerEvents:'none'}}/>
         </svg>
         );
     };
 
     /* ── ZONE MODAL ─────────────────────────────────────────── */
+    const speak = (text) => {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        if (window.EduGamer?.applyVoice) window.EduGamer.applyVoice(u); else u.lang = 'it-IT';
+        window.speechSynthesis.speak(u);
+    };
+
+    /* Zona ancora nella nebbia: mostra quando si svela */
+    const LockedZoneModal = ({ zone, xp, onClose }) => {
+        const need = Math.max(0, LEVEL_XP[zone.unlockLevel - 1] - xp);
+        const pct = Math.min(100, Math.round(xp / LEVEL_XP[zone.unlockLevel - 1] * 100));
+        return (
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3"
+                style={{background:'rgba(2,6,23,0.8)'}} onClick={onClose}>
+                <div className="w-full max-w-md rounded-3xl p-6 text-center modal-enter relative overflow-hidden"
+                    style={{background:'linear-gradient(170deg,#1e293b,#0b1324)', border:'2px solid #475569', boxShadow:'0 20px 60px rgba(0,0,0,0.6)'}}
+                    onClick={e => e.stopPropagation()}>
+                    <div className="text-5xl mb-2" style={{filter:'grayscale(0.6) drop-shadow(0 0 14px rgba(148,163,184,0.5))'}}>🌫️</div>
+                    <h2 className="title-pirate text-2xl font-black text-slate-100 mb-1">{zone.name}</h2>
+                    <p className="text-slate-400 text-sm mb-4">Questa terra è ancora avvolta nella nebbia.</p>
+                    <div className="rounded-2xl p-4 mb-4" style={{background:'rgba(251,191,36,0.08)', border:'1px solid rgba(251,191,36,0.3)'}}>
+                        <p className="text-yellow-300 font-bold mb-2">Si svela al Livello {zone.unlockLevel}</p>
+                        <div style={{height:'10px', background:'#0f172a', borderRadius:'9999px', overflow:'hidden'}}>
+                            <div className="xp-fill" style={{height:'100%', width:`${pct}%`, borderRadius:'9999px'}}/>
+                        </div>
+                        <p className="text-slate-300 text-sm mt-2">Mancano <strong className="text-yellow-300">{need} XP</strong></p>
+                    </div>
+                    <button onClick={onClose} className="w-full py-4 rounded-2xl font-bold text-white bg-slate-700 border border-slate-500 active:scale-95 transition-transform">
+                        ⚓ Torna alla mappa
+                    </button>
+                </div>
+            </div>
+        );
+    };
+
     const ZoneModal = ({ zone, onClose, paths = [] }) => {
         const char = CHARACTERS[zone.charId];
         const path = zone.pathKey ? paths.find(p => p.key === zone.pathKey) : null;
+        useEffect(() => () => window.speechSynthesis?.cancel(), []);
         return (
             <div className="fixed inset-0 z-50 flex items-end justify-center p-3"
                 style={{background:'rgba(0,0,0,0.78)'}} onClick={onClose}>
@@ -625,9 +838,15 @@
                     </div>
                     <div className="p-5 pt-4">
                         {/* Character greeting */}
-                        <div className="rounded-2xl p-4 mb-4 italic text-sm text-slate-200 leading-relaxed"
-                            style={{background:`${zone.color}10`, border:`1px solid ${zone.color}25`}}>
-                            "{char.greeting}"
+                        <div className="rounded-2xl p-4 mb-4 text-sm leading-relaxed relative"
+                            style={{background:'linear-gradient(150deg,#f5e8c0,#ead9a0)', border:'2px solid #8b6410', color:'#3b2506',
+                                boxShadow:'inset 0 0 24px rgba(139,100,16,0.25)'}}>
+                            <p className="m-0 pr-14">{char.greeting}</p>
+                            <button onClick={() => speak(char.greeting)} aria-label={`Ascolta ${char.name}`}
+                                className="absolute top-3 right-3 w-12 h-12 rounded-full flex items-center justify-center text-xl active:scale-90 transition-transform"
+                                style={{background:'#78350f', color:'#fde68a', border:'2px solid #fbbf24'}}>
+                                🔊
+                            </button>
                         </div>
 
                         {/* Path stats */}
@@ -899,7 +1118,9 @@
         // Modali condizionali — inlinati più sotto in ogni layout per evitare
         // il bug di remount che avevano dentro un sotto-componente definito in App.
         const renderModals = () => <>
-            {selectedZone  && <ZoneModal zone={selectedZone} paths={paths} onClose={() => setSelectedZone(null)}/>}
+            {selectedZone  && (stats.level >= selectedZone.unlockLevel
+                ? <ZoneModal zone={selectedZone} paths={paths} onClose={() => setSelectedZone(null)}/>
+                : <LockedZoneModal zone={selectedZone} xp={stats.xp} onClose={() => setSelectedZone(null)}/>)}
             {justUnlocked  && <LevelUpOverlay zone={justUnlocked} onClose={() => setJustUnlocked(null)}/>}
             {showParchment && <ParchmentModal onClose={() => setShowParchment(false)}/>}
             {showWanted && wantedPoster && <WantedPosterModal poster={wantedPoster} onClose={() => setShowWanted(false)}/>}
@@ -914,8 +1135,6 @@
 
                 {/* ── LEFT: Island Map (58%) ── */}
                 <div style={{flex:'0 0 58%', position:'relative', overflow:'hidden', height:'100%'}}>
-                    <div className="wave-layer   absolute inset-0 pointer-events-none"/>
-                    <div className="wave-layer-2 absolute inset-0 pointer-events-none opacity-60"/>
                     <div style={{width:'100%', height:'100%'}}>
                         <IslandSVG level={stats.level} onZoneClick={setSelectedZone} avatarHistory={avatarHistory}/>
                     </div>
@@ -925,14 +1144,14 @@
                     </div>
                     {/* Hint overlay */}
                     <div style={{position:'absolute', bottom:0, left:0, right:0, textAlign:'center',
-                        padding:'5px', background:'rgba(5,12,26,0.65)', color:'#475569', fontSize:'11px', zIndex:5}}>
+                        padding:'6px', background:'linear-gradient(0deg,rgba(5,12,26,0.85),transparent)', color:'#e2e8f0', fontSize:'12px', zIndex:5}}>
                         🗺️ Tocca una zona per esplorarla
                     </div>
                 </div>
 
                 {/* ── RIGHT: Info Panel (42%) ── */}
                 <div style={{flex:'0 0 42%', display:'flex', flexDirection:'column', overflow:'hidden',
-                    background:'rgba(5,12,26,0.97)', borderLeft:'1px solid rgba(251,191,36,0.15)'}}>
+                    background:'linear-gradient(180deg,#0c1830 0%,#060d1c 100%)', borderLeft:'2px solid rgba(251,191,36,0.3)', boxShadow:'-10px 0 30px rgba(0,0,0,0.5)'}}>
 
                     {/* Avatar + Name + XP */}
                     <div style={{padding:'18px 20px 14px', flexShrink:0, borderBottom:'1px solid rgba(251,191,36,0.08)'}}>
@@ -943,15 +1162,12 @@
                                     overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                                     {profile?.name || 'Pirata'}
                                 </div>
-                                <div style={{color:'#64748b', fontSize:'12px', marginTop:'3px'}}>
+                                <div style={{color:'#cbd5e1', fontSize:'12px', marginTop:'3px'}}>
                                     Lv.{stats.level} · {getLevelName(stats.level)}
                                 </div>
                             </div>
                             {avatarHistory.length > 0 && (
-                                <button onClick={() => setShowHistory(true)}
-                                    style={{width:'36px', height:'36px', borderRadius:'10px', flexShrink:0,
-                                        background:'rgba(30,41,59,0.8)', border:'1px solid rgba(100,116,139,0.35)',
-                                        fontSize:'18px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                                <button onClick={() => setShowHistory(true)} className="icon-btn" aria-label="Storico avatar">
                                     🕰️
                                 </button>
                             )}
@@ -959,17 +1175,17 @@
                         {/* XP Bar */}
                         <div style={{display:'flex', justifyContent:'space-between', marginBottom:'5px', fontSize:'11px'}}>
                             <span style={{color:'#fbbf24', fontWeight:'bold'}}>{xp.cur} / {xp.needed} XP</span>
-                            <span style={{color:'#475569'}}>{xp.pct}%</span>
+                            <span style={{color:'#94a3b8'}}>{xp.pct}%</span>
                         </div>
                         <div className="xp-bar-anim" style={{height:'9px', background:'#1e293b', borderRadius:'9999px', overflow:'hidden'}}>
-                            <div style={{height:'100%', width:`${xp.pct}%`, background:'linear-gradient(90deg,#fbbf24,#f97316)',
+                            <div className="xp-fill" style={{height:'100%', width:`${xp.pct}%`,
                                 borderRadius:'9999px', transition:'width 0.7s ease-out'}}/>
                         </div>
                     </div>
 
                     {/* 4 Percorsi — scrollable */}
                     <div style={{flex:1, overflowY:'auto', padding:'10px 14px'}}>
-                        <div style={{fontSize:'10px', color:'#475569', fontWeight:'bold', textTransform:'uppercase',
+                        <div style={{fontSize:'10px', color:'#fbbf24', fontWeight:'bold', textTransform:'uppercase',
                             letterSpacing:'0.1em', marginBottom:'8px'}}>
                             I tuoi percorsi · {stats.xp} XP totali
                         </div>
@@ -992,7 +1208,7 @@
                                                     overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                                                     {path.name} · <span style={{color:path.color}}>{path.tierName}</span>
                                                 </div>
-                                                <div style={{fontSize:'10px', color:'#64748b', marginTop:'1px'}}>
+                                                <div style={{fontSize:'10px', color:'#94a3b8', marginTop:'1px'}}>
                                                     {path.value} {path.desc.toLowerCase()}
                                                     {!path.isMax && ` · → ${path.nextTierName}`}
                                                 </div>
@@ -1017,18 +1233,18 @@
                     <div style={{padding:'10px 16px 14px', flexShrink:0, borderTop:'1px solid rgba(251,191,36,0.08)',
                         display:'flex', gap:'8px'}}>
                         <button onClick={() => setShowParchment(true)}
-                            style={{flex:1, padding:'10px', borderRadius:'12px', fontSize:'20px', cursor:'pointer',
+                            style={{flex:1, minHeight:'56px', padding:'10px', borderRadius:'14px', fontSize:'22px', cursor:'pointer',
                                 background:'rgba(120,80,10,0.3)', border:'1px solid rgba(139,100,16,0.35)'}}>
                             📜
                         </button>
                         <a href="profilo.html"
-                            style={{flex:1, padding:'10px', borderRadius:'12px', fontSize:'20px',
+                            style={{flex:1, minHeight:'56px', padding:'10px', borderRadius:'14px', fontSize:'22px',
                                 background:'rgba(99,40,160,0.3)', border:'1px solid rgba(139,92,246,0.35)',
                                 display:'flex', alignItems:'center', justifyContent:'center', textDecoration:'none'}}>
                             🏆
                         </a>
                         <a href="index.html"
-                            style={{flex:1, padding:'10px', borderRadius:'12px', fontSize:'20px',
+                            style={{flex:1, minHeight:'56px', padding:'10px', borderRadius:'14px', fontSize:'22px',
                                 background:'rgba(30,41,59,0.8)', border:'1px solid rgba(71,85,105,0.35)',
                                 display:'flex', alignItems:'center', justifyContent:'center', textDecoration:'none'}}>
                             🏠
@@ -1047,8 +1263,7 @@
             <div style={{position:'fixed', inset:0, display:'flex', flexDirection:'column', overflow:'hidden', background:'#071020'}}>
 
                 {/* TOP BAR */}
-                <div style={{flexShrink:0, display:'flex', alignItems:'center', gap:'10px', padding:'8px 12px',
-                    background:'rgba(5,12,26,0.96)', borderBottom:'1px solid rgba(251,191,36,0.15)', backdropFilter:'blur(12px)'}}>
+                <div className="deck-bar" style={{flexShrink:0, display:'flex', alignItems:'center', gap:'8px', padding:'8px 10px', position:'relative', zIndex:5}}>
                     <AvatarBtn profile={profile} onEdit={() => setStage('onboarding')} size={44} fontSize="20px"/>
                     <div style={{flex:1, minWidth:0}}>
                         <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:'4px'}}>
@@ -1056,42 +1271,31 @@
                                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
                                 {profile?.name || 'Pirata'}
                             </span>
-                            <span style={{color:'#64748b', fontSize:'11px', flexShrink:0, marginLeft:'4px'}}>
+                            <span style={{color:'#cbd5e1', fontSize:'11px', flexShrink:0, marginLeft:'4px'}}>
                                 Lv.{stats.level} · {getLevelName(stats.level)}
                             </span>
                         </div>
                         <div className="xp-bar-anim" style={{height:'8px', background:'#1e293b', borderRadius:'9999px', overflow:'hidden'}}>
-                            <div style={{height:'100%', width:`${xp.pct}%`, background:'linear-gradient(90deg,#fbbf24,#f97316)',
+                            <div className="xp-fill" style={{height:'100%', width:`${xp.pct}%`,
                                 borderRadius:'9999px', transition:'width 0.7s ease-out', boxShadow:'0 0 8px rgba(251,191,36,0.5)'}}/>
                         </div>
-                        <div style={{color:'#475569', fontSize:'10px', marginTop:'2px'}}>{xp.cur} / {xp.needed} XP</div>
+                        <div style={{color:'#94a3b8', fontSize:'10px', marginTop:'2px'}}>{xp.cur} / {xp.needed} XP</div>
                     </div>
                     {avatarHistory.length > 0 && (
-                        <button onClick={() => setShowHistory(true)}
-                            style={{width:'38px', height:'38px', borderRadius:'10px', flexShrink:0,
-                                background:'rgba(30,41,59,0.8)', border:'1px solid rgba(100,116,139,0.35)',
-                                fontSize:'18px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                        <button onClick={() => setShowHistory(true)} className="icon-btn" aria-label="Storico avatar">
                             🕰️
                         </button>
                     )}
-                    <button onClick={() => setShowParchment(true)}
-                        style={{width:'38px', height:'38px', borderRadius:'10px', flexShrink:0,
-                            background:'rgba(120,80,10,0.3)', border:'1px solid rgba(139,100,16,0.4)',
-                            fontSize:'18px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                    <button onClick={() => setShowParchment(true)} className="icon-btn icon-btn--gold" aria-label="Leggi la pergamena">
                         📜
                     </button>
-                    <a href="index.html"
-                        style={{width:'38px', height:'38px', borderRadius:'10px', flexShrink:0,
-                            background:'rgba(30,41,59,0.8)', border:'1px solid rgba(71,85,105,0.4)',
-                            fontSize:'18px', display:'flex', alignItems:'center', justifyContent:'center', textDecoration:'none'}}>
+                    <a href="index.html" className="icon-btn" aria-label="Torna alla Home">
                         🏠
                     </a>
                 </div>
 
                 {/* MAP */}
                 <div style={{flex:1, position:'relative', overflow:'hidden'}}>
-                    <div className="wave-layer   absolute inset-0 pointer-events-none"/>
-                    <div className="wave-layer-2 absolute inset-0 pointer-events-none opacity-60"/>
                     <div style={{width:'100%', height:'100%'}}>
                         <IslandSVG level={stats.level} onZoneClick={setSelectedZone} avatarHistory={avatarHistory}/>
                     </div>
@@ -1102,8 +1306,8 @@
                 </div>
 
                 {/* BOTTOM HINT */}
-                <div style={{flexShrink:0, textAlign:'center', padding:'5px', color:'#475569', fontSize:'11px',
-                    background:'rgba(5,12,26,0.92)'}}>
+                <div style={{flexShrink:0, textAlign:'center', padding:'6px', color:'#cbd5e1', fontSize:'12px',
+                    background:'linear-gradient(0deg,rgba(5,12,26,0.97),rgba(12,24,48,0.95))', borderTop:'1px solid rgba(251,191,36,0.22)'}}>
                     🗺️ Tocca una zona per esplorarla · {stats.xp} XP · Livello {stats.level}
                 </div>
 

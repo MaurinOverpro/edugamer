@@ -84,7 +84,7 @@ for (const file of htmlFiles) {
 console.log(`▸ ${htmlFiles.length} HTML trasformati (${babelBlocks} blocchi JSX precompilati).`);
 
 // --- 3. Copia asset ---
-const assetExt = ['.js', '.jpg', '.jpeg', '.png', '.ico', '.svg', '.webp', '.gif'];
+const assetExt = ['.js', '.css', '.jpg', '.jpeg', '.png', '.ico', '.svg', '.webp', '.gif'];
 const skipFiles = new Set(['build.mjs', 'tailwind.config.js']);
 for (const f of fs.readdirSync(root)) {
   const full = path.join(root, f);
