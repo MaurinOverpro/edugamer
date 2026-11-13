@@ -306,7 +306,7 @@ const EduGamer = {
     // Unico punto da cui i moduli chiamano Gemini. Per cambiare un modello si tocca
     // solo MODELS (verifica prima https://ai.google.dev/gemini-api/docs/deprecations).
     MODELS: {
-        math:   'gemini-3.6-flash',        // ragionamento matematico (matematica, risolvitore, discover, tutor sui numeri)
+        math:   'gemini-4-hydrogen',       // ragionamento: risolvitore, discover, tutor sui numeri, ortografia di italiano (test 13/11/2026: 34/34, il più veloce)
         text:   'gemini-3.5-flash-lite',   // lingua, mappe, chat, ricerche
         image:  'gemini-3.1-flash-image',  // avatar Isola, illustrazioni Ricerche
         poster: 'gemini-3-pro-image'       // Wanted Poster (testo dentro l'immagine)
